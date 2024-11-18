@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "739800455486",
+    "project_id": "winetrakerfb",
+    "storage_bucket": "winetrakerfb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:739800455486:android:e536afaf095be8b18e746f",
+        "android_client_info": {
+          "package_name": "com.example.winertraker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-ZNZaieExnPe_3JUpniDghyYyLhdo3HU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
