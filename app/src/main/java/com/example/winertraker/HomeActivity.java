@@ -130,7 +130,7 @@ public class HomeActivity extends AppCompatActivity {
             if (task.isSuccessful() && task.getResult() != null) {
                 int totalWines = 0;
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
-                List<String> optimalWineNames = new ArrayList<>(); // Lista para almacenar nombres de vinos óptimos
+                List<String> optimalWineNames = new ArrayList<>();
 
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     totalWines++;
@@ -139,7 +139,7 @@ public class HomeActivity extends AppCompatActivity {
                     String wineName = document.getString("wineName");
 
                     if (variety != null) {
-                        variety = capitalize(variety); // Capitaliza el nombre de la variedad
+                        variety = capitalize(variety);
                         wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
 
                         if (vintageStr != null) {
@@ -147,7 +147,7 @@ public class HomeActivity extends AppCompatActivity {
                                 int vintageYear = Integer.parseInt(vintageStr);
                                 if (isOptimalForConsumption(variety, vintageYear)) {
                                     if (wineName != null) {
-                                        optimalWineNames.add(wineName); // Añadir el nombre del vino óptimo a la lista
+                                        optimalWineNames.add(wineName);
                                     }
                                 }
                             } catch (NumberFormatException e) {
@@ -157,7 +157,7 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
 
-                // Actualiza las estadísticas en el TextView
+                // Update statistics TextView
                 StringBuilder statsBuilder = new StringBuilder();
                 statsBuilder.append("Total vinos en colección: ").append(totalWines).append("\n\n");
                 for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
@@ -165,10 +165,10 @@ public class HomeActivity extends AppCompatActivity {
                 }
                 collectionStatsTextView.setText(statsBuilder.toString());
 
-                // Actualiza el gráfico circular
+                // Update pie chart
                 updatePieChart(wineVarietyCounts);
 
-                // Envía una notificación si hay vinos óptimos
+                // Send notification if there are optimal wines
                 if (!optimalWineNames.isEmpty()) {
                     sendOptimalConsumptionNotification(optimalWineNames);
                 }
@@ -191,12 +191,10 @@ public class HomeActivity extends AppCompatActivity {
         dataSet.setValueTextSize(12f);
 
         PieData data = new PieData(dataSet);
-
-        // Configurar un ValueFormatter personalizado para mostrar valores como enteros
         data.setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
-                return String.valueOf((int) value); // Convierte a entero y devuelve como String
+                return String.valueOf((int) value);
             }
         });
 
@@ -253,8 +251,9 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
 
-        Intent intent = new Intent(this, HomeActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        // Cambia el Intent para llevar a ViewCollectionActivity sin usar FLAG_ACTIVITY_CLEAR_TASK
+        Intent intent = new Intent(this, ViewCollectionActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // Solo se asegura de iniciar como nueva actividad en la pila
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
@@ -275,6 +274,7 @@ public class HomeActivity extends AppCompatActivity {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
         notificationManager.notify(1, builder.build());
     }
+
 
     private String capitalize(String text) {
         String[] words = text.split(" ");

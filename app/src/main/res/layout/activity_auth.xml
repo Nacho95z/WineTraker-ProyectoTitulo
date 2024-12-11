@@ -37,6 +37,7 @@
             android:layout_height="wrap_content"
             android:hint="Correo electrónico"
             android:text="araneda.ign@gmail.com"
+            android:textColor="@color/my_dark_primary"
             />
 
         <Space
@@ -48,6 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Contraseña"
+            android:textColor="@color/my_dark_primary"
             android:inputType="textPassword"
             android:text="112233"/>
 
