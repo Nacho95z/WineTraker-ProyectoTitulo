@@ -98,6 +98,31 @@ public class HomeActivity extends AppCompatActivity {
         // Load collection stats
         loadCollectionStats();
     }
+    private boolean isOptimalForConsumption(String variety, int vintageYear) {
+        int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        int wineAge = currentYear - vintageYear;
+
+        switch (variety.toLowerCase()) {
+            case "pinot noir":
+            case "gamay":
+                return wineAge >= 2 && wineAge <= 5;
+            case "merlot":
+            case "tempranillo":
+                return wineAge >= 5 && wineAge <= 10;
+            case "cabernet sauvignon":
+            case "syrah":
+                return wineAge >= 10 && wineAge <= 20;
+            case "sauvignon blanc":
+            case "riesling":
+                return wineAge >= 1 && wineAge <= 3;
+            case "chardonnay":
+            case "viognier":
+                return wineAge >= 5 && wineAge <= 8;
+            default:
+                return false; // Para variedades no especificadas
+        }
+    }
+
 
     private void redirectToActivity(Class<?> activityClass) {
         Intent intent = new Intent(HomeActivity.this, activityClass);
