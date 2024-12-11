@@ -51,7 +51,7 @@
             android:hint="Nombre del Vino"
             android:inputType="text"
             android:padding="8dp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/my_dark_primary"
             android:textColorHint="#888888" />
 
         <EditText
@@ -61,7 +61,7 @@
             android:hint="Variedad"
             android:inputType="text"
             android:padding="8dp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/my_dark_primary"
             android:textColorHint="#888888" />
 
         <EditText
@@ -71,7 +71,7 @@
             android:hint="Cosecha (Año)"
             android:inputType="number"
             android:padding="8dp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/my_dark_primary"
             android:textColorHint="#888888" />
 
         <EditText
@@ -81,7 +81,7 @@
             android:hint="Origen"
             android:inputType="text"
             android:padding="8dp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/my_dark_primary"
             android:textColorHint="#888888" />
 
         <EditText
@@ -91,7 +91,7 @@
             android:hint="Porcentaje (%)"
             android:inputType="numberDecimal"
             android:padding="8dp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/my_dark_primary"
             android:textColorHint="#888888" />
     </LinearLayout>
 

@@ -153,7 +153,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private String identifyWine(String text) {
-        for (String keyword : new String[]{"cabernet", "merlot", "chardonnay", "sauvignon blanc", "pinot noir", "malbec", "carmenere"}) {
+        for (String keyword : new String[]{"cabernet", "merlot", "chardonnay", "sauvignon blanc","SAUVIGNON BLANC", "pinot noir", "malbec", "carmenere"}) {
             if (text.toLowerCase().contains(keyword)) {
                 return keyword;
             }
