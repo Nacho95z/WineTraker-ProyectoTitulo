@@ -130,8 +130,7 @@ public class HomeActivity extends AppCompatActivity {
             if (task.isSuccessful() && task.getResult() != null) {
                 int totalWines = 0;
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
-                boolean optimalConsumptionFound = false;
-                String optimalWineName = null;
+                List<String> optimalWineNames = new ArrayList<>(); // Lista para almacenar nombres de vinos óptimos
 
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     totalWines++;
@@ -140,15 +139,16 @@ public class HomeActivity extends AppCompatActivity {
                     String wineName = document.getString("wineName");
 
                     if (variety != null) {
-                        variety = capitalize(variety); // Capitalize the variety name
+                        variety = capitalize(variety); // Capitaliza el nombre de la variedad
                         wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
 
                         if (vintageStr != null) {
                             try {
                                 int vintageYear = Integer.parseInt(vintageStr);
                                 if (isOptimalForConsumption(variety, vintageYear)) {
-                                    optimalConsumptionFound = true;
-                                    optimalWineName = wineName;
+                                    if (wineName != null) {
+                                        optimalWineNames.add(wineName); // Añadir el nombre del vino óptimo a la lista
+                                    }
                                 }
                             } catch (NumberFormatException e) {
                                 e.printStackTrace();
@@ -157,7 +157,7 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
 
-                // Update statistics TextView
+                // Actualiza las estadísticas en el TextView
                 StringBuilder statsBuilder = new StringBuilder();
                 statsBuilder.append("Total vinos en colección: ").append(totalWines).append("\n\n");
                 for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
@@ -165,12 +165,12 @@ public class HomeActivity extends AppCompatActivity {
                 }
                 collectionStatsTextView.setText(statsBuilder.toString());
 
-                // Update the pie chart
+                // Actualiza el gráfico circular
                 updatePieChart(wineVarietyCounts);
 
-                // Send notification if optimal wines are found
-                if (optimalConsumptionFound && optimalWineName != null) {
-                    sendOptimalConsumptionNotification(optimalWineName);
+                // Envía una notificación si hay vinos óptimos
+                if (!optimalWineNames.isEmpty()) {
+                    sendOptimalConsumptionNotification(optimalWineNames);
                 }
             } else {
                 collectionStatsTextView.setText("No se pudo cargar la colección.");
@@ -238,7 +238,14 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private void sendOptimalConsumptionNotification(String wineName) {
+    private void sendOptimalConsumptionNotification(List<String> wineNames) {
+        if (wineNames.isEmpty()) return;
+
+        StringBuilder notificationMessage = new StringBuilder("Los siguientes vinos están en su punto óptimo de consumo:\n");
+        for (String wine : wineNames) {
+            notificationMessage.append("- ").append(wine).append("\n");
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1);
@@ -259,7 +266,8 @@ public class HomeActivity extends AppCompatActivity {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
                 .setSmallIcon(R.drawable.ic_wine)
                 .setContentTitle("Consumo óptimo")
-                .setContentText("El vino \"" + wineName + "\" está en su punto óptimo de consumo. ¡Disfrútalo!")
+                .setContentText("Revisa tu colección para más detalles.")
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(notificationMessage.toString()))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
