@@ -1,10 +1,130 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".DisplayImageAndTextActivity">
+    android:padding="16dp"
+    android:background="#FFFFFF"> <!-- Fondo blanco explícito -->>>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Contenedor horizontal para la imagen y el texto -->
+    <LinearLayout
+        android:id="@+id/contentLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentTop="true"
+        android:layout_marginBottom="16dp">
+
+        <!-- Imagen capturada (a la izquierda) -->
+        <ImageView
+            android:id="@+id/capturedImageView"
+            android:layout_width="0dp"
+            android:layout_height="250dp"
+            android:layout_weight="1"
+            android:scaleType="centerCrop"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Texto reconocido editable (a la derecha) -->
+        <EditText
+            android:id="@+id/recognizedTextEdit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#80000000"
+            android:padding="8dp"
+            android:hint="Edit recognized text here"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- Campos adicionales -->
+    <LinearLayout
+        android:id="@+id/textFieldsLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_below="@id/contentLayout"
+        android:layout_marginTop="16dp">
+
+        <EditText
+            android:id="@+id/wineNameEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nombre del Vino"
+            android:inputType="text"
+            android:padding="8dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/nameEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Variedad"
+            android:inputType="text"
+            android:padding="8dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/vintageEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Cosecha (Año)"
+            android:inputType="number"
+            android:padding="8dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/originEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Origen"
+            android:inputType="text"
+            android:padding="8dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/percentageEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Porcentaje (%)"
+            android:inputType="numberDecimal"
+            android:padding="8dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+    </LinearLayout>
+
+    <!-- Contenedor para los botones en la parte inferior -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/buttonSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Guardar"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/buttonDiscard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Descartar"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- ProgressBar centrado -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
+</RelativeLayout>

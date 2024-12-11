@@ -5,7 +5,8 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".AuthActivity">
+    tools:context=".AuthActivity"
+    android:background="#FFFFFF"> <!-- Fondo blanco explícito -->>
 
     <LinearLayout
         android:layout_width="0dp"
@@ -60,7 +61,7 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/signUpButton"
+                android:id="@+id/registerButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"

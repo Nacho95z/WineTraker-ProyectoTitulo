@@ -12,7 +12,20 @@
           "package_name": "com.example.winertraker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "739800455486-lq4m0ui00qnqjakon6bjue2otemvd6ds.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.winertraker",
+            "certificate_hash": "c1f67631b82aa4e083f6fdc3691c0ed42a2a7c0a"
+          }
+        },
+        {
+          "client_id": "739800455486-8a5nj3k4jkfupmpu451qno707hecbc1s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB-ZNZaieExnPe_3JUpniDghyYyLhdo3HU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "739800455486-8a5nj3k4jkfupmpu451qno707hecbc1s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
