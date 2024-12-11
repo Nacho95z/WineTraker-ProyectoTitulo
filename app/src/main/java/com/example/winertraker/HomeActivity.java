@@ -1,26 +1,26 @@
 package com.example.winertraker;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.core.widget.ImageViewCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
-import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.PieChart;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
-import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -45,13 +45,6 @@ public class HomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-
-        // Edge-to-Edge configuration
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
         // Initialize Firebase Auth
         user = FirebaseAuth.getInstance().getCurrentUser();
@@ -95,9 +88,89 @@ public class HomeActivity extends AppCompatActivity {
         addBottleButton.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
         viewCollectionButton.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
 
+        // Create notification channel
+        createNotificationChannel();
+
         // Load collection stats
         loadCollectionStats();
     }
+
+    private void redirectToActivity(Class<?> activityClass) {
+        Intent intent = new Intent(HomeActivity.this, activityClass);
+        startActivity(intent);
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            String channelId = "wine_optimal_channel";
+            CharSequence name = "Consumo Óptimo";
+            String description = "Notificación sobre consumo óptimo de vinos";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(channelId, name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    private void loadCollectionStats() {
+        CollectionReference collectionRef = firestore.collection("descriptions")
+                .document(userId)
+                .collection("wineDescriptions");
+
+        collectionRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                int totalWines = 0;
+                Map<String, Integer> wineVarietyCounts = new HashMap<>();
+                boolean optimalConsumptionFound = false;
+
+                for (QueryDocumentSnapshot document : task.getResult()) {
+                    totalWines++;
+                    String variety = document.getString("variety");
+                    String vintageStr = document.getString("vintage");
+
+                    if (variety != null) {
+                        wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
+
+                        if (vintageStr != null) {
+                            try {
+                                int vintageYear = Integer.parseInt(vintageStr);
+                                if (isOptimalForConsumption(variety, vintageYear)) {
+                                    optimalConsumptionFound = true;
+                                }
+                            } catch (NumberFormatException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+
+                // Update statistics TextView
+                StringBuilder statsBuilder = new StringBuilder();
+                statsBuilder.append("Total vinos: ").append(totalWines).append("\n");
+                for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
+                    statsBuilder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                }
+                collectionStatsTextView.setText(statsBuilder.toString());
+
+                // Update the pie chart
+                updatePieChart(wineVarietyCounts);
+
+                // Send notification if optimal wines are found
+                if (optimalConsumptionFound) {
+                    sendOptimalConsumptionNotification();
+                }
+            } else {
+                collectionStatsTextView.setText("No se pudo cargar la colección.");
+            }
+        }).addOnFailureListener(e -> {
+            collectionStatsTextView.setText("Error al cargar estadísticas.");
+        });
+    }
+
     private boolean isOptimalForConsumption(String variety, int vintageYear) {
         int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
         int wineAge = currentYear - vintageYear;
@@ -119,50 +192,52 @@ public class HomeActivity extends AppCompatActivity {
             case "viognier":
                 return wineAge >= 5 && wineAge <= 8;
             default:
-                return false; // Para variedades no especificadas
+                return false;
         }
     }
 
+    private void sendOptimalConsumptionNotification() {
+        // Check for POST_NOTIFICATIONS permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1);
+                return;
+            }
+        }
 
-    private void redirectToActivity(Class<?> activityClass) {
-        Intent intent = new Intent(HomeActivity.this, activityClass);
-        startActivity(intent);
+        Intent intent = new Intent(this, HomeActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
+                .setSmallIcon(R.drawable.ic_wine)
+                .setContentTitle("Consumo óptimo")
+                .setContentText("¡Tienes vinos en su punto óptimo de consumo! Revisa tu colección.")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(1, builder.build());
     }
 
-    private void loadCollectionStats() {
-        CollectionReference collectionRef = firestore.collection("descriptions")
-                .document(userId)
-                .collection("wineDescriptions");
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        collectionRef.get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null) {
-                int totalWines = 0;
-                Map<String, Integer> wineVarietyCounts = new HashMap<>();
-
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    totalWines++;
-                    String variety = document.getString("variety");
-                    if (variety != null) {
-                        wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
-                    }
-                }
-
-                // Update statistics TextView
-                StringBuilder statsBuilder = new StringBuilder();
-                statsBuilder.append("Total vinos: ").append(totalWines).append("\n");
-                for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
-                    statsBuilder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
-                }
-                collectionStatsTextView.setText(statsBuilder.toString());
-
-                // Update the pie chart
-                updatePieChart(wineVarietyCounts);
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                sendOptimalConsumptionNotification();
             } else {
-                collectionStatsTextView.setText("No se pudo cargar la colección.");
+                Toast.makeText(this, "Permiso de notificaciones denegado.", Toast.LENGTH_SHORT).show();
             }
-        }).addOnFailureListener(e -> {
-            collectionStatsTextView.setText("Error al cargar estadísticas.");
-        });
+        }
     }
 
     private void updatePieChart(Map<String, Integer> wineVarietyCounts) {
@@ -172,25 +247,20 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         PieDataSet dataSet = new PieDataSet(entries, "Variedades de Vino");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS); // Colores predefinidos
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
         dataSet.setValueTextSize(12f);
 
         PieData data = new PieData(dataSet);
         pieChart.setData(data);
 
-        // Configuración del gráfico
-        pieChart.setUsePercentValues(false); // Mostrar valores absolutos en lugar de porcentajes
+        pieChart.setUsePercentValues(false);
         pieChart.setDrawHoleEnabled(true);
         pieChart.setHoleRadius(40f);
         pieChart.setTransparentCircleRadius(50f);
         pieChart.setEntryLabelTextSize(12f);
         pieChart.getDescription().setEnabled(false);
 
-        // Animación
-        pieChart.animateXY(1400, 1400); // Animación en X e Y
-
-        // Refrescar gráfico
+        pieChart.animateXY(1400, 1400);
         pieChart.invalidate();
     }
-
 }
