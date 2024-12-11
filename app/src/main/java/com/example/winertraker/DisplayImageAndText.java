@@ -13,7 +13,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.DiffUtil;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -102,21 +101,46 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private boolean validateInputs(String wineName, String variety, String vintage, String origin, String percentage) {
+        // Listado de variedades permitidas
+        String[] allowedVarieties = {
+                "Pinot Noir", "Gamay", "Merlot", "Tempranillo",
+                "Cabernet Sauvignon", "Syrah", "Sauvignon Blanc",
+                "Riesling", "Chardonnay", "Viognier"
+        };
+
+        // Verificar si los campos están vacíos
         if (recognizedText.isEmpty() || wineName.isEmpty() || variety.isEmpty() || vintage.isEmpty() || origin.isEmpty() || percentage.isEmpty()) {
             Toast.makeText(this, "Por favor complete todos los campos requeridos.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
+        // Validar el año de cosecha (debe ser un número de 4 dígitos)
         if (!vintage.matches("\\d{4}")) {
             Toast.makeText(this, "Ingrese un año válido (4 dígitos).", Toast.LENGTH_SHORT).show();
             return false;
         }
+
+        // Validar el porcentaje de alcohol (debe estar entre 0 y 100)
         if (!percentage.matches("\\d+(\\.\\d+)?") || Double.parseDouble(percentage) > 100) {
             Toast.makeText(this, "Ingrese un porcentaje válido entre 0 y 100.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        return true;
+        // Validar que la variedad esté en el listado de variedades permitidas
+        boolean isValidVariety = false;
+        for (String allowedVariety : allowedVarieties) {
+            if (allowedVariety.equalsIgnoreCase(variety)) { // Comparación insensible a mayúsculas/minúsculas
+                isValidVariety = true;
+                break;
+            }
+        }
+        if (!isValidVariety) {
+            Toast.makeText(this, "La variedad ingresada no es válida. Por favor, ingrese una de las siguientes: " +
+                    String.join(", ", allowedVarieties), Toast.LENGTH_LONG).show();
+            return false;
+        }
+
+        return true; // Todos los campos son válidos
     }
 
     private void autofillFields(String text) {
@@ -153,7 +177,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private String identifyWine(String text) {
-        for (String keyword : new String[]{"cabernet", "merlot", "chardonnay", "sauvignon blanc","SAUVIGNON BLANC", "pinot noir", "malbec", "carmenere"}) {
+        for (String keyword : new String[]{"cabernet", "merlot", "chardonnay", "sauvignon blanc", "pinot noir", "malbec", "carmenere"}) {
             if (text.toLowerCase().contains(keyword)) {
                 return keyword;
             }

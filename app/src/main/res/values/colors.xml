@@ -9,5 +9,6 @@
     <color name="backgroundColor">#FFFFFF</color>
     <color name="textColorPrimary">#000000</color>
     <color name="textColorSecondary">#666666</color>
+    <color name="optimalHighlight">#FFD700</color> <!-- Dorado para vinos óptimos -->
 
 </resources>

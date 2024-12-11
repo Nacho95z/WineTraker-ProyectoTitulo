@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        tools:ignore="MissingConstraints">
+
+        <EditText
+            android:id="@+id/editName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nombre" />
+
+        <EditText
+            android:id="@+id/editVariety"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Variedad" />
+
+        <EditText
+            android:id="@+id/editVintage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Año" />
+
+        <EditText
+            android:id="@+id/editOrigin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Origen" />
+
+        <EditText
+            android:id="@+id/editPercentage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Porcentaje de Alcohol" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,7 +3,6 @@ package com.example.winertraker;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -12,7 +11,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -35,7 +33,7 @@ import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity {
     private FirebaseUser user;
-    private TextView emailTextView, providerTextView, emailVerifiedTextView, uidTextView, collectionStatsTextView;
+    private TextView welcomeTextView, emailTextView, providerTextView, emailVerifiedTextView, uidTextView, collectionStatsTextView;
     private Button logoutButton, addBottleButton, viewCollectionButton;
     private FirebaseFirestore firestore;
     private String userId;
@@ -59,6 +57,7 @@ public class HomeActivity extends AppCompatActivity {
         userId = user.getUid();
 
         // Initialize views
+        welcomeTextView = findViewById(R.id.welcomeTextView); // Nuevo TextView
         emailTextView = findViewById(R.id.emailTextView);
         providerTextView = findViewById(R.id.providerTextView);
         emailVerifiedTextView = findViewById(R.id.emailVerifiedTextView);
@@ -70,6 +69,12 @@ public class HomeActivity extends AppCompatActivity {
         pieChart = findViewById(R.id.pieChart);
 
         // Display user information
+        if (user.getDisplayName() != null) {
+            welcomeTextView.setText("Bienvenido! " + user.getDisplayName());
+        } else {
+            welcomeTextView.setText("Bienvenido, Usuario");
+        }
+
         emailTextView.setText("Email: " + user.getEmail());
         emailVerifiedTextView.setText("Email Verified: " + user.isEmailVerified());
         uidTextView.setText("UID: " + userId);
@@ -126,13 +131,16 @@ public class HomeActivity extends AppCompatActivity {
                 int totalWines = 0;
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
                 boolean optimalConsumptionFound = false;
+                String optimalWineName = null;
 
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     totalWines++;
                     String variety = document.getString("variety");
                     String vintageStr = document.getString("vintage");
+                    String wineName = document.getString("wineName");
 
                     if (variety != null) {
+                        variety = capitalize(variety); // Capitalize the variety name
                         wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
 
                         if (vintageStr != null) {
@@ -140,6 +148,7 @@ public class HomeActivity extends AppCompatActivity {
                                 int vintageYear = Integer.parseInt(vintageStr);
                                 if (isOptimalForConsumption(variety, vintageYear)) {
                                     optimalConsumptionFound = true;
+                                    optimalWineName = wineName;
                                 }
                             } catch (NumberFormatException e) {
                                 e.printStackTrace();
@@ -150,7 +159,7 @@ public class HomeActivity extends AppCompatActivity {
 
                 // Update statistics TextView
                 StringBuilder statsBuilder = new StringBuilder();
-                statsBuilder.append("Total vinos: ").append(totalWines).append("\n");
+                statsBuilder.append("Total vinos en colección: ").append(totalWines).append("\n\n");
                 for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
                     statsBuilder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
                 }
@@ -160,8 +169,8 @@ public class HomeActivity extends AppCompatActivity {
                 updatePieChart(wineVarietyCounts);
 
                 // Send notification if optimal wines are found
-                if (optimalConsumptionFound) {
-                    sendOptimalConsumptionNotification();
+                if (optimalConsumptionFound && optimalWineName != null) {
+                    sendOptimalConsumptionNotification(optimalWineName);
                 }
             } else {
                 collectionStatsTextView.setText("No se pudo cargar la colección.");
@@ -169,6 +178,39 @@ public class HomeActivity extends AppCompatActivity {
         }).addOnFailureListener(e -> {
             collectionStatsTextView.setText("Error al cargar estadísticas.");
         });
+    }
+
+    private void updatePieChart(Map<String, Integer> wineVarietyCounts) {
+        List<PieEntry> entries = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
+            entries.add(new PieEntry(entry.getValue(), capitalize(entry.getKey())));
+        }
+
+        PieDataSet dataSet = new PieDataSet(entries, "");
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+        dataSet.setValueTextSize(12f);
+
+        PieData data = new PieData(dataSet);
+
+        // Configurar un ValueFormatter personalizado para mostrar valores como enteros
+        data.setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return String.valueOf((int) value); // Convierte a entero y devuelve como String
+            }
+        });
+
+        pieChart.setData(data);
+
+        pieChart.setUsePercentValues(false);
+        pieChart.setDrawHoleEnabled(true);
+        pieChart.setHoleRadius(40f);
+        pieChart.setTransparentCircleRadius(50f);
+        pieChart.setEntryLabelTextSize(12f);
+        pieChart.getDescription().setEnabled(false);
+
+        pieChart.animateXY(1400, 1400);
+        pieChart.invalidate();
     }
 
     private boolean isOptimalForConsumption(String variety, int vintageYear) {
@@ -196,8 +238,7 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private void sendOptimalConsumptionNotification() {
-        // Check for POST_NOTIFICATIONS permission
+    private void sendOptimalConsumptionNotification(String wineName) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1);
@@ -218,7 +259,7 @@ public class HomeActivity extends AppCompatActivity {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
                 .setSmallIcon(R.drawable.ic_wine)
                 .setContentTitle("Consumo óptimo")
-                .setContentText("¡Tienes vinos en su punto óptimo de consumo! Revisa tu colección.")
+                .setContentText("El vino \"" + wineName + "\" está en su punto óptimo de consumo. ¡Disfrútalo!")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
@@ -227,40 +268,17 @@ public class HomeActivity extends AppCompatActivity {
         notificationManager.notify(1, builder.build());
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    private String capitalize(String text) {
+        String[] words = text.split(" ");
+        StringBuilder capitalized = new StringBuilder();
 
-        if (requestCode == 1) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                sendOptimalConsumptionNotification();
-            } else {
-                Toast.makeText(this, "Permiso de notificaciones denegado.", Toast.LENGTH_SHORT).show();
+        for (String word : words) {
+            if (word.length() > 0) {
+                capitalized.append(Character.toUpperCase(word.charAt(0)))
+                        .append(word.substring(1).toLowerCase()).append(" ");
             }
         }
-    }
 
-    private void updatePieChart(Map<String, Integer> wineVarietyCounts) {
-        List<PieEntry> entries = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
-            entries.add(new PieEntry(entry.getValue(), entry.getKey()));
-        }
-
-        PieDataSet dataSet = new PieDataSet(entries, "Variedades de Vino");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        dataSet.setValueTextSize(12f);
-
-        PieData data = new PieData(dataSet);
-        pieChart.setData(data);
-
-        pieChart.setUsePercentValues(false);
-        pieChart.setDrawHoleEnabled(true);
-        pieChart.setHoleRadius(40f);
-        pieChart.setTransparentCircleRadius(50f);
-        pieChart.setEntryLabelTextSize(12f);
-        pieChart.getDescription().setEnabled(false);
-
-        pieChart.animateXY(1400, 1400);
-        pieChart.invalidate();
+        return capitalized.toString().trim();
     }
 }

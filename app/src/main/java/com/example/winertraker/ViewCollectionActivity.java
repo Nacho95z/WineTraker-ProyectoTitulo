@@ -4,12 +4,14 @@ import static android.content.ContentValues.TAG;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -72,8 +74,13 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String documentId = document.getId();
                             String imageUrl = document.getString("imageUrl");
-                            String recognizedText = document.getString("recognizedText");
-                            collectionList.add(new CollectionItem(documentId, imageUrl, recognizedText));
+                            String name = document.getString("wineName");
+                            String variety = document.getString("variety");
+                            String vintage = document.getString("vintage");
+                            String origin = document.getString("origin");
+                            String percentage = document.getString("percentage");
+                            boolean isOptimal = isOptimalForConsumption(variety, vintage);
+                            collectionList.add(new CollectionItem(documentId, imageUrl, name, variety, vintage, origin, percentage, isOptimal));
                         }
                         adapter.notifyDataSetChanged();
                     } else {
@@ -86,17 +93,57 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 });
     }
 
+    private boolean isOptimalForConsumption(String variety, String vintageStr) {
+        if (variety == null || vintageStr == null) return false;
 
+        try {
+            int vintageYear = Integer.parseInt(vintageStr);
+            int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+            int wineAge = currentYear - vintageYear;
+
+            switch (variety.toLowerCase()) {
+                case "pinot noir":
+                case "gamay":
+                    return wineAge >= 2 && wineAge <= 5;
+                case "merlot":
+                case "tempranillo":
+                    return wineAge >= 5 && wineAge <= 10;
+                case "cabernet sauvignon":
+                case "syrah":
+                    return wineAge >= 10 && wineAge <= 20;
+                case "sauvignon blanc":
+                case "riesling":
+                    return wineAge >= 1 && wineAge <= 3;
+                case "chardonnay":
+                case "viognier":
+                    return wineAge >= 5 && wineAge <= 8;
+                default:
+                    return false;
+            }
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
 
     private static class CollectionItem {
         String documentId;
         String imageUrl;
-        String recognizedText;
+        String name;
+        String variety;
+        String vintage;
+        String origin;
+        String percentage;
+        boolean isOptimal;
 
-        CollectionItem(String documentId, String imageUrl, String recognizedText) {
+        CollectionItem(String documentId, String imageUrl, String name, String variety, String vintage, String origin, String percentage, boolean isOptimal) {
             this.documentId = documentId;
             this.imageUrl = imageUrl;
-            this.recognizedText = recognizedText;
+            this.name = name != null ? name : "No disponible";
+            this.variety = variety != null ? variety : "No disponible";
+            this.vintage = vintage != null ? vintage : "No disponible";
+            this.origin = origin != null ? origin : "No disponible";
+            this.percentage = percentage != null ? percentage : "No disponible";
+            this.isOptimal = isOptimal;
         }
     }
 
@@ -121,7 +168,18 @@ public class ViewCollectionActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             CollectionItem item = collectionList.get(position);
             Picasso.get().load(item.imageUrl).into(holder.imageView);
-            holder.textView.setText(item.recognizedText);
+            holder.nameTextView.setText("Nombre: " + item.name);
+            holder.varietyTextView.setText("Variedad: " + item.variety);
+            holder.vintageTextView.setText("Año: " + item.vintage);
+            holder.originTextView.setText("Origen: " + item.origin);
+            holder.percentageTextView.setText("Alcohol: " + item.percentage);
+
+            // Resaltar los vinos óptimos
+            if (item.isOptimal) {
+                holder.itemView.setBackgroundColor(holder.itemView.getContext().getResources().getColor(R.color.optimalHighlight));
+            } else {
+                holder.itemView.setBackgroundColor(holder.itemView.getContext().getResources().getColor(android.R.color.transparent));
+            }
 
             holder.deleteButton.setOnClickListener(v -> {
                 new AlertDialog.Builder(holder.itemView.getContext())
@@ -145,8 +203,60 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .setNegativeButton("No", null)
                         .show();
             });
+
+            holder.editButton.setOnClickListener(v -> {
+                showEditDialog(holder.itemView.getContext(), item, position);
+            });
         }
 
+        private void showEditDialog(Context context, CollectionItem item, int position) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setTitle("Editar información");
+
+            // Crear el layout para el diálogo
+            View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_item, null);
+            EditText editName = dialogView.findViewById(R.id.editName);
+            EditText editVariety = dialogView.findViewById(R.id.editVariety);
+            EditText editVintage = dialogView.findViewById(R.id.editVintage);
+            EditText editOrigin = dialogView.findViewById(R.id.editOrigin);
+            EditText editPercentage = dialogView.findViewById(R.id.editPercentage);
+
+            // Rellenar los campos con la información actual
+            editName.setText(item.name);
+            editVariety.setText(item.variety);
+            editVintage.setText(item.vintage);
+            editOrigin.setText(item.origin);
+            editPercentage.setText(item.percentage);
+
+            builder.setView(dialogView);
+
+            builder.setPositiveButton("Guardar", (dialog, which) -> {
+                item.name = editName.getText().toString().trim();
+                item.variety = editVariety.getText().toString().trim();
+                item.vintage = editVintage.getText().toString().trim();
+                item.origin = editOrigin.getText().toString().trim();
+                item.percentage = editPercentage.getText().toString().trim();
+
+                FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+                firestore.collection("descriptions").document(userId)
+                        .collection("wineDescriptions").document(item.documentId)
+                        .update("wineName", item.name,
+                                "variety", item.variety,
+                                "vintage", item.vintage,
+                                "origin", item.origin,
+                                "percentage", item.percentage)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(context, "Datos actualizados", Toast.LENGTH_SHORT).show();
+                            notifyItemChanged(position);
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show();
+                        });
+            });
+
+            builder.setNegativeButton("Cancelar", null);
+            builder.create().show();
+        }
 
         @Override
         public int getItemCount() {
@@ -155,14 +265,19 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             ImageView imageView;
-            TextView textView;
-            Button deleteButton;
+            TextView nameTextView, varietyTextView, vintageTextView, originTextView, percentageTextView;
+            Button deleteButton, editButton;
 
             ViewHolder(View itemView) {
                 super(itemView);
                 imageView = itemView.findViewById(R.id.itemImageView);
-                textView = itemView.findViewById(R.id.itemDescription);
+                nameTextView = itemView.findViewById(R.id.itemName);
+                varietyTextView = itemView.findViewById(R.id.itemVariety);
+                vintageTextView = itemView.findViewById(R.id.itemVintage);
+                originTextView = itemView.findViewById(R.id.itemOrigin);
+                percentageTextView = itemView.findViewById(R.id.itemPercentage);
                 deleteButton = itemView.findViewById(R.id.buttonDelete);
+                editButton = itemView.findViewById(R.id.buttonEdit);
             }
         }
     }

@@ -1,33 +1,100 @@
-<!-- item_layout.xml -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:padding="8dp"
-    android:background="#FFFFFF"> 
+    android:background="#FFFFFF">
 
-    <ImageView
-        android:id="@+id/itemImageView"
-        android:layout_width="0dp"
-        android:layout_height="100dp"
-        android:layout_weight="1"
-        android:scaleType="centerCrop" />
-
-    <TextView
-        android:id="@+id/itemDescription"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="2"
-        android:paddingStart="8dp"
-        android:text="Description"
-        android:textStyle="bold"
-        android:textSize="14sp" />
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/buttonDelete"
-        android:layout_width="wrap_content"
+        <ImageView
+            android:id="@+id/itemImageView"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:scaleType="centerCrop"
+            android:layout_marginEnd="8dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/itemName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nombre: "
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/my_dark_primary"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:id="@+id/itemVariety"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Variedad: "
+                android:textSize="14sp"
+                android:textColor="@color/my_dark_primary"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:textColor="@color/my_dark_primary"
+                android:id="@+id/itemVintage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Año: "
+                android:textSize="14sp"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:id="@+id/itemOrigin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Origen: "
+                android:textSize="14sp"
+                android:textColor="@color/my_dark_primary"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:id="@+id/itemPercentage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Alcohol: "
+                android:textColor="@color/my_dark_primary"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Delete"
-         />
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:paddingTop="8dp">
+
+        <Button
+            android:id="@+id/buttonDelete"
+            android:layout_width="191dp"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#6200EE"
+            android:text="Eliminar"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/buttonEdit"
+            android:layout_width="182dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="#6200EE"
+            android:text="Editar"
+            android:textColor="#FFFFFF" />
+
+
+    </LinearLayout>
 </LinearLayout>

@@ -1,131 +1,157 @@
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    tools:context=".HomeActivity">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#FFFFFF">
 
-    <!-- Título -->
-    <TextView
-        android:id="@+id/homeTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="HOME"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Estadísticas de la colección -->
-    <TextView
-        android:id="@+id/collectionStatsTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:textColor="#888888"
-        android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/homeTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Gráfico de Torta -->
-    <com.github.mikephil.charting.charts.PieChart
-        android:id="@+id/pieChart"
-        android:layout_width="0dp"
-        android:layout_height="300dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/collectionStatsTextView"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5" />
-
-    <!-- Botón "Añadir Botella" -->
-    <Button
-        android:id="@+id/addBottleButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="130dp"
-        android:text="Añadir botella"
-        app:layout_constraintTop_toBottomOf="@id/pieChart"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5" />
-
-    <!-- Botón "Ver Colección" -->
-    <Button
-        android:id="@+id/viewCollectionButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Ver Colección"
-        app:layout_constraintTop_toBottomOf="@id/addBottleButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5" />
-
-    <!-- Información Personal -->
     <LinearLayout
-        android:id="@+id/user_info_layout"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
         android:orientation="vertical"
-        app:layout_constraintTop_toBottomOf="@id/viewCollectionButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:padding="16dp">
 
+        <!-- Encabezado dinámico -->
         <TextView
-            android:id="@+id/textViewUserHome"
+            android:id="@+id/welcomeTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Información personal"
-            android:textColor="#888888"
-            android:paddingBottom="8dp"
-            android:textStyle="bold" />
+            android:text="Bienvenido, Usuario"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"
+            android:textColor="#6200EE" />
 
+        <!-- Encabezado de Estadísticas -->
         <TextView
-            android:id="@+id/emailTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Estadísticas de la Colección"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:textColor="#000000" />
+
+        <!-- Tarjeta de Estadísticas -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Email:" />
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
 
-        <TextView
-            android:id="@+id/providerTextView"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/collectionStatsTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estadísticas"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="8dp"
+                    android:textColor="#000000" />
+
+                <com.github.mikephil.charting.charts.PieChart
+                    android:id="@+id/pieChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Botones -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Proveedor" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginBottom="16dp">
 
+            <Button
+                android:id="@+id/addBottleButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Añadir botella"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/viewCollectionButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ver Colección" />
+        </LinearLayout>
+
+        <!-- Encabezado de Información del Usuario -->
         <TextView
-            android:id="@+id/emailVerifiedTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Información del Usuario"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:textColor="#000000" />
+
+        <!-- Tarjeta de Información del Usuario -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Email Verified:" />
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
 
-        <TextView
-            android:id="@+id/uidTextView"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/emailTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Email: araneda.ign@gmail.com"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#000000" />
+
+                <TextView
+                    android:id="@+id/providerTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Name: Ignacio Araneda"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#000000" />
+
+                <TextView
+                    android:id="@+id/emailVerifiedTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Email Verified: true"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#000000" />
+
+                <TextView
+                    android:id="@+id/uidTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="UID: OgrOiru5tpgs7TYloHXbTISBrLZ2"
+                    android:textSize="16sp"
+                    android:textColor="#000000" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Botón de Cerrar Sesión -->
+        <Button
+            android:id="@+id/logoutButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="UID:" />
+            android:layout_marginTop="16dp"
+            android:textColor="#FFFFFF"
+            android:text="Cerrar sesión" />
     </LinearLayout>
-
-    <!-- Botón Cerrar Sesión -->
-    <Button
-        android:id="@+id/logoutButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="16dp"
-        android:text="Cerrar sesión"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
