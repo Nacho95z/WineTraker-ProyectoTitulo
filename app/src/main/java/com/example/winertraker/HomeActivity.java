@@ -254,7 +254,6 @@ public class HomeActivity extends AppCompatActivity {
         // Cambia el Intent para llevar a ViewCollectionActivity sin usar FLAG_ACTIVITY_CLEAR_TASK
         Intent intent = new Intent(this, ViewCollectionActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // Solo se asegura de iniciar como nueva actividad en la pila
-
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
                 0,
