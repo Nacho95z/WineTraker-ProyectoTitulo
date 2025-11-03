@@ -6,13 +6,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".AuthActivity"
-    android:background="#FFFFFF"> <!-- Fondo blanco explícito -->>
+    > <!-- Fondo blanco explícito -->>
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="40dp"
         android:layout_marginEnd="16dp"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
@@ -22,10 +22,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="WineTraker"
+            android:fontFamily="@font/dancing_script"
+            android:text="WineTrack"
             android:textStyle="bold"
             android:textAlignment="center"
-            android:textSize="20sp"/>
+            android:textSize="40sp"/>
 
         <Space
             android:layout_width="match_parent"
@@ -35,8 +36,7 @@
             android:id="@+id/emailEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Correo electrónico"
-            android:text="araneda.ign@gmail.com"
+            android:hint="Email"
             android:textColor="@color/my_dark_primary"
             />
 
@@ -51,7 +51,14 @@
             android:hint="Contraseña"
             android:textColor="@color/my_dark_primary"
             android:inputType="textPassword"
-            android:text="112233"/>
+            />
+
+        <CheckBox
+            android:id="@+id/showPasswordCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mostrar contraseña"
+            android:layout_marginTop="8dp" />
 
         <Space
             android:layout_width="match_parent"
@@ -59,35 +66,39 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/loginButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="Ingresar"
+                android:shadowColor="@color/white"
+                />
+
+            <com.google.android.gms.common.SignInButton
+                android:id="@+id/signIn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="15sp"/>
 
             <Button
                 android:id="@+id/registerButton"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginTop="180dp"
                 android:text="Registrar"
                 android:shadowColor="@color/white"
                 />
 
 
-            <Button
-                android:id="@+id/loginButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Ingresar"
-                android:shadowColor="@color/white"
-                />
+
         </LinearLayout>
 
-        <com.google.android.gms.common.SignInButton
-            android:id="@+id/signIn"
-            android:layout_width="230dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="15sp"/>
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

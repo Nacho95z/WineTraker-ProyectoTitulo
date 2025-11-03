@@ -5,8 +5,10 @@ import static android.content.ContentValues.TAG;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -34,6 +36,7 @@ public class AuthActivity extends AppCompatActivity {
     private Button buttonLogin, buttonRegister;
     private GoogleSignInClient mGoogleSignInClient;
     private static final int RC_SIGN_IN = 100;
+    private CheckBox checkBoxShowPassword; // Para mostrar/ocultar la contraseña
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +57,19 @@ public class AuthActivity extends AppCompatActivity {
         editTextPassword = findViewById(R.id.passwordEditText);
         buttonLogin = findViewById(R.id.loginButton);
         buttonRegister = findViewById(R.id.registerButton);
+        checkBoxShowPassword = findViewById(R.id.showPasswordCheckBox); // Vincula el CheckBox
+
+        // Configura el comportamiento del CheckBox para mostrar/ocultar la contraseña
+        checkBoxShowPassword.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                // Muestra la contraseña
+                editTextPassword.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            } else {
+                // Oculta la contraseña
+                editTextPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            }
+            editTextPassword.setSelection(editTextPassword.getText().length()); // Mantén el cursor al final
+        });
 
         buttonLogin.setOnClickListener(view -> {
             String email = editTextEmail.getText().toString().trim();
