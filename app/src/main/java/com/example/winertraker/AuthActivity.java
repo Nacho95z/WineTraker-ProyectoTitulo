@@ -23,6 +23,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
@@ -172,6 +173,15 @@ public class AuthActivity extends AppCompatActivity {
                 if (account != null) {
                     firebaseAuthWithGoogle(account, progressDialog);
                 }
+
+            } catch (ApiException e) {
+                // 👇 Aquí veremos el código de error (10, 7, 12500, etc.)
+                Log.e("GOOGLE_LOGIN", "Error en Google Sign In: code=" + e.getStatusCode(), e);
+                Toast.makeText(this,
+                        "Error en inicio de sesión con Google: " + e.getStatusCode(),
+                        Toast.LENGTH_SHORT).show();
+                progressDialog.dismiss();
+
             } catch (Exception e) {
                 Log.w(TAG, "Google sign in failed", e);
                 Toast.makeText(this, "Error en inicio de sesión con Google", Toast.LENGTH_SHORT).show();

@@ -14,14 +14,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "739800455486-jeuta3t4kt0ka8lu9h153racqok8358i.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.winertraker",
-            "certificate_hash": "c42fa281ea8e641f2bd22483657e2f9ca690bd85"
-          }
-        },
-        {
           "client_id": "739800455486-lq4m0ui00qnqjakon6bjue2otemvd6ds.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
