@@ -4,13 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/imageSplash"
+    <pl.droidsonroids.gif.GifImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/white"
-        android:scaleType="centerCrop"
-        android:src="@drawable/splash" />
+        android:src="@drawable/imagendecarga"
+
+        />
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -19,4 +19,5 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="46dp" />
+
 </RelativeLayout>

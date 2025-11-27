@@ -87,5 +87,7 @@ dependencies {
 
     implementation("com.google.mlkit:image-labeling:17.0.7")
 
+    implementation("pl.droidsonroids.gif:android-gif-drawable:1.2.25")
+
 
 }
