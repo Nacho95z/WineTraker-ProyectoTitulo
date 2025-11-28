@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Declaración de permisos aquí, directamente en el nivel de <manifest> -->
+
+    <!-- PERMISOS: Esto le dice a la tienda qué usa tu app, pero NO muestra el pop-up por sí solo -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -26,6 +27,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WinerTraker"
         tools:targetApi="tiramisu">
+
+        <!-- SOLO ESTA ACTIVIDAD TIENE CATEGORY LAUNCHER (Un solo ícono) -->
         <activity
             android:name=".StartActivity"
             android:exported="true">
@@ -34,28 +37,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- AuthActivity ya no es Launcher, se abre desde dentro de la app -->
+        <activity
+            android:name=".AuthActivity"
+            android:exported="false" />
+
         <activity
             android:name=".ViewCollectionActivity"
             android:exported="false" />
         <activity android:name=".DisplayImageAndText" />
+
+        <!-- Aquí aplicaremos la lógica del Pop-up de cámara -->
         <activity
             android:name=".CaptureIMG"
             android:exported="false" />
+
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
-        <activity
-            android:name=".AuthActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
     </application>
 
 </manifest>

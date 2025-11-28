@@ -1,5 +1,6 @@
 package com.example.winertraker;
 
+import android.Manifest; // IMPORTANTE: Para los permisos
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -11,9 +12,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull; // Para @NonNull
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat; // Para solicitar permisos
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat; // Para verificar permisos
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.PieData;
@@ -32,6 +36,10 @@ import java.util.List;
 import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity {
+
+    // Código para identificar la solicitud de permisos
+    private static final int PERMISSION_REQUEST_CODE = 112;
+
     private FirebaseUser user;
     private TextView welcomeTextView, emailTextView, providerTextView, emailVerifiedTextView, uidTextView, collectionStatsTextView;
     private Button logoutButton, addBottleButton, viewCollectionButton;
@@ -43,6 +51,10 @@ public class HomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        // --- NUEVO: Solicitar permisos automáticamente al abrir la pantalla ---
+        checkAndRequestPermissions();
+        // ----------------------------------------------------------------------
 
         // Initialize Firebase Auth
         user = FirebaseAuth.getInstance().getCurrentUser();
@@ -57,7 +69,7 @@ public class HomeActivity extends AppCompatActivity {
         userId = user.getUid();
 
         // Initialize views
-        welcomeTextView = findViewById(R.id.welcomeTextView); // Nuevo TextView
+        welcomeTextView = findViewById(R.id.welcomeTextView);
         emailTextView = findViewById(R.id.emailTextView);
         providerTextView = findViewById(R.id.providerTextView);
         emailVerifiedTextView = findViewById(R.id.emailVerifiedTextView);
@@ -100,6 +112,57 @@ public class HomeActivity extends AppCompatActivity {
         loadCollectionStats();
     }
 
+    // --- NUEVO MÉTODO: Verifica y pide permisos de una sola vez ---
+    private void checkAndRequestPermissions() {
+        List<String> listPermissionsNeeded = new ArrayList<>();
+
+        // 1. Revisar Cámara
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            listPermissionsNeeded.add(Manifest.permission.CAMERA);
+        }
+
+        // 2. Revisar Notificaciones (Solo si es Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                listPermissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        // 3. Si falta alguno, pedirlo
+        if (!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    listPermissionsNeeded.toArray(new String[0]),
+                    PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    // --- NUEVO MÉTODO: Maneja la respuesta del usuario ---
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            // Aquí puedes agregar lógica adicional si quieres reaccionar
+            // Por ejemplo, mostrar un mensaje si rechazaron la cámara.
+
+            // Verificamos respuestas
+            Map<String, Integer> perms = new HashMap<>();
+            if (grantResults.length > 0) {
+                for (int i = 0; i < permissions.length; i++) {
+                    perms.put(permissions[i], grantResults[i]);
+                }
+
+                // Ejemplo: Si rechazó la cámara
+                if (perms.containsKey(Manifest.permission.CAMERA) &&
+                        perms.get(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "La cámara es necesaria para escanear botellas", Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
+
     private void redirectToActivity(Class<?> activityClass) {
         Intent intent = new Intent(HomeActivity.this, activityClass);
         startActivity(intent);
@@ -122,6 +185,8 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadCollectionStats() {
+        if (userId == null) return; // Evitar crash si no hay usuario
+
         CollectionReference collectionRef = firestore.collection("descriptions")
                 .document(userId)
                 .collection("wineDescriptions");
@@ -239,16 +304,21 @@ public class HomeActivity extends AppCompatActivity {
     private void sendOptimalConsumptionNotification(List<String> wineNames) {
         if (wineNames.isEmpty()) return;
 
+        // VERIFICACIÓN DE SEGURIDAD MODIFICADA
+        // En lugar de pedir permiso aquí (que puede cortar el flujo), verificamos si lo tenemos.
+        // Si no lo tenemos, simplemente salimos del método para evitar crasheos.
+        // Se asume que el usuario aceptó los permisos en el inicio (onCreate).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Si llegamos aquí y no tenemos permiso, no podemos notificar.
+                return;
+            }
+        }
+
         StringBuilder notificationMessage = new StringBuilder("Los siguientes vinos están en su punto óptimo de consumo:\n");
         for (String wine : wineNames) {
             notificationMessage.append("- ").append(wine).append("\n");
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1);
-                return;
-            }
         }
 
         // Cambia el Intent para llevar a ViewCollectionActivity sin usar FLAG_ACTIVITY_CLEAR_TASK
@@ -262,7 +332,7 @@ public class HomeActivity extends AppCompatActivity {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
-                .setSmallIcon(R.drawable.ic_wine)
+                .setSmallIcon(R.drawable.ic_wine) // Asegúrate de tener este ícono
                 .setContentTitle("Consumo óptimo")
                 .setContentText("Revisa tu colección para más detalles.")
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(notificationMessage.toString()))
@@ -271,7 +341,13 @@ public class HomeActivity extends AppCompatActivity {
                 .setAutoCancel(true);
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(1, builder.build());
+
+        try {
+            notificationManager.notify(1, builder.build());
+        } catch (SecurityException e) {
+            // Bloque catch por seguridad en caso de que el permiso se revoque en tiempo real
+            e.printStackTrace();
+        }
     }
 
 
