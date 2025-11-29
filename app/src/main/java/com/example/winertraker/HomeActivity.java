@@ -35,6 +35,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.graphics.Color;
+
+
 public class HomeActivity extends AppCompatActivity {
 
     // Código para identificar la solicitud de permisos
@@ -42,7 +45,8 @@ public class HomeActivity extends AppCompatActivity {
 
     private FirebaseUser user;
     private TextView welcomeTextView, emailTextView, providerTextView, emailVerifiedTextView, uidTextView, collectionStatsTextView;
-    private Button logoutButton, addBottleButton, viewCollectionButton;
+    private Button logoutButton, addBottleButton, viewCollectionButton, toggleWelcomeButton, crashButton;
+    private boolean isWelcomeOriginal = true;
     private FirebaseFirestore firestore;
     private String userId;
     private PieChart pieChart;
@@ -79,6 +83,9 @@ public class HomeActivity extends AppCompatActivity {
         viewCollectionButton = findViewById(R.id.viewCollectionButton);
         collectionStatsTextView = findViewById(R.id.collectionStatsTextView);
         pieChart = findViewById(R.id.pieChart);
+        toggleWelcomeButton = findViewById(R.id.toggleWelcomeButton);
+        crashButton = findViewById(R.id.crashButton);
+
 
         // Display user information
         if (user.getDisplayName() != null) {
@@ -104,6 +111,29 @@ public class HomeActivity extends AppCompatActivity {
         // Navigate to CaptureIMG or ViewCollection
         addBottleButton.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
         viewCollectionButton.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
+        toggleWelcomeButton.setOnClickListener(v -> {
+            if (isWelcomeOriginal) {
+                welcomeTextView.setText("Saludo cambiado 🎉");
+                welcomeTextView.setTextColor(Color.RED);
+                toggleWelcomeButton.setText("Volver al original");
+            } else {
+                // Volver al estado original
+                if (user.getDisplayName() != null) {
+                    welcomeTextView.setText("Bienvenido! " + user.getDisplayName());
+                } else {
+                    welcomeTextView.setText("Bienvenido, Usuario");
+                }
+                welcomeTextView.setTextColor(Color.parseColor("#6200EE")); // el color que usas en el XML
+                toggleWelcomeButton.setText("Cambiar saludo");
+            }
+            isWelcomeOriginal = !isWelcomeOriginal;
+        });
+
+        // Botón para probar Crashlytics (forzar un crash)
+        crashButton.setOnClickListener(view -> {
+            throw new RuntimeException("Test Crash - Probando boton"); // Forzar un crash
+        });
+
 
         // Create notification channel
         createNotificationChannel();
