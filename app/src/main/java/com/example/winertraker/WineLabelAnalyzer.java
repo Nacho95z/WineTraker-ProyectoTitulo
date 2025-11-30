@@ -40,11 +40,17 @@ public class WineLabelAnalyzer {
         Log.d(TAG, "OPENAI_API_KEY length = " +
                 (BuildConfig.OPENAI_API_KEY != null ? BuildConfig.OPENAI_API_KEY.length() : 0));
 
-        // Si no hay API key configurada => directo a OCR local
-        if (BuildConfig.OPENAI_API_KEY == null || BuildConfig.OPENAI_API_KEY.isEmpty()) {
+        // Si no hay API KEY configurada → usa OCR local
+        if (BuildConfig.OPENAI_API_KEY == null || BuildConfig.OPENAI_API_KEY.isEmpty()
+                || BuildConfig.OPENAI_API_KEY.equals("REPLACE_ME")) {
+
+            Log.e(TAG, "API KEY de OpenAI no configurada. Usando OCR local por defecto.");
+            Toast.makeText(context, "OpenAI no está configurado. Usando OCR local.", Toast.LENGTH_SHORT).show();
+
             runLocalOcr(context, imageUri, callback);
             return;
         }
+
 
         // Convertir imagen a data URL base64
         String dataUrl;
