@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Recuadro externo completo -->
+    <LinearLayout
+        android:id="@+id/outerCard"
+        android:layout_width="340dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:background="@drawable/bg_dialog_outer">
+
+        <!-- Recuadro interno blanco -->
+        <LinearLayout
+            android:id="@+id/innerCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@drawable/bg_dialog_wine">
+
+            <TextView
+                android:id="@+id/dialogTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="WineTrack"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#B22034"
+                android:fontFamily="@font/dancing_script"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/dialogSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Inicia sesión con tu correo"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:textColor="@color/my_dark_primary"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Email -->
+            <EditText
+                android:id="@+id/dialogEmailEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Email"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp"
+                android:background="@drawable/bg_edittext_wine"
+                android:textColor="@color/my_dark_primary"
+                android:textColorHint="#B3B3B3" />
+
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="8dp" />
+
+            <!-- Contraseña -->
+            <EditText
+                android:id="@+id/dialogPasswordEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Contraseña"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp"
+                android:background="@drawable/bg_edittext_wine"
+                android:textColor="@color/my_dark_primary"
+                android:textColorHint="#B3B3B3"
+                android:inputType="textPassword" />
+
+            <CheckBox
+                android:id="@+id/dialogShowPasswordCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mostrar contraseña"
+                android:textColor="@color/my_dark_primary"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- Fila de botones dentro del MISMO recuadro -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:weightSum="2">
+
+            <Button
+                android:id="@+id/btnCancelar"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="#B22034"
+                android:text="Cancelar"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                android:singleLine="true"
+                android:maxLines="1" />
+
+            <Button
+                android:id="@+id/btnIngresar"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#B22034"
+                android:text="Acceder"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                android:singleLine="true"
+                android:maxLines="1" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

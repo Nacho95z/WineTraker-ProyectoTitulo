@@ -2,11 +2,15 @@ package com.example.winertraker;
 
 import static android.content.ContentValues.TAG;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -32,12 +36,13 @@ import com.google.firebase.auth.GoogleAuthProvider;
 
 public class AuthActivity extends AppCompatActivity {
 
-    private FirebaseAuth mAuth;
-    private EditText editTextEmail, editTextPassword;
-    private Button buttonLogin, buttonRegister;
-    private GoogleSignInClient mGoogleSignInClient;
     private static final int RC_SIGN_IN = 100;
-    private CheckBox checkBoxShowPassword; // Para mostrar/ocultar la contraseña
+    private static final String TAG = "AuthActivity";
+
+    private FirebaseAuth mAuth;
+    private GoogleSignInClient mGoogleSignInClient;
+
+    private Button buttonLogin, buttonRegister;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,67 +59,92 @@ public class AuthActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
-        editTextEmail = findViewById(R.id.emailEditText);
-        editTextPassword = findViewById(R.id.passwordEditText);
         buttonLogin = findViewById(R.id.loginButton);
         buttonRegister = findViewById(R.id.registerButton);
-        checkBoxShowPassword = findViewById(R.id.showPasswordCheckBox); // Vincula el CheckBox
 
-        // Configura el comportamiento del CheckBox para mostrar/ocultar la contraseña
-        checkBoxShowPassword.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                // Muestra la contraseña
-                editTextPassword.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-            } else {
-                // Oculta la contraseña
-                editTextPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-            }
-            editTextPassword.setSelection(editTextPassword.getText().length()); // Mantén el cursor al final
-        });
-
-        buttonLogin.setOnClickListener(view -> {
-            String email = editTextEmail.getText().toString().trim();
-            String password = editTextPassword.getText().toString().trim();
-
-            if (email.isEmpty()) {
-                editTextEmail.setError("Por favor, ingrese un correo.");
-                return;
-            }
-
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                editTextEmail.setError("Por favor, ingrese un correo válido.");
-                return;
-            }
-
-            if (password.isEmpty()) {
-                editTextPassword.setError("Por favor, ingrese una contraseña.");
-                return;
-            }
-
-            if (password.length() < 6) {
-                editTextPassword.setError("La contraseña debe tener al menos 6 caracteres.");
-                return;
-            }
-
-            loginUser(email, password);
-        });
+        // 🔹 El botón ahora abre el diálogo de login con correo
+        buttonLogin.setOnClickListener(view -> showEmailLoginDialog());
 
         buttonRegister.setOnClickListener(view -> {
             Intent intent = new Intent(AuthActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
 
-        // Configuración del cliente de Google Sign-In
+        // ---- GOOGLE SIGN-IN ----
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
 
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
         findViewById(R.id.signIn).setOnClickListener(view -> signInWithGoogle());
     }
 
+    // 🔹 DIÁLOGO PARA LOGIN CON CORREO
+    private void showEmailLoginDialog() {
+
+        // Creamos un Dialog con tu tema sin fondo gris
+        Dialog dialog = new Dialog(this, R.style.WineDialogTheme);
+        dialog.setContentView(R.layout.dialog_email_login);
+        dialog.setCanceledOnTouchOutside(false); // opcional: que no se cierre tocando fuera
+
+        // Referencias a las vistas dentro del layout del diálogo
+        EditText dialogEmailEditText = dialog.findViewById(R.id.dialogEmailEditText);
+        EditText dialogPasswordEditText = dialog.findViewById(R.id.dialogPasswordEditText);
+        CheckBox dialogShowPasswordCheckBox = dialog.findViewById(R.id.dialogShowPasswordCheckBox);
+        Button btnCancelar = dialog.findViewById(R.id.btnCancelar);
+        Button btnIngresar = dialog.findViewById(R.id.btnIngresar);
+
+        // 🔸 Mostrar/Ocultar contraseña
+        dialogShowPasswordCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                dialogPasswordEditText.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            } else {
+                dialogPasswordEditText.setInputType(
+                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
+                );
+            }
+            dialogPasswordEditText.setSelection(dialogPasswordEditText.getText().length());
+        });
+
+        // 🔸 Botón CANCELAR
+        btnCancelar.setOnClickListener(v -> dialog.dismiss());
+
+        // 🔸 Botón INGRESAR con validación
+        btnIngresar.setOnClickListener(v -> {
+            String email = dialogEmailEditText.getText().toString().trim();
+            String password = dialogPasswordEditText.getText().toString().trim();
+
+            if (email.isEmpty()) {
+                dialogEmailEditText.setError("Ingrese un correo.");
+                return;
+            }
+
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                dialogEmailEditText.setError("Correo inválido.");
+                return;
+            }
+
+            if (password.isEmpty()) {
+                dialogPasswordEditText.setError("Ingrese una contraseña.");
+                return;
+            }
+
+            if (password.length() < 6) {
+                dialogPasswordEditText.setError("Mínimo 6 caracteres.");
+                return;
+            }
+
+            // Si todo está OK:
+            dialog.dismiss();
+            loginUser(email, password);
+        });
+
+        // Mostrar el diálogo
+        dialog.show();
+    }
+
+    // 🔹 LOGIN A FIREBASE
     private void loginUser(String email, String password) {
         ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Iniciando sesión...");
@@ -124,34 +154,27 @@ public class AuthActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     progressDialog.dismiss();
                     if (task.isSuccessful()) {
-                        Log.d(TAG, "signInWithEmail:success");
                         Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
                         startActivity(intent);
                         finish();
                     } else {
-                        Log.w(TAG, "signInWithEmail:failure", task.getException());
-                        if (task.getException() != null) {
-                            String errorMessage = task.getException().getMessage();
-                            Toast.makeText(AuthActivity.this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(AuthActivity.this, "Error en la autenticación.", Toast.LENGTH_SHORT).show();
-                        }
+                        String errorMessage = task.getException() != null
+                                ? task.getException().getMessage()
+                                : "Error desconocido.";
+                        Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
+    // ---- GOOGLE SIGN-IN ----
     private void signInWithGoogle() {
-        // Mostrar el ProgressDialog antes de iniciar el proceso de autenticación
         ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Cargando...");
-        progressDialog.setCancelable(false); // El usuario no puede cerrar el diálogo mientras carga
         progressDialog.show();
 
-        // Inicia el intento de autenticación con Google
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
 
-        // Ocultar el ProgressDialog después de que el intent sea enviado
         progressDialog.dismiss();
     }
 
@@ -160,57 +183,39 @@ public class AuthActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == RC_SIGN_IN) {
-            // Muestra un ProgressDialog mientras procesa la autenticación
             ProgressDialog progressDialog = new ProgressDialog(this);
             progressDialog.setMessage("Autenticando...");
-            progressDialog.setCancelable(false);
             progressDialog.show();
 
-            // Procesa el resultado de Google Sign-In
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+
             try {
-                GoogleSignInAccount account = task.getResult(Exception.class);
+                GoogleSignInAccount account = task.getResult(ApiException.class);
                 if (account != null) {
                     firebaseAuthWithGoogle(account, progressDialog);
                 }
-
-            } catch (ApiException e) {
-                // 👇 Aquí veremos el código de error (10, 7, 12500, etc.)
-                Log.e("GOOGLE_LOGIN", "Error en Google Sign In: code=" + e.getStatusCode(), e);
-                Toast.makeText(this,
-                        "Error en inicio de sesión con Google: " + e.getStatusCode(),
-                        Toast.LENGTH_SHORT).show();
-                progressDialog.dismiss();
-
             } catch (Exception e) {
-                Log.w(TAG, "Google sign in failed", e);
-                Toast.makeText(this, "Error en inicio de sesión con Google", Toast.LENGTH_SHORT).show();
-                progressDialog.dismiss(); // Cierra el ProgressDialog si hay error
+                Toast.makeText(this, "Error Google: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                progressDialog.dismiss();
             }
         }
     }
 
     private void firebaseAuthWithGoogle(GoogleSignInAccount account, ProgressDialog progressDialog) {
         AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
+
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
-                    progressDialog.dismiss(); // Cierra el ProgressDialog al finalizar
+                    progressDialog.dismiss();
+
                     if (task.isSuccessful()) {
-                        Log.d(TAG, "signInWithCredential:success");
-                        Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
-                        startActivity(intent);
+                        startActivity(new Intent(AuthActivity.this, HomeActivity.class));
                         finish();
                     } else {
-                        Log.w(TAG, "signInWithCredential:failure", task.getException());
-                        if (task.getException() != null) {
-                            String errorMessage = task.getException().getMessage();
-                            Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(this, "Error desconocido en la autenticación.", Toast.LENGTH_SHORT).show();
-                        }
+                        Toast.makeText(this,
+                                "Error: " + (task.getException() != null ? task.getException().getMessage() : ""),
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
     }
-
-
 }
