@@ -1,0 +1,10 @@
+<resources>
+
+    <!-- Tema para el cuadro de login SIN fondo gris -->
+    <style name="WineDialogTheme" parent="Theme.AppCompat.Dialog">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+</resources>

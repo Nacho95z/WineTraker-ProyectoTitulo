@@ -7,18 +7,19 @@
     android:layout_height="match_parent"
     tools:context=".AuthActivity"
     android:background="@android:color/white"
-    > <!-- Fondo blanco explícito -->>
+
+    >
 
     <ImageView
         android:id="@+id/headerImage"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="408dp"
+        android:layout_height="363dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/imagenloguin"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:src="@drawable/imagenlogin"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.45" />
+        app:layout_constraintHeight_percent="0.45"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <LinearLayout
         android:id="@+id/loginContainer"
@@ -35,72 +36,34 @@
             android:layout_width="match_parent"
             android:layout_height="10dp"/>
 
-        <EditText
-            android:id="@+id/emailEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Email"
-            android:textColor="@color/my_dark_primary"
-            />
-
-        <Space
-            android:layout_width="match_parent"
-            android:layout_height="5dp"/>
-
-        <EditText
-            android:id="@+id/passwordEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Contraseña"
-            android:textColor="@color/my_dark_primary"
-            android:inputType="textPassword"
-            />
-
-        <CheckBox
-            android:id="@+id/showPasswordCheckBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Mostrar contraseña"
-            android:layout_marginTop="8dp" />
-
-        <Space
-            android:layout_width="match_parent"
-            android:layout_height="8dp"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
             <Button
                 android:id="@+id/loginButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-
-                android:text="Ingresar"
-                android:shadowColor="@color/white"
+                android:textColor="#FFFFFF"
+                android:text="Ingresar con correo"
+                android:backgroundTint="#B22034"
                 />
 
-            <com.google.android.gms.common.SignInButton
+            <Button
                 android:id="@+id/signIn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="15sp"/>
+                android:layout_marginTop="15dp"
+                android:text="Acceder con Google"
+                android:textColor="#FFFFFF"
+                android:textAllCaps="false"
+                android:backgroundTint="#B22034"/>
 
             <Button
                 android:id="@+id/registerButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:textColor="#FFFFFF"
                 android:text="Registrar"
-                android:shadowColor="@color/white"
+                android:backgroundTint="#B22034"
                 />
-
-
-
-        </LinearLayout>
-
 
     </LinearLayout>
 

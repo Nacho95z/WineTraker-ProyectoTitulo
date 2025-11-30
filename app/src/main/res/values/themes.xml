@@ -3,7 +3,15 @@
     <style name="Base.Theme.WinerTraker" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+        <!-- Color de la barra de estado (parte superior) -->
+        <item name="android:statusBarColor">@color/white</item>
+        <!-- Iconos oscuros sobre barra clara -->
+        <item name="android:windowLightStatusBar">true</item>
+
     </style>
 
     <style name="Theme.WinerTraker" parent="Base.Theme.WinerTraker" />
+
+
 </resources>
