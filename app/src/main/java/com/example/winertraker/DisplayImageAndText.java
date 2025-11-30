@@ -27,12 +27,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import java.text.Normalizer;
+import java.util.Locale;
 import android.util.Log;
+import pl.droidsonroids.gif.GifDrawable;
+import java.io.IOException;
+
 
 public class DisplayImageAndText extends AppCompatActivity {
 
-    private ImageView capturedImageView;
+    private ImageView capturedImageView, aiProgressGif;
     private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText, percentageEditText, wineNameEditText, categoryEditText;
     private Uri imageUri;
     private String recognizedText;
@@ -58,6 +62,16 @@ public class DisplayImageAndText extends AppCompatActivity {
         Button saveButton = findViewById(R.id.buttonSave);
         Button discardButton = findViewById(R.id.buttonDiscard);
         progressBar = findViewById(R.id.progressBar);
+        aiProgressGif = findViewById(R.id.aiProgressGif);
+
+        try {
+            GifDrawable gifDrawable = new GifDrawable(getResources(), R.drawable.ai_progress);
+            aiProgressGif.setImageDrawable(gifDrawable);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
 
         // Initialize Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
@@ -81,14 +95,17 @@ public class DisplayImageAndText extends AppCompatActivity {
         capturedImageView.setImageURI(imageUri);
 
         // Mostrar progreso mientras analizamos
-        progressBar.setVisibility(View.VISIBLE);
+        aiProgressGif.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(View.GONE);
+
 
         // 🔍 OpenAI primero, OCR local como fallback
         WineLabelAnalyzer.analyzeImage(
                 this,
                 imageUri,
                 (info, rawOcrText, error) -> runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
+                    aiProgressGif.setVisibility(View.GONE);
+
 
                     if (info != null) {
                         //Resultado desde OpenAI
@@ -137,15 +154,18 @@ public class DisplayImageAndText extends AppCompatActivity {
             String percentage = percentageEditText.getText().toString().trim();
             String category = categoryEditText.getText().toString().trim();
 
+            // 🔹 Normalizar aquí también, así es la que se guarda
+            variety = normalizeVarietyCanonical(variety);
+            nameEditText.setText(variety); // opcional, para que el usuario vea la forma “bonita”
 
             if (!validateInputs(wineName, variety, vintage, origin, percentage, category)) {
                 return;
             }
-
-
-            progressBar.setVisibility(View.VISIBLE);
+            aiProgressGif.setVisibility(View.VISIBLE);  // 👈 añadir
+            progressBar.setVisibility(View.GONE);       // o quitarlo del todo si ya no lo usas
             saveDataToFirebase(wineName, variety, vintage, origin, percentage, category);
         });
+
 
         // Discard button functionality
         discardButton.setOnClickListener(v -> {
@@ -154,6 +174,34 @@ public class DisplayImageAndText extends AppCompatActivity {
             finish();
         });
     }
+
+    // Quita tildes/acentos para comparar de forma neutra
+    private String stripAccents(String input) {
+        if (input == null) return null;
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}", "");
+    }
+
+    // Devuelve una forma "canónica" para variedades conocidas
+    private String normalizeVarietyCanonical(String variety) {
+        if (variety == null) return "";
+        String trimmed = variety.trim();
+        String plain = stripAccents(trimmed).toLowerCase(Locale.ROOT);
+
+        // Aquí definimos nuestras formas oficiales
+        if (plain.contains("carmenere")) return "Carmenère";
+        if (plain.contains("cabernet sauvignon")) return "Cabernet Sauvignon";
+        if (plain.contains("merlot")) return "Merlot";
+        if (plain.contains("syrah") || plain.contains("shiraz")) return "Syrah";
+        if (plain.contains("pinot noir")) return "Pinot Noir";
+        if (plain.contains("malbec")) return "Malbec";
+        if (plain.contains("chardonnay")) return "Chardonnay";
+        if (plain.contains("sauvignon blanc")) return "Sauvignon Blanc";
+
+        // Si no la reconocemos, devolvemos como viene
+        return trimmed;
+    }
+
 
     private boolean validateInputs(String wineName, String variety, String vintage, String origin, String percentage, String category) {
 
@@ -169,6 +217,10 @@ public class DisplayImageAndText extends AppCompatActivity {
         if (origin != null) origin = origin.trim();
         if (percentage != null) percentage = percentage.trim();
         if (category != null) category = category.trim();
+
+        // 👉 Normalizar variedad a forma oficial
+        variety = normalizeVarietyCanonical(variety);
+
 
         // 1) Campos obligatorios (category es opcional)
         if (wineName.isEmpty() || variety.isEmpty() || vintage.isEmpty() ||
@@ -220,19 +272,27 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         // Lista de variedades conocidas (SOLO ADVERTENCIA, NO BLOQUEA)
         String[] knownVarieties = {
-                "Cabernet Sauvignon", "Merlot", "Carmenere", "Syrah", "Pinot Noir",
+                "Cabernet Sauvignon", "Merlot", "Carmenère", "Syrah", "Pinot Noir",
                 "Malbec", "Cabernet Franc", "Grenache", "Tempranillo", "Sangiovese",
                 "Chardonnay", "Sauvignon Blanc", "Riesling", "Viognier", "Gewürztraminer",
                 "Semillón", "Pedro Ximénez", "Moscatel", "País", "Carignan"
         };
 
         boolean foundVariety = false;
+
+        // Normalizamos ambas cosas: lo que viene del usuario/IA y lo de la lista
+        String normalizedVarietyPlain = stripAccents(variety).toLowerCase(Locale.ROOT);
+
         for (String v : knownVarieties) {
-            if (v.equalsIgnoreCase(variety)) {
+            String normalizedKnownPlain = stripAccents(v).toLowerCase(Locale.ROOT);
+            if (normalizedKnownPlain.equals(normalizedVarietyPlain)) {
                 foundVariety = true;
                 break;
             }
         }
+
+
+
 
         if (!foundVariety) {
             Toast.makeText(this,
@@ -312,7 +372,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         String lower = text.toLowerCase();
 
         if (lower.contains("carmenere") || lower.contains("carmenère"))
-            return "Carmenere";
+            return "Carmenère";
 
         if (lower.contains("cabernet sauvignon"))
             return "Cabernet Sauvignon";
@@ -359,10 +419,12 @@ public class DisplayImageAndText extends AppCompatActivity {
                 saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category);
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
+                aiProgressGif.setVisibility(View.GONE);   // 👈 añadir
                 Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
             });
         }).addOnFailureListener(e -> {
             progressBar.setVisibility(View.GONE);
+            aiProgressGif.setVisibility(View.GONE);   // 👈 añadir
             Snackbar.make(capturedImageView, "Error al subir la imagen.", Snackbar.LENGTH_LONG).show();
         });
     }
