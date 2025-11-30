@@ -6,6 +6,9 @@ plugins {
 
     // Plugin Crashlytics
     id("com.google.firebase.crashlytics")
+
+    // Add the Performance Monitoring Gradle plugin
+    id("com.google.firebase.firebase-perf")
 }
 
 android {
@@ -55,6 +58,10 @@ dependencies {
 
     // 🔥 Firebase BoM (controla versiones de todos los Firebase)
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+
+    // Add the dependency for the Performance Monitoring library
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation("com.google.firebase:firebase-perf")
 
     // Crashlytics + Analytics (SIN versión)
     implementation("com.google.firebase:firebase-crashlytics")
