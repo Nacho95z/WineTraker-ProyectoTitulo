@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton; // <--- IMPORTANTE: Importar ImageButton
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +45,17 @@ public class ViewCollectionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_collection);
 
+        // 1. Ocultar la barra de acción por defecto para usar tu diseño personalizado
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+
+        // 2. Configurar el botón de atrás (backButton)
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> {
+            finish(); // Cierra esta pantalla y vuelve al menú anterior
+        });
+
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -61,7 +73,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
     private void loadCollection() {
         ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading collection...");
+        progressDialog.setMessage("Cargando colección..."); // Traduje el mensaje para consistencia
         progressDialog.show();
 
         CollectionReference userCollection = firestore.collection("descriptions").document(userId).collection("wineDescriptions");
@@ -84,12 +96,12 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         }
                         adapter.notifyDataSetChanged();
                     } else {
-                        Toast.makeText(this, "No items found in collection", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "No se encontraron vinos en la colección", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> {
                     progressDialog.dismiss();
-                    Toast.makeText(this, "Failed to load collection", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al cargar la colección", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -167,25 +179,28 @@ public class ViewCollectionActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             CollectionItem item = collectionList.get(position);
-            Picasso.get().load(item.imageUrl).into(holder.imageView);
-            holder.nameTextView.setText("Nombre: " + item.name);
+
+            if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
+                Picasso.get().load(item.imageUrl).placeholder(android.R.drawable.ic_menu_gallery).into(holder.imageView);
+            }
+
+            holder.nameTextView.setText(item.name);
             holder.varietyTextView.setText("Variedad: " + item.variety);
             holder.vintageTextView.setText("Año: " + item.vintage);
             holder.originTextView.setText("Origen: " + item.origin);
             holder.percentageTextView.setText("Alcohol: " + item.percentage);
 
-            // Resaltar los vinos óptimos
-            if (item.isOptimal) {
+            // Resaltar los vinos óptimos (Opcional: Puedes cambiar esto si el diseño de tarjeta ya es suficiente)
+            /* if (item.isOptimal) {
                 holder.itemView.setBackgroundColor(holder.itemView.getContext().getResources().getColor(R.color.optimalHighlight));
-            } else {
-                holder.itemView.setBackgroundColor(holder.itemView.getContext().getResources().getColor(android.R.color.transparent));
             }
+            */
 
             holder.deleteButton.setOnClickListener(v -> {
                 new AlertDialog.Builder(holder.itemView.getContext())
-                        .setTitle("Delete Item")
-                        .setMessage("Are you sure you want to delete this item?")
-                        .setPositiveButton("Yes", (dialog, which) -> {
+                        .setTitle("Eliminar Vino")
+                        .setMessage("¿Estás seguro de que deseas eliminar este vino?")
+                        .setPositiveButton("Sí", (dialog, which) -> {
                             FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
                             firestore.collection("descriptions").document(userId).collection("wineDescriptions")
@@ -194,10 +209,12 @@ public class ViewCollectionActivity extends AppCompatActivity {
                                     .addOnSuccessListener(aVoid -> {
                                         collectionList.remove(position);
                                         notifyItemRemoved(position);
-                                        Toast.makeText(holder.itemView.getContext(), "Item deleted", Toast.LENGTH_SHORT).show();
+                                        // notifyItemRangeChanged es importante para actualizar posiciones
+                                        notifyItemRangeChanged(position, collectionList.size());
+                                        Toast.makeText(holder.itemView.getContext(), "Vino eliminado", Toast.LENGTH_SHORT).show();
                                     })
                                     .addOnFailureListener(e -> {
-                                        Toast.makeText(holder.itemView.getContext(), "Failed to delete item", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(holder.itemView.getContext(), "Error al eliminar", Toast.LENGTH_SHORT).show();
                                     });
                         })
                         .setNegativeButton("No", null)
