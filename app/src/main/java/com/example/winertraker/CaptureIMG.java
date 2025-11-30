@@ -2,9 +2,13 @@ package com.example.winertraker;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface; // Importante para leer la rotación
 import android.net.Uri;
 import android.os.Bundle;
-import android.widget.ImageButton; // Importante
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -32,6 +36,7 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
@@ -46,36 +51,25 @@ public class CaptureIMG extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_img);
 
-        // Ocultar ActionBar si existe para usar nuestra propia barra
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Initialize Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
         user = FirebaseAuth.getInstance().getCurrentUser();
 
-        // Edge-to-Edge configuration
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Initialize views
         previewView = findViewById(R.id.viewFinder);
         FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
-        ImageButton backButton = findViewById(R.id.backButton); // Botón de atrás
+        ImageButton backButton = findViewById(R.id.backButton);
 
-        // Lógica del botón de atrás (Volver al menú/Home)
-        backButton.setOnClickListener(v -> {
-            finish(); // Cierra esta actividad y vuelve a la anterior (HomeActivity)
-        });
-
-        // Start camera
+        backButton.setOnClickListener(v -> finish());
         previewView.post(this::startCamera);
-
-        // Capture logic
         captureButton.setOnClickListener(v -> captureImage());
     }
 
@@ -99,11 +93,10 @@ public class CaptureIMG extends AppCompatActivity {
                 .build();
 
         imageCapture = new ImageCapture.Builder().build();
-
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
         try {
-            cameraProvider.unbindAll(); // Desvincular antes de vincular
+            cameraProvider.unbindAll();
             cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
         } catch (Exception e) {
             Toast.makeText(this, "Fallo al vincular cámara", Toast.LENGTH_SHORT).show();
@@ -121,6 +114,11 @@ public class CaptureIMG extends AppCompatActivity {
         imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                // --- SOLUCIÓN DEFINITIVA DE ROTACIÓN ---
+                // Corregimos la imagen físicamente antes de procesarla
+                fixImageRotation(photoFile);
+                // ---------------------------------------
+
                 Uri fileUri = Uri.fromFile(photoFile);
 
                 ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
@@ -137,6 +135,50 @@ public class CaptureIMG extends AppCompatActivity {
             }
         });
     }
+
+    // --- MÉTODOS NUEVOS PARA CORREGIR ROTACIÓN ---
+    private void fixImageRotation(File photoFile) {
+        try {
+            // Leemos la etiqueta de rotación que puso la cámara
+            ExifInterface ei = new ExifInterface(photoFile.getAbsolutePath());
+            int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+
+            Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
+            Bitmap rotatedBitmap = null;
+
+            // Rotamos según lo que diga la etiqueta
+            switch(orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotatedBitmap = rotateImage(bitmap, 90);
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotatedBitmap = rotateImage(bitmap, 180);
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotatedBitmap = rotateImage(bitmap, 270);
+                    break;
+                case ExifInterface.ORIENTATION_NORMAL:
+                default:
+                    rotatedBitmap = bitmap;
+            }
+
+            // Si hubo rotación, sobrescribimos el archivo con la imagen correcta
+            if (rotatedBitmap != bitmap) {
+                try (FileOutputStream out = new FileOutputStream(photoFile)) {
+                    rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Bitmap rotateImage(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+    // ---------------------------------------------
 
     private void processImageForText(Uri uri, ProgressDialog progressDialog) {
         try {
