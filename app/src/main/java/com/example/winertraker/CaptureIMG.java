@@ -121,13 +121,17 @@ public class CaptureIMG extends AppCompatActivity {
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                 Uri fileUri = Uri.fromFile(photoFile);
 
-                // Show progress dialog
+                // Podemos mostrar un pequeño loading solo mientras abre la pantalla
                 ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
-                progressDialog.setMessage("Procesando imagen...");
+                progressDialog.setMessage("Abriendo vista previa...");
                 progressDialog.show();
 
-                // Process image for text recognition
-                processImageForText(fileUri);
+                Intent intent = new Intent(CaptureIMG.this, DisplayImageAndText.class);
+                intent.putExtra("imageUri", fileUri);
+                startActivity(intent);
+
+                progressDialog.dismiss();
+
 
             }
 
@@ -138,24 +142,6 @@ public class CaptureIMG extends AppCompatActivity {
         });
     }
 
-
-    private void processImageForText(Uri uri) {
-        try {
-            InputImage image = InputImage.fromFilePath(this, uri);
-            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
-            recognizer.process(image)
-                    .addOnSuccessListener(text -> {
-                        String recognizedText = text.getText();
-
-                        // Start DisplayImageAndText activity with image URI and recognized text
-                        showImageAndText(uri, recognizedText);
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(CaptureIMG.this, "Error al procesar la imagen", Toast.LENGTH_SHORT).show());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
 
     // Method to start DisplayImageAndText activity
     private void showImageAndText(Uri imageUri, String recognizedText) {

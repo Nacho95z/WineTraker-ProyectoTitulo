@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import android.util.Log;
+
 public class DisplayImageAndText extends AppCompatActivity {
 
     private ImageView capturedImageView;
@@ -43,6 +45,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_image_and_text);
+        recognizedText = "";
 
         // Initialize views
         capturedImageView = findViewById(R.id.capturedImageView);
@@ -66,14 +69,56 @@ public class DisplayImageAndText extends AppCompatActivity {
         imageUri = getIntent().getParcelableExtra("imageUri");
         recognizedText = getIntent().getStringExtra("recognizedText");
 
-        // Display image and text
-        if (imageUri != null) {
-            capturedImageView.setImageURI(imageUri);
+        // Si por alguna razón no llegó la URI, avisamos y salimos
+        if (imageUri == null) {
+            Toast.makeText(this, "No se encontró la imagen.", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
-        if (recognizedText != null) {
-            recognizedTextEdit.setText(recognizedText);
-            autofillFields(recognizedText);
-        }
+
+        // Mostrar imagen
+        capturedImageView.setImageURI(imageUri);
+
+        // Mostrar progreso mientras analizamos
+        progressBar.setVisibility(View.VISIBLE);
+
+        // 🔍 OpenAI primero, OCR local como fallback
+        WineLabelAnalyzer.analyzeImage(
+                this,
+                imageUri,
+                (info, rawOcrText, error) -> runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+
+                    if (info != null) {
+                        // ✅ Resultado desde OpenAI
+                        wineNameEditText.setText(info.getWineName());
+                        nameEditText.setText(info.getVariety());
+                        vintageEditText.setText(info.getVintage());
+                        originEditText.setText(info.getOrigin());
+                        percentageEditText.setText(info.getPercentage());
+
+                        recognizedText = info.getRawText();
+                        if (recognizedText != null && !recognizedText.isEmpty()) {
+                            recognizedTextEdit.setText(recognizedText);
+                        }
+
+                    } else if (rawOcrText != null) {
+                        // 🔁 Fallback: OCR local
+                        recognizedText = rawOcrText;
+                        recognizedTextEdit.setText(recognizedText);
+                        autofillFields(recognizedText);
+
+                    } else if (error != null) {
+                        Log.e("DisplayImageAndText", "Error analizando imagen", error);
+                        Toast.makeText(
+                                DisplayImageAndText.this,
+                                "No se pudo analizar la imagen.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                })
+        );
+
 
         // Save button functionality
         saveButton.setOnClickListener(v -> {
@@ -101,15 +146,19 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private boolean validateInputs(String wineName, String variety, String vintage, String origin, String percentage) {
-        // Listado de variedades permitidas
         String[] allowedVarieties = {
                 "Pinot Noir", "Gamay", "Merlot", "Tempranillo",
                 "Cabernet Sauvignon", "Syrah", "Sauvignon Blanc",
                 "Riesling", "Chardonnay", "Viognier"
         };
 
+        if (recognizedText == null) {
+            recognizedText = "";
+        }
+
         // Verificar si los campos están vacíos
-        if (recognizedText.isEmpty() || wineName.isEmpty() || variety.isEmpty() || vintage.isEmpty() || origin.isEmpty() || percentage.isEmpty()) {
+        if (recognizedText.isEmpty() || wineName.isEmpty() || variety.isEmpty()
+                || vintage.isEmpty() || origin.isEmpty() || percentage.isEmpty()) {
             Toast.makeText(this, "Por favor complete todos los campos requeridos.", Toast.LENGTH_SHORT).show();
             return false;
         }
