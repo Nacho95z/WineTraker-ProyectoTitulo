@@ -55,6 +55,16 @@
             android:textColorHint="#888888" />
 
         <EditText
+            android:id="@+id/categoryEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Categoría / línea (ej: Gran Reserva de los Andes)"
+            android:inputType="textCapWords"
+            android:textColor="@color/my_dark_primary"
+            android:layout_marginTop="8dp" />
+
+
+        <EditText
             android:id="@+id/nameEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

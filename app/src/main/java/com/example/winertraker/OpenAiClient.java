@@ -70,7 +70,7 @@ public class OpenAiClient {
         systemMessage.put("content",
                 "Eres un asistente experto en etiquetas de vino. " +
                         "Debes devolver EXCLUSIVAMENTE un JSON válido con las claves: " +
-                        "wineName, variety, vintage, origin, percentage. " +
+                        "wineName, variety, vintage, origin, percentage, category, rawText. " +
                         "Sin texto adicional antes ni después del JSON."
         );
 
@@ -84,9 +84,19 @@ public class OpenAiClient {
         Map<String, Object> textBlock = new HashMap<>();
         textBlock.put("type", "text");
         textBlock.put("text",
-                "Analiza esta imagen de una etiqueta de vino y devuelve un JSON con:\n" +
-                        "wineName, variety, vintage, origin, percentage.\n" +
-                        "Si un dato no está visible usa \"\"."
+                "Analiza esta imagen de una etiqueta de vino y devuelve un JSON con los campos:\n" +
+                        "- wineName: nombre del vino o de la viña principal (por ejemplo 'Santa Alicia').\n" +
+                        "- variety: cepa principal (por ejemplo 'Carmenere', 'Cabernet Sauvignon').\n" +
+                        "- vintage: año de cosecha en 4 dígitos (por ejemplo '2012'). Si no está visible usa \"\".\n" +
+                        "- origin: región o denominación de origen (por ejemplo 'Valle del Maipo'). Si no está visible usa \"\".\n" +
+                        "- percentage: grado alcohólico numérico sin el símbolo %, por ejemplo '13.5'. Si no está visible usa \"\".\n" +
+                        "- category: categoría o línea comercial del vino (por ejemplo 'Reserva', 'Gran Reserva', 'Gran Reserva de los Andes', 'Edición Limitada'). " +
+                        "Si no está visible usa \"\".\n" +
+                        "- rawText: todo el texto relevante de la etiqueta en una sola cadena.\n\n" +
+                        "Importante:\n" +
+                        "- NO pongas la categoría (por ejemplo 'Gran Reserva de los Andes') en wineName.\n" +
+                        "- NO añadas comentarios fuera del JSON.\n" +
+                        "- Si algún dato no está claramente visible, usa \"\" en ese campo."
         );
         contentList.add(textBlock);
 
@@ -116,5 +126,6 @@ public class OpenAiClient {
 
         return body;
     }
+
 
 }

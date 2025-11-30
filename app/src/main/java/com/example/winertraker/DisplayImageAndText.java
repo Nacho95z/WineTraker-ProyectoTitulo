@@ -33,7 +33,7 @@ import android.util.Log;
 public class DisplayImageAndText extends AppCompatActivity {
 
     private ImageView capturedImageView;
-    private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText, percentageEditText, wineNameEditText;
+    private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText, percentageEditText, wineNameEditText, categoryEditText;
     private Uri imageUri;
     private String recognizedText;
     private StorageReference storageRef;
@@ -68,6 +68,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         // Get data from intent
         imageUri = getIntent().getParcelableExtra("imageUri");
         recognizedText = getIntent().getStringExtra("recognizedText");
+        categoryEditText = findViewById(R.id.categoryEditText);
 
         // Si por alguna razón no llegó la URI, avisamos y salimos
         if (imageUri == null) {
@@ -90,17 +91,23 @@ public class DisplayImageAndText extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
 
                     if (info != null) {
-                        // ✅ Resultado desde OpenAI
+                        //Resultado desde OpenAI
                         wineNameEditText.setText(info.getWineName());
                         nameEditText.setText(info.getVariety());
                         vintageEditText.setText(info.getVintage());
                         originEditText.setText(info.getOrigin());
                         percentageEditText.setText(info.getPercentage());
 
+                        String category = info.getCategory();
+                        if (category != null && !category.isEmpty()) {
+                            categoryEditText.setText(category);
+                        }
+
                         recognizedText = info.getRawText();
                         if (recognizedText != null && !recognizedText.isEmpty()) {
                             recognizedTextEdit.setText(recognizedText);
                         }
+
 
                     } else if (rawOcrText != null) {
                         // 🔁 Fallback: OCR local
@@ -128,13 +135,16 @@ public class DisplayImageAndText extends AppCompatActivity {
             String vintage = vintageEditText.getText().toString().trim();
             String origin = originEditText.getText().toString().trim();
             String percentage = percentageEditText.getText().toString().trim();
+            String category = categoryEditText.getText().toString().trim();
 
-            if (!validateInputs(wineName, variety, vintage, origin, percentage)) {
+
+            if (!validateInputs(wineName, variety, vintage, origin, percentage, category)) {
                 return;
             }
 
+
             progressBar.setVisibility(View.VISIBLE);
-            saveDataToFirebase(wineName, variety, vintage, origin, percentage);
+            saveDataToFirebase(wineName, variety, vintage, origin, percentage, category);
         });
 
         // Discard button functionality
@@ -145,78 +155,150 @@ public class DisplayImageAndText extends AppCompatActivity {
         });
     }
 
-    private boolean validateInputs(String wineName, String variety, String vintage, String origin, String percentage) {
-        String[] allowedVarieties = {
-                "Pinot Noir", "Gamay", "Merlot", "Tempranillo",
-                "Cabernet Sauvignon", "Syrah", "Sauvignon Blanc",
-                "Riesling", "Chardonnay", "Viognier"
-        };
+    private boolean validateInputs(String wineName, String variety, String vintage, String origin, String percentage, String category) {
 
+        // Evitar null en recognizedText (aunque ya no es obligatorio)
         if (recognizedText == null) {
             recognizedText = "";
         }
 
-        // Verificar si los campos están vacíos
-        if (recognizedText.isEmpty() || wineName.isEmpty() || variety.isEmpty()
-                || vintage.isEmpty() || origin.isEmpty() || percentage.isEmpty()) {
+        // Normalizar espacios
+        if (wineName != null) wineName = wineName.trim();
+        if (variety != null) variety = variety.trim();
+        if (vintage != null) vintage = vintage.trim();
+        if (origin != null) origin = origin.trim();
+        if (percentage != null) percentage = percentage.trim();
+        if (category != null) category = category.trim();
+
+        // 1) Campos obligatorios (category es opcional)
+        if (wineName.isEmpty() || variety.isEmpty() || vintage.isEmpty() ||
+                origin.isEmpty() || percentage.isEmpty()) {
             Toast.makeText(this, "Por favor complete todos los campos requeridos.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // Validar el año de cosecha (debe ser un número de 4 dígitos)
+        // 2) Validar NOMBRE del vino (texto razonable)
+        String wineNamePattern = "^[\\p{L}0-9\\s'’.-]{3,}$"; // letras, números, espacios, ', ., -
+        if (!wineName.matches(wineNamePattern)) {
+            Toast.makeText(this,
+                    "El nombre del vino debe tener al menos 3 caracteres y solo letras, números y símbolos simples.",
+                    Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        // 3) Validar año (4 dígitos)
         if (!vintage.matches("\\d{4}")) {
             Toast.makeText(this, "Ingrese un año válido (4 dígitos).", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // Validar el porcentaje de alcohol (debe estar entre 0 y 100)
-        if (!percentage.matches("\\d+(\\.\\d+)?") || Double.parseDouble(percentage) > 100) {
-            Toast.makeText(this, "Ingrese un porcentaje válido entre 0 y 100.", Toast.LENGTH_SHORT).show();
+        // 4) Validar porcentaje de alcohol (0 a 100)
+        if (!percentage.matches("\\d+(\\.\\d+)?")) {
+            Toast.makeText(this, "Ingrese un porcentaje de alcohol válido.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // Validar que la variedad esté en el listado de variedades permitidas
-        boolean isValidVariety = false;
-        for (String allowedVariety : allowedVarieties) {
-            if (allowedVariety.equalsIgnoreCase(variety)) { // Comparación insensible a mayúsculas/minúsculas
-                isValidVariety = true;
+        try {
+            double alc = Double.parseDouble(percentage);
+            if (alc < 0 || alc > 100) {
+                Toast.makeText(this, "El porcentaje de alcohol debe estar entre 0 y 100.", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Ingrese un porcentaje de alcohol válido.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        // 5) Validación inteligente de VARIEDAD (solo letras, espacios y acentos, mínimo 3 caracteres)
+        String varietyPattern = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]{3,}$";
+        if (!variety.matches(varietyPattern)) {
+            Toast.makeText(this,
+                    "La variedad debe contener solo letras y al menos 3 caracteres.",
+                    Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        // Lista de variedades conocidas (SOLO ADVERTENCIA, NO BLOQUEA)
+        String[] knownVarieties = {
+                "Cabernet Sauvignon", "Merlot", "Carmenere", "Syrah", "Pinot Noir",
+                "Malbec", "Cabernet Franc", "Grenache", "Tempranillo", "Sangiovese",
+                "Chardonnay", "Sauvignon Blanc", "Riesling", "Viognier", "Gewürztraminer",
+                "Semillón", "Pedro Ximénez", "Moscatel", "País", "Carignan"
+        };
+
+        boolean foundVariety = false;
+        for (String v : knownVarieties) {
+            if (v.equalsIgnoreCase(variety)) {
+                foundVariety = true;
                 break;
             }
         }
-        if (!isValidVariety) {
-            Toast.makeText(this, "La variedad ingresada no es válida. Por favor, ingrese una de las siguientes: " +
-                    String.join(", ", allowedVarieties), Toast.LENGTH_LONG).show();
-            return false;
+
+        if (!foundVariety) {
+            Toast.makeText(this,
+                    "La variedad \"" + variety + "\" no está en nuestra lista conocida. ¿Está seguro que es correcta?",
+                    Toast.LENGTH_LONG).show();
+            // Solo aviso, NO return false
         }
 
-        return true; // Todos los campos son válidos
+        // 6) Categoría / línea: advertencia suave (opcional)
+        if (category != null && !category.isEmpty()) {
+            String[] knownCategories = {
+                    "Reserva",
+                    "Gran Reserva",
+                    "Gran Reserva de los Andes",
+                    "Reserva Especial",
+                    "Edición Limitada",
+                    "Estate Bottled"
+            };
+
+            boolean foundCategory = false;
+            for (String c : knownCategories) {
+                if (c.equalsIgnoreCase(category)) {
+                    foundCategory = true;
+                    break;
+                }
+            }
+
+            if (!foundCategory) {
+                Toast.makeText(this,
+                        "La categoría \"" + category + "\" no está en nuestra lista conocida. ¿Está seguro que es correcta?",
+                        Toast.LENGTH_LONG).show();
+                // Solo advertimos, NO bloqueamos
+            }
+        }
+
+        return true; // ✅ Todos los campos obligatorios son válidos
     }
 
-    private void autofillFields(String text) {
-        String[] wineKeywords = {"cabernet", "merlot", "chardonnay", "sauvignon blanc", "pinot noir", "malbec", "carmenere"};
-        String[] originKeywords = {"Maipo", "Colchagua", "Casablanca", "Limarí", "Itata", "Aconcagua", "Curicó", "Maule"};
 
-        // Autocomplete variety
+
+    private void autofillFields(String text) {
+        // 1) Autocomplete variety
         String variety = identifyWine(text);
         if (variety != null) {
             nameEditText.setText(variety);
         }
 
-        // Detect year
+        // 2) Detect year
         Pattern yearPattern = Pattern.compile("\\b(19|20)\\d{2}\\b");
         Matcher yearMatcher = yearPattern.matcher(text);
         if (yearMatcher.find()) {
             vintageEditText.setText(yearMatcher.group());
         }
 
-        // Detect alcohol percentage
+        // 3) Detect alcohol percentage
         Pattern percentagePattern = Pattern.compile("\\b\\d+%\\b");
         Matcher percentageMatcher = percentagePattern.matcher(text);
         if (percentageMatcher.find()) {
-            percentageEditText.setText(percentageMatcher.group().replace("%", "").trim());
+            percentageEditText.setText(
+                    percentageMatcher.group().replace("%", "").trim()
+            );
         }
 
-        // Autocomplete origin
+        // 4) Autocomplete origin
+        String[] originKeywords = {"Maipo", "Colchagua", "Casablanca", "Limarí", "Itata", "Aconcagua", "Curicó", "Maule"};
+
         for (String origin : originKeywords) {
             if (text.toLowerCase().contains(origin.toLowerCase())) {
                 originEditText.setText("Valle de " + origin);
@@ -225,16 +307,43 @@ public class DisplayImageAndText extends AppCompatActivity {
         }
     }
 
+
     private String identifyWine(String text) {
-        for (String keyword : new String[]{"cabernet", "merlot", "chardonnay", "sauvignon blanc", "pinot noir", "malbec", "carmenere"}) {
-            if (text.toLowerCase().contains(keyword)) {
-                return keyword;
-            }
-        }
+        String lower = text.toLowerCase();
+
+        if (lower.contains("carmenere") || lower.contains("carmenère"))
+            return "Carmenere";
+
+        if (lower.contains("cabernet sauvignon"))
+            return "Cabernet Sauvignon";
+
+        if (lower.contains("cabernet") && !lower.contains("cabernet sauvignon"))
+            return "Cabernet"; // Caso raro, pero posible
+
+        if (lower.contains("merlot"))
+            return "Merlot";
+
+        if (lower.contains("syrah") || lower.contains("shiraz"))
+            return "Syrah";
+
+        if (lower.contains("pinot noir"))
+            return "Pinot Noir";
+
+        if (lower.contains("malbec"))
+            return "Malbec";
+
+        if (lower.contains("chardonnay"))
+            return "Chardonnay";
+
+        if (lower.contains("sauvignon blanc"))
+            return "Sauvignon Blanc";
+
         return null;
     }
 
-    private void saveDataToFirebase(String wineName, String variety, String vintage, String origin, String percentage) {
+
+
+    private void saveDataToFirebase(String wineName, String variety, String vintage, String origin, String percentage, String category) {
         if (imageUri == null) {
             Toast.makeText(this, "No hay imagen para guardar.", Toast.LENGTH_SHORT).show();
             return;
@@ -247,7 +356,7 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         uploadTask.addOnSuccessListener(taskSnapshot -> {
             imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage);
+                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category);
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
                 Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
@@ -258,7 +367,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         });
     }
 
-    private void saveToFirestore(String imageUrl, String wineName, String variety, String vintage, String origin, String percentage) {
+    private void saveToFirestore(String imageUrl, String wineName, String variety, String vintage, String origin, String percentage, String category) {
         CollectionReference userCollection = firestore.collection("descriptions").document(userId).collection("wineDescriptions");
 
         Map<String, Object> imageData = new HashMap<>();
@@ -269,6 +378,8 @@ public class DisplayImageAndText extends AppCompatActivity {
         imageData.put("vintage", vintage);
         imageData.put("origin", origin);
         imageData.put("percentage", percentage);
+        imageData.put("category", category);
+
 
         userCollection.add(imageData)
                 .addOnSuccessListener(aVoid -> {
