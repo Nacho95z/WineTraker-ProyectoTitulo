@@ -1,6 +1,6 @@
 package com.example.winertraker;
 
-import android.Manifest; // IMPORTANTE: Para los permisos
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -8,16 +8,18 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Button;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull; // Para @NonNull
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat; // Para solicitar permisos
+import androidx.cardview.widget.CardView;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.ContextCompat; // Para verificar permisos
+import androidx.core.content.ContextCompat;
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.PieData;
@@ -35,20 +37,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import android.graphics.Color;
-
-
 public class HomeActivity extends AppCompatActivity {
 
-    // Código para identificar la solicitud de permisos
     private static final int PERMISSION_REQUEST_CODE = 112;
 
     private FirebaseUser user;
-    private TextView welcomeTextView, emailTextView, providerTextView, emailVerifiedTextView, uidTextView, collectionStatsTextView;
-    private Button logoutButton, addBottleButton, viewCollectionButton, toggleWelcomeButton, crashButton;
-    private boolean isWelcomeOriginal = true;
     private FirebaseFirestore firestore;
     private String userId;
+
+    // Componentes del UI Dashboard
+    private TextView welcomeTextView, emailTextView, txtTotalWines, txtOptimalWines;
+    private ImageView logoutIcon;
+    private CardView cardScan, cardCollection;
     private PieChart pieChart;
 
     @Override
@@ -56,11 +56,8 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        // --- NUEVO: Solicitar permisos automáticamente al abrir la pantalla ---
         checkAndRequestPermissions();
-        // ----------------------------------------------------------------------
 
-        // Initialize Firebase Auth
         user = FirebaseAuth.getInstance().getCurrentUser();
         firestore = FirebaseFirestore.getInstance();
 
@@ -72,150 +69,59 @@ public class HomeActivity extends AppCompatActivity {
 
         userId = user.getUid();
 
-        // Initialize views
+        // Inicializar vistas
+        initializeViews();
+
+        // Configurar datos del usuario
+        setupUserInfo();
+
+        // Configurar botones de acción
+        setupActions();
+
+        // Crear canal de notificaciones
+        createNotificationChannel();
+
+        // Cargar datos del dashboard (Gráficos y Contadores)
+        loadCollectionStats();
+    }
+
+    private void initializeViews() {
         welcomeTextView = findViewById(R.id.welcomeTextView);
         emailTextView = findViewById(R.id.emailTextView);
-        providerTextView = findViewById(R.id.providerTextView);
-        emailVerifiedTextView = findViewById(R.id.emailVerifiedTextView);
-        uidTextView = findViewById(R.id.uidTextView);
-        logoutButton = findViewById(R.id.logoutButton);
-        addBottleButton = findViewById(R.id.addBottleButton);
-        viewCollectionButton = findViewById(R.id.viewCollectionButton);
-        collectionStatsTextView = findViewById(R.id.collectionStatsTextView);
+        txtTotalWines = findViewById(R.id.txtTotalWines);
+        txtOptimalWines = findViewById(R.id.txtOptimalWines);
+        logoutIcon = findViewById(R.id.logoutIcon);
+        cardScan = findViewById(R.id.cardScan);
+        cardCollection = findViewById(R.id.cardCollection);
         pieChart = findViewById(R.id.pieChart);
-        toggleWelcomeButton = findViewById(R.id.toggleWelcomeButton);
-        crashButton = findViewById(R.id.crashButton);
+    }
 
-
-        // Display user information
-        if (user.getDisplayName() != null) {
-            welcomeTextView.setText("Bienvenido! " + user.getDisplayName());
+    private void setupUserInfo() {
+        if (user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
+            welcomeTextView.setText("Hola, " + user.getDisplayName());
         } else {
-            welcomeTextView.setText("Bienvenido, Usuario");
+            welcomeTextView.setText("Hola, Amante del Vino");
         }
+        emailTextView.setText(user.getEmail());
+    }
 
-        emailTextView.setText("Email: " + user.getEmail());
-        emailVerifiedTextView.setText("Email Verified: " + user.isEmailVerified());
-        uidTextView.setText("UID: " + userId);
-
-        String provider = (user.getDisplayName() != null) ? user.getDisplayName() : "Not Available";
-        providerTextView.setText("Name: " + provider);
-
-        // Logout button
-        logoutButton.setOnClickListener(v -> {
+    private void setupActions() {
+        // Botón Logout
+        logoutIcon.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
             startActivity(new Intent(HomeActivity.this, AuthActivity.class));
             finish();
         });
 
-        // Navigate to CaptureIMG or ViewCollection
-        addBottleButton.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
-        viewCollectionButton.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
-        toggleWelcomeButton.setOnClickListener(v -> {
-            if (isWelcomeOriginal) {
-                welcomeTextView.setText("Saludo cambiado 🎉");
-                welcomeTextView.setTextColor(Color.RED);
-                toggleWelcomeButton.setText("Volver al original");
-            } else {
-                // Volver al estado original
-                if (user.getDisplayName() != null) {
-                    welcomeTextView.setText("Bienvenido! " + user.getDisplayName());
-                } else {
-                    welcomeTextView.setText("Bienvenido, Usuario");
-                }
-                welcomeTextView.setTextColor(Color.parseColor("#6200EE")); // el color que usas en el XML
-                toggleWelcomeButton.setText("Cambiar saludo");
-            }
-            isWelcomeOriginal = !isWelcomeOriginal;
-        });
+        // Tarjeta Escanear
+        cardScan.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
 
-        // Botón para probar Crashlytics (forzar un crash)
-        crashButton.setOnClickListener(view -> {
-            throw new RuntimeException("Test Crash - Probando boton"); // Forzar un crash
-        });
-
-
-        // Create notification channel
-        createNotificationChannel();
-
-        // Load collection stats
-        loadCollectionStats();
-    }
-
-    // --- NUEVO MÉTODO: Verifica y pide permisos de una sola vez ---
-    private void checkAndRequestPermissions() {
-        List<String> listPermissionsNeeded = new ArrayList<>();
-
-        // 1. Revisar Cámara
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            listPermissionsNeeded.add(Manifest.permission.CAMERA);
-        }
-
-        // 2. Revisar Notificaciones (Solo si es Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                listPermissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
-
-        // 3. Si falta alguno, pedirlo
-        if (!listPermissionsNeeded.isEmpty()) {
-            ActivityCompat.requestPermissions(this,
-                    listPermissionsNeeded.toArray(new String[0]),
-                    PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    // --- NUEVO MÉTODO: Maneja la respuesta del usuario ---
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            // Aquí puedes agregar lógica adicional si quieres reaccionar
-            // Por ejemplo, mostrar un mensaje si rechazaron la cámara.
-
-            // Verificamos respuestas
-            Map<String, Integer> perms = new HashMap<>();
-            if (grantResults.length > 0) {
-                for (int i = 0; i < permissions.length; i++) {
-                    perms.put(permissions[i], grantResults[i]);
-                }
-
-                // Ejemplo: Si rechazó la cámara
-                if (perms.containsKey(Manifest.permission.CAMERA) &&
-                        perms.get(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "La cámara es necesaria para escanear botellas", Toast.LENGTH_LONG).show();
-                }
-            }
-        }
-    }
-
-    private void redirectToActivity(Class<?> activityClass) {
-        Intent intent = new Intent(HomeActivity.this, activityClass);
-        startActivity(intent);
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String channelId = "wine_optimal_channel";
-            CharSequence name = "Consumo Óptimo";
-            String description = "Notificación sobre consumo óptimo de vinos";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(channelId, name, importance);
-            channel.setDescription(description);
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
-        }
+        // Tarjeta Ver Colección
+        cardCollection.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
     }
 
     private void loadCollectionStats() {
-        if (userId == null) return; // Evitar crash si no hay usuario
+        if (userId == null) return;
 
         CollectionReference collectionRef = firestore.collection("descriptions")
                 .document(userId)
@@ -224,6 +130,7 @@ public class HomeActivity extends AppCompatActivity {
         collectionRef.get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 int totalWines = 0;
+                int optimalCount = 0;
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
                 List<String> optimalWineNames = new ArrayList<>();
 
@@ -241,6 +148,7 @@ public class HomeActivity extends AppCompatActivity {
                             try {
                                 int vintageYear = Integer.parseInt(vintageStr);
                                 if (isOptimalForConsumption(variety, vintageYear)) {
+                                    optimalCount++;
                                     if (wineName != null) {
                                         optimalWineNames.add(wineName);
                                     }
@@ -252,28 +160,27 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
 
-                // Update statistics TextView
-                StringBuilder statsBuilder = new StringBuilder();
-                statsBuilder.append("Total vinos en colección: ").append(totalWines).append("\n\n");
-                for (Map.Entry<String, Integer> entry : wineVarietyCounts.entrySet()) {
-                    statsBuilder.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
-                }
-                collectionStatsTextView.setText(statsBuilder.toString());
+                // ACTUALIZAR DASHBOARD UI
+                txtTotalWines.setText(String.valueOf(totalWines));
+                txtOptimalWines.setText(String.valueOf(optimalCount));
 
-                // Update pie chart
+                // Actualizar gráfico
                 updatePieChart(wineVarietyCounts);
 
-                // Send notification if there are optimal wines
+                // Notificar si es necesario
                 if (!optimalWineNames.isEmpty()) {
                     sendOptimalConsumptionNotification(optimalWineNames);
                 }
             } else {
-                collectionStatsTextView.setText("No se pudo cargar la colección.");
+                txtTotalWines.setText("-");
+                txtOptimalWines.setText("-");
             }
         }).addOnFailureListener(e -> {
-            collectionStatsTextView.setText("Error al cargar estadísticas.");
+            Toast.makeText(this, "Error cargando datos", Toast.LENGTH_SHORT).show();
         });
     }
+
+    // --- MÉTODOS AUXILIARES (Gráfico, Permisos, Lógica Vinos) ---
 
     private void updatePieChart(Map<String, Integer> wineVarietyCounts) {
         List<PieEntry> entries = new ArrayList<>();
@@ -283,7 +190,8 @@ public class HomeActivity extends AppCompatActivity {
 
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        dataSet.setValueTextSize(12f);
+        dataSet.setValueTextSize(14f);
+        dataSet.setValueTextColor(android.graphics.Color.WHITE);
 
         PieData data = new PieData(dataSet);
         data.setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
@@ -294,14 +202,14 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         pieChart.setData(data);
-
         pieChart.setUsePercentValues(false);
         pieChart.setDrawHoleEnabled(true);
-        pieChart.setHoleRadius(40f);
-        pieChart.setTransparentCircleRadius(50f);
-        pieChart.setEntryLabelTextSize(12f);
+        pieChart.setHoleColor(android.graphics.Color.TRANSPARENT);
+        pieChart.setEntryLabelColor(android.graphics.Color.BLACK);
+        pieChart.setCenterText("Variedades");
+        pieChart.setCenterTextSize(16f);
         pieChart.getDescription().setEnabled(false);
-
+        pieChart.getLegend().setEnabled(false); // Ocultar leyenda si satura mucho
         pieChart.animateXY(1400, 1400);
         pieChart.invalidate();
     }
@@ -331,67 +239,74 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private void sendOptimalConsumptionNotification(List<String> wineNames) {
-        if (wineNames.isEmpty()) return;
-
-        // VERIFICACIÓN DE SEGURIDAD MODIFICADA
-        // En lugar de pedir permiso aquí (que puede cortar el flujo), verificamos si lo tenemos.
-        // Si no lo tenemos, simplemente salimos del método para evitar crasheos.
-        // Se asume que el usuario aceptó los permisos en el inicio (onCreate).
+    private void checkAndRequestPermissions() {
+        List<String> listPermissionsNeeded = new ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            listPermissionsNeeded.add(Manifest.permission.CAMERA);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                // Si llegamos aquí y no tenemos permiso, no podemos notificar.
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                listPermissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+        if (!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[0]), PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            String channelId = "wine_optimal_channel";
+            CharSequence name = "Consumo Óptimo";
+            String description = "Notificación sobre consumo óptimo de vinos";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(channelId, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    private void sendOptimalConsumptionNotification(List<String> wineNames) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
         }
 
-        StringBuilder notificationMessage = new StringBuilder("Los siguientes vinos están en su punto óptimo de consumo:\n");
-        for (String wine : wineNames) {
-            notificationMessage.append("- ").append(wine).append("\n");
-        }
+        // Solo notificar si hay vinos, para no molestar
+        if(wineNames.isEmpty()) return;
 
-        // Cambia el Intent para llevar a ViewCollectionActivity sin usar FLAG_ACTIVITY_CLEAR_TASK
         Intent intent = new Intent(this, ViewCollectionActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // Solo se asegura de iniciar como nueva actividad en la pila
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE
-        );
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
-                .setSmallIcon(R.drawable.ic_wine) // Asegúrate de tener este ícono
-                .setContentTitle("Consumo óptimo")
-                .setContentText("Revisa tu colección para más detalles.")
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(notificationMessage.toString()))
+                .setSmallIcon(R.drawable.ic_wine) // Asegúrate de tener este icono o usa android.R.drawable.ic_dialog_info
+                .setContentTitle("¡Tienes vinos listos!")
+                .setContentText("Tienes " + wineNames.size() + " botellas en su punto óptimo.")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
-        try {
-            notificationManager.notify(1, builder.build());
-        } catch (SecurityException e) {
-            // Bloque catch por seguridad en caso de que el permiso se revoque en tiempo real
-            e.printStackTrace();
-        }
+        NotificationManagerCompat.from(this).notify(1, builder.build());
     }
 
+    private void redirectToActivity(Class<?> activityClass) {
+        Intent intent = new Intent(HomeActivity.this, activityClass);
+        startActivity(intent);
+    }
 
     private String capitalize(String text) {
-        String[] words = text.split(" ");
-        StringBuilder capitalized = new StringBuilder();
+        if (text == null || text.isEmpty()) return "";
+        return text.substring(0, 1).toUpperCase() + text.substring(1).toLowerCase();
+    }
 
-        for (String word : words) {
-            if (word.length() > 0) {
-                capitalized.append(Character.toUpperCase(word.charAt(0)))
-                        .append(word.substring(1).toLowerCase()).append(" ");
-            }
-        }
-
-        return capitalized.toString().trim();
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // Implementación básica para cumplir con override
     }
 }
