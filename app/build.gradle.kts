@@ -69,10 +69,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
-    implementation(libs.transport.api)
-    implementation(libs.transport.api)
-    implementation(libs.transport.api)
-    implementation(libs.transport.api)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
