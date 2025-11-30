@@ -4,7 +4,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.widget.Button;
+import android.widget.ImageButton; // Importante
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,34 +20,23 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageProxy;
-import androidx.camera.core.Preview;
-import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
-import androidx.core.content.ContextCompat;
-import com.google.common.util.concurrent.ListenableFuture;
-import java.util.concurrent.ExecutionException;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 public class CaptureIMG extends AppCompatActivity {
     private FirebaseUser user;
-    private String userId;
     private PreviewView previewView;
     private ImageCapture imageCapture;
     private StorageReference storageRef;
@@ -57,12 +46,14 @@ public class CaptureIMG extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_img);
 
-        // Initialize Firebase Storage reference
-        storageRef = FirebaseStorage.getInstance().getReference();
+        // Ocultar ActionBar si existe para usar nuestra propia barra
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
 
-        // Initialize Firebase Auth
+        // Initialize Firebase
+        storageRef = FirebaseStorage.getInstance().getReference();
         user = FirebaseAuth.getInstance().getCurrentUser();
-        userId = user != null ? user.getUid() : "unknown";
 
         // Edge-to-Edge configuration
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -73,12 +64,18 @@ public class CaptureIMG extends AppCompatActivity {
 
         // Initialize views
         previewView = findViewById(R.id.viewFinder);
-        Button captureButton = findViewById(R.id.image_capture_button);
+        FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
+        ImageButton backButton = findViewById(R.id.backButton); // Botón de atrás
 
-        // Start camera when activity is created
+        // Lógica del botón de atrás (Volver al menú/Home)
+        backButton.setOnClickListener(v -> {
+            finish(); // Cierra esta actividad y vuelve a la anterior (HomeActivity)
+        });
+
+        // Start camera
         previewView.post(this::startCamera);
 
-        // Capture image and upload to Firebase Storage when button is clicked
+        // Capture logic
         captureButton.setOnClickListener(v -> captureImage());
     }
 
@@ -89,9 +86,8 @@ public class CaptureIMG extends AppCompatActivity {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
                 bindPreview(cameraProvider);
             } catch (ExecutionException | InterruptedException e) {
-                // Handle any errors (including cancellation) here.
                 e.printStackTrace();
-                Toast.makeText(CaptureIMG.this, "Failed to start camera", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CaptureIMG.this, "Error al iniciar cámara", Toast.LENGTH_SHORT).show();
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -106,11 +102,17 @@ public class CaptureIMG extends AppCompatActivity {
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-        // Bind use cases to camera lifecycle
-        cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+        try {
+            cameraProvider.unbindAll(); // Desvincular antes de vincular
+            cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+        } catch (Exception e) {
+            Toast.makeText(this, "Fallo al vincular cámara", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void captureImage() {
+        if (imageCapture == null) return;
+
         String uniqueFileName = System.currentTimeMillis() + ".jpg";
         File photoFile = new File(getExternalFilesDir(null), uniqueFileName);
 
@@ -121,18 +123,12 @@ public class CaptureIMG extends AppCompatActivity {
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                 Uri fileUri = Uri.fromFile(photoFile);
 
-                // Podemos mostrar un pequeño loading solo mientras abre la pantalla
                 ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
-                progressDialog.setMessage("Abriendo vista previa...");
+                progressDialog.setMessage("Procesando imagen...");
+                progressDialog.setCancelable(false);
                 progressDialog.show();
 
-                Intent intent = new Intent(CaptureIMG.this, DisplayImageAndText.class);
-                intent.putExtra("imageUri", fileUri);
-                startActivity(intent);
-
-                progressDialog.dismiss();
-
-
+                processImageForText(fileUri, progressDialog);
             }
 
             @Override
@@ -142,13 +138,30 @@ public class CaptureIMG extends AppCompatActivity {
         });
     }
 
+    private void processImageForText(Uri uri, ProgressDialog progressDialog) {
+        try {
+            InputImage image = InputImage.fromFilePath(this, uri);
+            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            recognizer.process(image)
+                    .addOnSuccessListener(text -> {
+                        progressDialog.dismiss();
+                        String recognizedText = text.getText();
+                        showImageAndText(uri, recognizedText);
+                    })
+                    .addOnFailureListener(e -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(CaptureIMG.this, "Error al procesar texto", Toast.LENGTH_SHORT).show();
+                    });
+        } catch (IOException e) {
+            e.printStackTrace();
+            progressDialog.dismiss();
+        }
+    }
 
-    // Method to start DisplayImageAndText activity
     private void showImageAndText(Uri imageUri, String recognizedText) {
         Intent intent = new Intent(this, DisplayImageAndText.class);
         intent.putExtra("imageUri", imageUri);
         intent.putExtra("recognizedText", recognizedText);
         startActivity(intent);
     }
-
 }
