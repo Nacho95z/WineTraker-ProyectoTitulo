@@ -46,7 +46,7 @@ public class CaptureIMG extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_img);
 
-        // Ocultar ActionBar si existe para usar nuestra propia barra
+        // Ocultar ActionBar si existe para usar nuestraa propia barra
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
