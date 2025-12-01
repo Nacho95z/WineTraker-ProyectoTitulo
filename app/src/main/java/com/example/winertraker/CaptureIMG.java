@@ -41,42 +41,41 @@ public class CaptureIMG extends AppCompatActivity {
     private ImageCapture imageCapture;
     private StorageReference storageRef;
 
+    private FloatingActionButton captureButton; // 👈 ahora es atributo
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_img);
 
-        // Ocultar ActionBar si existe para usar nuestra propia barra
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Initialize Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
         user = FirebaseAuth.getInstance().getCurrentUser();
 
-        // Edge-to-Edge configuration
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Initialize views
         previewView = findViewById(R.id.viewFinder);
-        FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
-        ImageButton backButton = findViewById(R.id.backButton); // Botón de atrás
+        captureButton = findViewById(R.id.image_capture_button);  // 👈 usar el atributo
+        ImageButton backButton = findViewById(R.id.backButton);
 
-        // Lógica del botón de atrás (Volver al menú/Home)
-        backButton.setOnClickListener(v -> {
-            finish(); // Cierra esta actividad y vuelve a la anterior (HomeActivity)
-        });
+        backButton.setOnClickListener(v -> finish());
 
-        // Start camera
         previewView.post(this::startCamera);
 
-        // Capture logic
-        captureButton.setOnClickListener(v -> captureImage());
+        captureButton.setOnClickListener(v -> {
+            // 👇 Deshabilitar para evitar múltiples disparos
+            captureButton.setEnabled(false);
+            captureButton.setAlpha(0.5f);
+            captureImage();
+        });
     }
 
     private void startCamera() {
@@ -111,31 +110,42 @@ public class CaptureIMG extends AppCompatActivity {
     }
 
     private void captureImage() {
-        if (imageCapture == null) return;
+        if (imageCapture == null) {
+            // no debería pasar, pero por si acaso
+            captureButton.setEnabled(true);
+            captureButton.setAlpha(1f);
+            return;
+        }
 
         String uniqueFileName = System.currentTimeMillis() + ".jpg";
         File photoFile = new File(getExternalFilesDir(null), uniqueFileName);
 
-        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
+        ImageCapture.OutputFileOptions outputOptions =
+                new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
-        imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
-            @Override
-            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                Uri fileUri = Uri.fromFile(photoFile);
+        imageCapture.takePicture(outputOptions,
+                ContextCompat.getMainExecutor(this),
+                new ImageCapture.OnImageSavedCallback() {
+                    @Override
+                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                        Uri fileUri = Uri.fromFile(photoFile);
 
-                ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
-                progressDialog.setMessage("Procesando imagen...");
-                progressDialog.setCancelable(false);
-                progressDialog.show();
+                        ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
+                        progressDialog.setMessage("Procesando imagen...");
+                        progressDialog.setCancelable(false);
+                        progressDialog.show();
 
-                processImageForText(fileUri, progressDialog);
-            }
+                        processImageForText(fileUri, progressDialog);
+                    }
 
-            @Override
-            public void onError(@NonNull ImageCaptureException exception) {
-                Toast.makeText(CaptureIMG.this, "Error al capturar foto", Toast.LENGTH_SHORT).show();
-            }
-        });
+                    @Override
+                    public void onError(@NonNull ImageCaptureException exception) {
+                        Toast.makeText(CaptureIMG.this, "Error al capturar foto", Toast.LENGTH_SHORT).show();
+                        // 👇 Volver a habilitar si falló
+                        captureButton.setEnabled(true);
+                        captureButton.setAlpha(1f);
+                    }
+                });
     }
 
     private void processImageForText(Uri uri, ProgressDialog progressDialog) {
@@ -151,17 +161,27 @@ public class CaptureIMG extends AppCompatActivity {
                     .addOnFailureListener(e -> {
                         progressDialog.dismiss();
                         Toast.makeText(CaptureIMG.this, "Error al procesar texto", Toast.LENGTH_SHORT).show();
+                        // 👇 Si falló OCR, permitir volver a intentar
+                        captureButton.setEnabled(true);
+                        captureButton.setAlpha(1f);
                     });
         } catch (IOException e) {
             e.printStackTrace();
             progressDialog.dismiss();
+            captureButton.setEnabled(true);
+            captureButton.setAlpha(1f);
         }
     }
+
 
     private void showImageAndText(Uri imageUri, String recognizedText) {
         Intent intent = new Intent(this, DisplayImageAndText.class);
         intent.putExtra("imageUri", imageUri);
         intent.putExtra("recognizedText", recognizedText);
         startActivity(intent);
+
+        // 👇 Cerramos esta Activity para que la cámara NO quede en el back stack
+        finish();
     }
+
 }

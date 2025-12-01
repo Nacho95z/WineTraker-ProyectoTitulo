@@ -154,6 +154,12 @@ public class AuthActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     progressDialog.dismiss();
                     if (task.isSuccessful()) {
+                        // Guardar preferencia de recordar sesión (true por ahora)
+                        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                                .edit()
+                                .putBoolean("remember_session", true)
+                                .apply();
+
                         Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
                         startActivity(intent);
                         finish();
@@ -163,6 +169,7 @@ public class AuthActivity extends AppCompatActivity {
                                 : "Error desconocido.";
                         Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
                     }
+
                 });
     }
 
@@ -209,6 +216,13 @@ public class AuthActivity extends AppCompatActivity {
                     progressDialog.dismiss();
 
                     if (task.isSuccessful()) {
+
+                        // Guardar preferencia de recordar sesión
+                        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                                .edit()
+                                .putBoolean("remember_session", true)
+                                .apply();
+
                         startActivity(new Intent(AuthActivity.this, HomeActivity.class));
                         finish();
                     } else {
@@ -216,6 +230,27 @@ public class AuthActivity extends AppCompatActivity {
                                 "Error: " + (task.getException() != null ? task.getException().getMessage() : ""),
                                 Toast.LENGTH_SHORT).show();
                     }
+
                 });
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // Revisar si ya hay usuario logueado
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+
+        // Leer preferencia de "recordar sesión" (por ahora asumimos true por defecto)
+        boolean remember = getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                .getBoolean("remember_session", true);
+
+        if (currentUser != null && remember) {
+            // Ya está logueado y quiere recordar sesión → ir directo al Home
+            Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
+            startActivity(intent);
+            finish();
+        }
+    }
+
 }

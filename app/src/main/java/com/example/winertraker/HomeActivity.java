@@ -108,10 +108,27 @@ public class HomeActivity extends AppCompatActivity {
     private void setupActions() {
         // Botón Logout
         logoutIcon.setOnClickListener(v -> {
+            // Cerrar sesión Firebase
             FirebaseAuth.getInstance().signOut();
-            startActivity(new Intent(HomeActivity.this, AuthActivity.class));
+
+            // Opcional: también cerrar sesión de Google para que no autocomplete
+            // GoogleSignIn.getClient(this,
+            //         new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+            // ).signOut();
+
+            // Marcar que NO queremos recordar la sesión
+            getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("remember_session", false)
+                    .apply();
+
+            // Volver a pantalla de autenticación
+            Intent intent = new Intent(HomeActivity.this, AuthActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
             finish();
         });
+
 
         // Tarjeta Escanear
         cardScan.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));

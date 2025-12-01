@@ -95,8 +95,8 @@ public class DisplayImageAndText extends AppCompatActivity {
         capturedImageView.setImageURI(imageUri);
 
         // Mostrar progreso mientras analizamos
-        aiProgressGif.setVisibility(View.VISIBLE);
-        progressBar.setVisibility(View.GONE);
+//        aiProgressGif.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(View.VISIBLE);
 
 
         // 🔍 OpenAI primero, OCR local como fallback
@@ -104,7 +104,8 @@ public class DisplayImageAndText extends AppCompatActivity {
                 this,
                 imageUri,
                 (info, rawOcrText, error) -> runOnUiThread(() -> {
-                    aiProgressGif.setVisibility(View.GONE);
+//                    aiProgressGif.setVisibility(View.GONE);
+                    progressBar.setVisibility(View.GONE);
 
 
                     if (info != null) {
@@ -161,17 +162,15 @@ public class DisplayImageAndText extends AppCompatActivity {
             if (!validateInputs(wineName, variety, vintage, origin, percentage, category)) {
                 return;
             }
-            aiProgressGif.setVisibility(View.VISIBLE);  // 👈 añadir
-            progressBar.setVisibility(View.GONE);       // o quitarlo del todo si ya no lo usas
+//            aiProgressGif.setVisibility(View.GONE);  // 👈 añadir
+            progressBar.setVisibility(View.VISIBLE);       // o quitarlo del todo si ya no lo usas
             saveDataToFirebase(wineName, variety, vintage, origin, percentage, category);
         });
 
 
         // Discard button functionality
         discardButton.setOnClickListener(v -> {
-            Intent intent = new Intent(DisplayImageAndText.this, CaptureIMG.class);
-            startActivity(intent);
-            finish();
+            navigateToHome();
         });
     }
 
