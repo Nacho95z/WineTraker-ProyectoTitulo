@@ -4,7 +4,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.widget.ImageButton; // Importante
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -17,10 +17,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -36,51 +39,97 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 public class CaptureIMG extends AppCompatActivity {
+
     private FirebaseUser user;
     private PreviewView previewView;
     private ImageCapture imageCapture;
     private StorageReference storageRef;
+
+    // Drawer
+    private DrawerLayout drawerLayoutCapture;
+    private NavigationView navigationView;
+    private ImageView menuIcon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_img);
 
-        // Ocultar ActionBar si existe para usar nuestraa propia barra
+        // Ocultar ActionBar para usar nuestra barra personalizada
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Initialize Firebase
+        // Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
         user = FirebaseAuth.getInstance().getCurrentUser();
 
-        // Edge-to-Edge configuration
+        // Edge-to-edge para el contenido principal (ConstraintLayout con id main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Initialize views
-        previewView = findViewById(R.id.viewFinder);
-        FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
-        ImageButton backButton = findViewById(R.id.backButton); // Botón de atrás
+        // ---------- Drawer & menú lateral ----------
+        drawerLayoutCapture = findViewById(R.id.drawerLayoutCapture);
+        navigationView = findViewById(R.id.navigationView);
+        menuIcon = findViewById(R.id.menuIcon);
 
-        // Lógica del botón de atrás (Volver al menú/Home)
-        backButton.setOnClickListener(v -> {
-            finish(); // Cierra esta actividad y vuelve a la anterior (HomeActivity)
+        // Abrir menú al tocar el ícono
+        menuIcon.setOnClickListener(v ->
+                drawerLayoutCapture.openDrawer(GravityCompat.START)
+        );
+
+        // Manejar clics del menú
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                Intent intent = new Intent(CaptureIMG.this, HomeActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+
+            } else if (id == R.id.nav_my_cellar) {
+                Intent intent = new Intent(CaptureIMG.this, ViewCollectionActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+
+            } else if (id == R.id.nav_settings) {
+                startActivity(new Intent(CaptureIMG.this, SettingsActivity.class));
+
+            } else if (id == R.id.nav_logout) {
+                FirebaseAuth.getInstance().signOut();
+                getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putBoolean("remember_session", false)
+                        .apply();
+
+                Intent intent = new Intent(CaptureIMG.this, AuthActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            }
+
+            drawerLayoutCapture.closeDrawer(GravityCompat.START);
+            return true;
         });
 
-        // Start camera
+        // ---------- Cámara ----------
+        previewView = findViewById(R.id.viewFinder);
+        FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
+
+        // Iniciar cámara cuando la vista esté lista
         previewView.post(this::startCamera);
 
-        // Capture logic
+        // Capturar foto
         captureButton.setOnClickListener(v -> captureImage());
     }
 
     private void startCamera() {
-        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
+                ProcessCameraProvider.getInstance(this);
+
         cameraProviderFuture.addListener(() -> {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
@@ -103,7 +152,7 @@ public class CaptureIMG extends AppCompatActivity {
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
         try {
-            cameraProvider.unbindAll(); // Desvincular antes de vincular
+            cameraProvider.unbindAll();
             cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
         } catch (Exception e) {
             Toast.makeText(this, "Fallo al vincular cámara", Toast.LENGTH_SHORT).show();
@@ -116,32 +165,39 @@ public class CaptureIMG extends AppCompatActivity {
         String uniqueFileName = System.currentTimeMillis() + ".jpg";
         File photoFile = new File(getExternalFilesDir(null), uniqueFileName);
 
-        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
+        ImageCapture.OutputFileOptions outputOptions =
+                new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
-        imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
-            @Override
-            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                Uri fileUri = Uri.fromFile(photoFile);
+        imageCapture.takePicture(
+                outputOptions,
+                ContextCompat.getMainExecutor(this),
+                new ImageCapture.OnImageSavedCallback() {
+                    @Override
+                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                        Uri fileUri = Uri.fromFile(photoFile);
 
-                ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
-                progressDialog.setMessage("Procesando imagen...");
-                progressDialog.setCancelable(false);
-                progressDialog.show();
+                        ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
+                        progressDialog.setMessage("Procesando imagen...");
+                        progressDialog.setCancelable(false);
+                        progressDialog.show();
 
-                processImageForText(fileUri, progressDialog);
-            }
+                        processImageForText(fileUri, progressDialog);
+                    }
 
-            @Override
-            public void onError(@NonNull ImageCaptureException exception) {
-                Toast.makeText(CaptureIMG.this, "Error al capturar foto", Toast.LENGTH_SHORT).show();
-            }
-        });
+                    @Override
+                    public void onError(@NonNull ImageCaptureException exception) {
+                        Toast.makeText(CaptureIMG.this, "Error al capturar foto", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
     }
 
     private void processImageForText(Uri uri, ProgressDialog progressDialog) {
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
-            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            TextRecognizer recognizer =
+                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
             recognizer.process(image)
                     .addOnSuccessListener(text -> {
                         progressDialog.dismiss();
@@ -163,5 +219,16 @@ public class CaptureIMG extends AppCompatActivity {
         intent.putExtra("imageUri", imageUri);
         intent.putExtra("recognizedText", recognizedText);
         startActivity(intent);
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Si el drawer está abierto, ciérralo; si no, comportamiento normal
+        if (drawerLayoutCapture != null &&
+                drawerLayoutCapture.isDrawerOpen(GravityCompat.START)) {
+            drawerLayoutCapture.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 }
