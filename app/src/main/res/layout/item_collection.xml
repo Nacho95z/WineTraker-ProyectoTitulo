@@ -104,7 +104,7 @@
                 android:layout_weight="1"
                 android:text="Editar"
                 android:textSize="12sp"
-                android:backgroundTint="#6200EE"
+                android:backgroundTint="#B00020"
                 android:textColor="#FFFFFF"
                 android:layout_marginEnd="6dp"
                 android:minHeight="48dp"/>

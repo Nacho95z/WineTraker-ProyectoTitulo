@@ -2,9 +2,9 @@
 <resources>
     <color name="my_dark_primary">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="primaryColor">#6200EA</color>
+    <color name="primaryColor">#FFFFFF</color>
     <color name="primaryLightColor">#BB86FC</color>
-    <color name="primaryDarkColor">#3700B3</color>
+    <color name="primaryDarkColor">#FFFFFF</color>
     <color name="accentColor">#03DAC5</color>
     <color name="backgroundColor">#FFFFFF</color>
     <color name="textColorPrimary">#000000</color>

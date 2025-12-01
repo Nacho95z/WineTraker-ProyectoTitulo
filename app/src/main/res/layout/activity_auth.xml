@@ -13,11 +13,13 @@
     <ImageView
         android:id="@+id/headerImage"
         android:layout_width="408dp"
-        android:layout_height="363dp"
+        android:layout_height="370dp"
+        android:layout_marginTop="36dp"
         android:scaleType="centerCrop"
         android:src="@drawable/imagenlogin"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.45"
+        app:layout_constraintHorizontal_bias="0.333"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -41,29 +43,38 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
+                android:layout_marginTop="35dp"
                 android:text="Ingresar con correo"
                 android:backgroundTint="#B22034"
                 />
 
-            <Button
-                android:id="@+id/signIn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="Acceder con Google"
-                android:textColor="#FFFFFF"
-                android:textAllCaps="false"
-                android:backgroundTint="#B22034"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/signIn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
 
-            <Button
-                android:id="@+id/registerButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:textColor="#FFFFFF"
-                android:text="Registrar"
-                android:backgroundTint="#B22034"
-                />
+            android:text="Acceder con Google"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+
+            app:backgroundTint="#B22034"
+
+            app:icon="@drawable/ic_google"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconTint="@null"
+        />
+
+
+        <Button
+            android:id="@+id/registerButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="#B22034"
+            android:text="Registrar"
+            android:textColor="#FFFFFF" />
 
     </LinearLayout>
 
