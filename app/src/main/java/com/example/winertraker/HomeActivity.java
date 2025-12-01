@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -20,12 +21,15 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
@@ -45,9 +49,16 @@ public class HomeActivity extends AppCompatActivity {
     private FirebaseFirestore firestore;
     private String userId;
 
+    // Drawer
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ImageView menuIcon;
+
+    // Header del menú lateral
+    private TextView headerTitle, headerEmail;
+
     // Componentes del UI Dashboard
-    private TextView welcomeTextView, emailTextView, txtTotalWines, txtOptimalWines;
-    private ImageView logoutIcon;
+    private TextView txtTotalWines, txtOptimalWines;
     private CardView cardScan, cardCollection;
     private PieChart pieChart;
 
@@ -72,10 +83,10 @@ public class HomeActivity extends AppCompatActivity {
         // Inicializar vistas
         initializeViews();
 
-        // Configurar datos del usuario
+        // Configurar datos del usuario (en el header del menú)
         setupUserInfo();
 
-        // Configurar botones de acción
+        // Configurar botones de acción y menú
         setupActions();
 
         // Crear canal de notificaciones
@@ -86,55 +97,94 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-        welcomeTextView = findViewById(R.id.welcomeTextView);
-        emailTextView = findViewById(R.id.emailTextView);
+        // Drawer
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        menuIcon = findViewById(R.id.menuIcon);
+
+        // Header del NavigationView
+        View headerView = navigationView.getHeaderView(0);
+        headerTitle = headerView.findViewById(R.id.headerTitle);
+        headerEmail = headerView.findViewById(R.id.headerEmail);
+
+        // Dashboard
         txtTotalWines = findViewById(R.id.txtTotalWines);
         txtOptimalWines = findViewById(R.id.txtOptimalWines);
-        logoutIcon = findViewById(R.id.logoutIcon);
         cardScan = findViewById(R.id.cardScan);
         cardCollection = findViewById(R.id.cardCollection);
         pieChart = findViewById(R.id.pieChart);
     }
 
     private void setupUserInfo() {
-        if (user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
-            welcomeTextView.setText("Hola, " + user.getDisplayName());
-        } else {
-            welcomeTextView.setText("Hola, Amante del Vino");
+        String displayName = user.getDisplayName();
+        if (displayName == null || displayName.isEmpty()) {
+            displayName = "Amante del vino";
         }
-        emailTextView.setText(user.getEmail());
+
+        // Mostrar nombre y correo SOLO en el header del menú lateral
+        headerTitle.setText(displayName);
+        headerEmail.setText(user.getEmail());
     }
 
     private void setupActions() {
-        // Botón Logout
-        logoutIcon.setOnClickListener(v -> {
-            // Cerrar sesión Firebase
-            FirebaseAuth.getInstance().signOut();
 
-            // Opcional: también cerrar sesión de Google para que no autocomplete
-            // GoogleSignIn.getClient(this,
-            //         new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
-            // ).signOut();
+        // --- MENÚ LATERAL ---
 
-            // Marcar que NO queremos recordar la sesión
-            getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("remember_session", false)
-                    .apply();
+        // Abrir el drawer al tocar el ícono de menú
+        menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
-            // Volver a pantalla de autenticación
-            Intent intent = new Intent(HomeActivity.this, AuthActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            finish();
-        });
+        // Manejar clics del menú
+        navigationView.setNavigationItemSelectedListener(
+                new NavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        int id = item.getItemId();
 
+                        if (id == R.id.nav_home) {
+                            // Ya estás en Home
+                            Toast.makeText(HomeActivity.this, "Inicio", Toast.LENGTH_SHORT).show();
+
+                        } else if (id == R.id.nav_my_cellar) {
+                            // Ir a la bodega
+                            redirectToActivity(ViewCollectionActivity.class);
+
+                        } else if (id == R.id.nav_settings) {
+                            // Aquí podrías abrir una Activity de Configuración
+                            redirectToActivity(SettingsActivity.class);
+
+                        } else if (id == R.id.nav_logout) {
+                            // Cerrar sesión desde el menú
+                            performLogout();
+                        }
+
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                        return true;
+                    }
+                }
+        );
 
         // Tarjeta Escanear
         cardScan.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
 
         // Tarjeta Ver Colección
         cardCollection.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
+    }
+
+    private void performLogout() {
+        // Cerrar sesión Firebase
+        FirebaseAuth.getInstance().signOut();
+
+        // Marcar que NO queremos recordar la sesión
+        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("remember_session", false)
+                .apply();
+
+        // Volver a pantalla de autenticación
+        Intent intent = new Intent(HomeActivity.this, AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void loadCollectionStats() {
@@ -226,7 +276,7 @@ public class HomeActivity extends AppCompatActivity {
         pieChart.setCenterText("Variedades");
         pieChart.setCenterTextSize(16f);
         pieChart.getDescription().setEnabled(false);
-        pieChart.getLegend().setEnabled(false); // Ocultar leyenda si satura mucho
+        pieChart.getLegend().setEnabled(false);
         pieChart.animateXY(1400, 1400);
         pieChart.invalidate();
     }
@@ -293,15 +343,14 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
 
-        // Solo notificar si hay vinos, para no molestar
-        if(wineNames.isEmpty()) return;
+        if (wineNames.isEmpty()) return;
 
         Intent intent = new Intent(this, ViewCollectionActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
-                .setSmallIcon(R.drawable.ic_wine) // Asegúrate de tener este icono o usa android.R.drawable.ic_dialog_info
+                .setSmallIcon(R.drawable.ic_wine)
                 .setContentTitle("¡Tienes vinos listos!")
                 .setContentText("Tienes " + wineNames.size() + " botellas en su punto óptimo.")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -325,5 +374,15 @@ public class HomeActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         // Implementación básica para cumplir con override
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Si el drawer está abierto, ciérralo; si no, comportamiento normal
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 }

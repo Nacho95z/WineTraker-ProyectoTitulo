@@ -5,6 +5,7 @@ import static android.content.ContentValues.TAG;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,9 +20,12 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
@@ -34,10 +38,16 @@ import java.util.List;
 
 public class ViewCollectionActivity extends AppCompatActivity {
 
+    // Drawer
+    private DrawerLayout drawerLayoutCollection;
+    private NavigationView navigationView;
+    private ImageView menuIcon;
+
     private RecyclerView recyclerView;
     private CollectionAdapter adapter;
     private List<CollectionItem> collectionList;
     private FirebaseFirestore firestore;
+    private FirebaseUser user;
     private String userId;
 
     @Override
@@ -45,43 +55,104 @@ public class ViewCollectionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_collection);
 
-        // 1. Ocultar la barra de acción por defecto para usar tu diseño personalizado
+        // Ocultar ActionBar para usar nuestro header custom
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // 2. Configurar el botón de atrás (backButton)
-        ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> {
-            finish(); // Cierra esta pantalla y vuelve al menú anterior
+        // Firebase
+        user = FirebaseAuth.getInstance().getCurrentUser();
+        firestore = FirebaseFirestore.getInstance();
+        userId = (user != null) ? user.getUid() : null;
+
+        // Drawer + menú
+        drawerLayoutCollection = findViewById(R.id.drawerLayoutCollection);
+        navigationView = findViewById(R.id.navigationView);
+        menuIcon = findViewById(R.id.menuIcon);
+
+        // Abrir drawer al tocar el ícono
+        menuIcon.setOnClickListener(v ->
+                drawerLayoutCollection.openDrawer(GravityCompat.START)
+        );
+
+        // Rellenar header con nombre/correo
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            TextView headerTitle = headerView.findViewById(R.id.headerTitle);
+            TextView headerEmail = headerView.findViewById(R.id.headerEmail);
+
+            if (user != null) {
+                String displayName = user.getDisplayName();
+                if (displayName == null || displayName.isEmpty()) {
+                    displayName = "Amante del vino";
+                }
+                headerTitle.setText(displayName);
+                headerEmail.setText(user.getEmail());
+            }
+        }
+
+        // Manejar clics del menú lateral
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                // Ir al Home
+                Intent intent = new Intent(ViewCollectionActivity.this, HomeActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+
+            } else if (id == R.id.nav_my_cellar) {
+                // Ya estamos en Mi Bodega → solo cerrar menú
+                drawerLayoutCollection.closeDrawer(GravityCompat.START);
+
+            } else if (id == R.id.nav_settings) {
+                startActivity(new Intent(ViewCollectionActivity.this, SettingsActivity.class));
+
+            } else if (id == R.id.nav_logout) {
+                FirebaseAuth.getInstance().signOut();
+                getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putBoolean("remember_session", false)
+                        .apply();
+                Intent intent = new Intent(ViewCollectionActivity.this, AuthActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            }
+
+            drawerLayoutCollection.closeDrawer(GravityCompat.START);
+            return true;
         });
 
+        // RecyclerView
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         collectionList = new ArrayList<>();
-        firestore = FirebaseFirestore.getInstance();
-
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        userId = user != null ? user.getUid() : "unknown";
-
-        adapter = new CollectionAdapter(collectionList, userId); // Pasamos el userId aquí
+        adapter = new CollectionAdapter(collectionList, userId);
         recyclerView.setAdapter(adapter);
 
-        loadCollection();
+        if (userId != null) {
+            loadCollection();
+        } else {
+            Toast.makeText(this, "Usuario no autenticado", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void loadCollection() {
         ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Cargando colección..."); // Traduje el mensaje para consistencia
+        progressDialog.setMessage("Cargando colección...");
         progressDialog.show();
 
-        CollectionReference userCollection = firestore.collection("descriptions").document(userId).collection("wineDescriptions");
+        CollectionReference userCollection = firestore
+                .collection("descriptions")
+                .document(userId)
+                .collection("wineDescriptions");
 
         userCollection.get()
                 .addOnCompleteListener(task -> {
                     progressDialog.dismiss();
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
+                    if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
                         collectionList.clear();
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String documentId = document.getId();
@@ -92,7 +163,9 @@ public class ViewCollectionActivity extends AppCompatActivity {
                             String origin = document.getString("origin");
                             String percentage = document.getString("percentage");
                             boolean isOptimal = isOptimalForConsumption(variety, vintage);
-                            collectionList.add(new CollectionItem(documentId, imageUrl, name, variety, vintage, origin, percentage, isOptimal));
+                            collectionList.add(new CollectionItem(
+                                    documentId, imageUrl, name, variety, vintage, origin, percentage, isOptimal
+                            ));
                         }
                         adapter.notifyDataSetChanged();
                     } else {
@@ -137,6 +210,19 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
     }
 
+    // Cerrar drawer con back si está abierto
+    @Override
+    public void onBackPressed() {
+        if (drawerLayoutCollection != null &&
+                drawerLayoutCollection.isDrawerOpen(GravityCompat.START)) {
+            drawerLayoutCollection.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    // --------- MODELO Y ADAPTER ---------
+
     private static class CollectionItem {
         String documentId;
         String imageUrl;
@@ -147,14 +233,17 @@ public class ViewCollectionActivity extends AppCompatActivity {
         String percentage;
         boolean isOptimal;
 
-        CollectionItem(String documentId, String imageUrl, String name, String variety, String vintage, String origin, String percentage, boolean isOptimal) {
+        CollectionItem(String documentId, String imageUrl, String name,
+                       String variety, String vintage, String origin,
+                       String percentage, boolean isOptimal) {
+
             this.documentId = documentId;
             this.imageUrl = imageUrl;
-            this.name = name != null ? name : "No disponible";
-            this.variety = variety != null ? variety : "No disponible";
-            this.vintage = vintage != null ? vintage : "No disponible";
-            this.origin = origin != null ? origin : "No disponible";
-            this.percentage = percentage != null ? percentage : "No disponible";
+            this.name = (name != null) ? name : "No disponible";
+            this.variety = (variety != null) ? variety : "No disponible";
+            this.vintage = (vintage != null) ? vintage : "No disponible";
+            this.origin = (origin != null) ? origin : "No disponible";
+            this.percentage = (percentage != null) ? percentage : "No disponible";
             this.isOptimal = isOptimal;
         }
     }
@@ -172,7 +261,8 @@ public class ViewCollectionActivity extends AppCompatActivity {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_collection, parent, false);
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_collection, parent, false);
             return new ViewHolder(view);
         }
 
@@ -181,7 +271,10 @@ public class ViewCollectionActivity extends AppCompatActivity {
             CollectionItem item = collectionList.get(position);
 
             if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
-                Picasso.get().load(item.imageUrl).placeholder(android.R.drawable.ic_menu_gallery).into(holder.imageView);
+                Picasso.get()
+                        .load(item.imageUrl)
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .into(holder.imageView);
             }
 
             holder.nameTextView.setText(item.name);
@@ -190,55 +283,51 @@ public class ViewCollectionActivity extends AppCompatActivity {
             holder.originTextView.setText("Origen: " + item.origin);
             holder.percentageTextView.setText("Alcohol: " + item.percentage);
 
-            // Resaltar los vinos óptimos (Opcional: Puedes cambiar esto si el diseño de tarjeta ya es suficiente)
-            /* if (item.isOptimal) {
-                holder.itemView.setBackgroundColor(holder.itemView.getContext().getResources().getColor(R.color.optimalHighlight));
-            }
-            */
-
             holder.deleteButton.setOnClickListener(v -> {
                 new AlertDialog.Builder(holder.itemView.getContext())
-                        .setTitle("Eliminar Vino")
+                        .setTitle("Eliminar vino")
                         .setMessage("¿Estás seguro de que deseas eliminar este vino?")
                         .setPositiveButton("Sí", (dialog, which) -> {
                             FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
-                            firestore.collection("descriptions").document(userId).collection("wineDescriptions")
+                            firestore.collection("descriptions")
+                                    .document(userId)
+                                    .collection("wineDescriptions")
                                     .document(item.documentId)
                                     .delete()
                                     .addOnSuccessListener(aVoid -> {
                                         collectionList.remove(position);
                                         notifyItemRemoved(position);
-                                        // notifyItemRangeChanged es importante para actualizar posiciones
                                         notifyItemRangeChanged(position, collectionList.size());
-                                        Toast.makeText(holder.itemView.getContext(), "Vino eliminado", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(holder.itemView.getContext(),
+                                                "Vino eliminado", Toast.LENGTH_SHORT).show();
                                     })
-                                    .addOnFailureListener(e -> {
-                                        Toast.makeText(holder.itemView.getContext(), "Error al eliminar", Toast.LENGTH_SHORT).show();
-                                    });
+                                    .addOnFailureListener(e ->
+                                            Toast.makeText(holder.itemView.getContext(),
+                                                    "Error al eliminar", Toast.LENGTH_SHORT).show());
                         })
                         .setNegativeButton("No", null)
                         .show();
             });
 
-            holder.editButton.setOnClickListener(v -> {
-                showEditDialog(holder.itemView.getContext(), item, position);
-            });
+            holder.editButton.setOnClickListener(v ->
+                    showEditDialog(holder.itemView.getContext(), item, position)
+            );
         }
 
         private void showEditDialog(Context context, CollectionItem item, int position) {
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setTitle("Editar información");
 
-            // Crear el layout para el diálogo
-            View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_item, null);
+            View dialogView = LayoutInflater.from(context)
+                    .inflate(R.layout.dialog_edit_item, null);
+
             EditText editName = dialogView.findViewById(R.id.editName);
             EditText editVariety = dialogView.findViewById(R.id.editVariety);
             EditText editVintage = dialogView.findViewById(R.id.editVintage);
             EditText editOrigin = dialogView.findViewById(R.id.editOrigin);
             EditText editPercentage = dialogView.findViewById(R.id.editPercentage);
 
-            // Rellenar los campos con la información actual
             editName.setText(item.name);
             editVariety.setText(item.variety);
             editVintage.setText(item.vintage);
@@ -255,8 +344,10 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 item.percentage = editPercentage.getText().toString().trim();
 
                 FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-                firestore.collection("descriptions").document(userId)
-                        .collection("wineDescriptions").document(item.documentId)
+                firestore.collection("descriptions")
+                        .document(userId)
+                        .collection("wineDescriptions")
+                        .document(item.documentId)
                         .update("wineName", item.name,
                                 "variety", item.variety,
                                 "vintage", item.vintage,
@@ -266,9 +357,8 @@ public class ViewCollectionActivity extends AppCompatActivity {
                             Toast.makeText(context, "Datos actualizados", Toast.LENGTH_SHORT).show();
                             notifyItemChanged(position);
                         })
-                        .addOnFailureListener(e -> {
-                            Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show();
-                        });
+                        .addOnFailureListener(e ->
+                                Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show());
             });
 
             builder.setNegativeButton("Cancelar", null);
