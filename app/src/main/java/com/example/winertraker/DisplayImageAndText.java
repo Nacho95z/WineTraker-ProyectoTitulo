@@ -1,19 +1,23 @@
 package com.example.winertraker;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -23,35 +27,82 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.io.IOException;
+import java.text.Normalizer;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.text.Normalizer;
-import java.util.Locale;
-import android.util.Log;
-import pl.droidsonroids.gif.GifDrawable;
-import java.io.IOException;
 
+import pl.droidsonroids.gif.GifDrawable;
 
 public class DisplayImageAndText extends AppCompatActivity {
 
+    // Drawer
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ImageView menuIcon;
+
+    // UI
     private ImageView capturedImageView, aiProgressGif;
-    private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText, percentageEditText, wineNameEditText, categoryEditText;
+    private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText,
+            percentageEditText, wineNameEditText, categoryEditText;
+    private ProgressBar progressBar;
+
+    // Datos
     private Uri imageUri;
     private String recognizedText;
     private StorageReference storageRef;
     private FirebaseFirestore firestore;
     private String userId;
-    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_image_and_text);
+
+        // Ocultar ActionBar para usar nuestro header custom
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+
         recognizedText = "";
 
-        // Initialize views
+        // --- Drawer / Header ---
+        drawerLayout = findViewById(R.id.drawerLayoutDetails);
+        navigationView = findViewById(R.id.navigationView);
+        menuIcon = findViewById(R.id.menuIcon);
+
+        // Abrir menú lateral
+        menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+
+        // Manejo de clics del menú lateral
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                // Ir al Home
+                redirectToActivity(HomeActivity.class);
+
+            } else if (id == R.id.nav_my_cellar) {
+                // Ir a Mi Bodega
+                redirectToActivity(ViewCollectionActivity.class);
+
+            } else if (id == R.id.nav_settings) {
+                // Configuración
+                redirectToActivity(SettingsActivity.class);
+
+            } else if (id == R.id.nav_logout) {
+                // Cerrar sesión
+                performLogout();
+            }
+
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
+
+        // --- Vistas de contenido ---
         capturedImageView = findViewById(R.id.capturedImageView);
         recognizedTextEdit = findViewById(R.id.recognizedTextEdit);
         nameEditText = findViewById(R.id.nameEditText);
@@ -59,11 +110,13 @@ public class DisplayImageAndText extends AppCompatActivity {
         originEditText = findViewById(R.id.originEditText);
         percentageEditText = findViewById(R.id.percentageEditText);
         wineNameEditText = findViewById(R.id.wineNameEditText);
+        categoryEditText = findViewById(R.id.categoryEditText);
         Button saveButton = findViewById(R.id.buttonSave);
         Button discardButton = findViewById(R.id.buttonDiscard);
         progressBar = findViewById(R.id.progressBar);
         aiProgressGif = findViewById(R.id.aiProgressGif);
 
+        // GIF IA
         try {
             GifDrawable gifDrawable = new GifDrawable(getResources(), R.drawable.ai_progress);
             aiProgressGif.setImageDrawable(gifDrawable);
@@ -71,20 +124,16 @@ public class DisplayImageAndText extends AppCompatActivity {
             e.printStackTrace();
         }
 
-
-
-        // Initialize Firebase
+        // Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
         firestore = FirebaseFirestore.getInstance();
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         userId = user != null ? user.getUid() : "unknown";
 
-        // Get data from intent
+        // Datos desde Intent
         imageUri = getIntent().getParcelableExtra("imageUri");
         recognizedText = getIntent().getStringExtra("recognizedText");
-        categoryEditText = findViewById(R.id.categoryEditText);
 
-        // Si por alguna razón no llegó la URI, avisamos y salimos
         if (imageUri == null) {
             Toast.makeText(this, "No se encontró la imagen.", Toast.LENGTH_SHORT).show();
             finish();
@@ -95,21 +144,17 @@ public class DisplayImageAndText extends AppCompatActivity {
         capturedImageView.setImageURI(imageUri);
 
         // Mostrar progreso mientras analizamos
-//        aiProgressGif.setVisibility(View.VISIBLE);
         progressBar.setVisibility(View.VISIBLE);
 
-
-        // 🔍 OpenAI primero, OCR local como fallback
+        //  OpenAI primero, OCR local como fallback
         WineLabelAnalyzer.analyzeImage(
                 this,
                 imageUri,
                 (info, rawOcrText, error) -> runOnUiThread(() -> {
-//                    aiProgressGif.setVisibility(View.GONE);
                     progressBar.setVisibility(View.GONE);
 
-
                     if (info != null) {
-                        //Resultado desde OpenAI
+                        // Resultado desde OpenAI
                         wineNameEditText.setText(info.getWineName());
                         nameEditText.setText(info.getVariety());
                         vintageEditText.setText(info.getVintage());
@@ -126,9 +171,8 @@ public class DisplayImageAndText extends AppCompatActivity {
                             recognizedTextEdit.setText(recognizedText);
                         }
 
-
                     } else if (rawOcrText != null) {
-                        // 🔁 Fallback: OCR local
+                        //  Fallback: OCR local
                         recognizedText = rawOcrText;
                         recognizedTextEdit.setText(recognizedText);
                         autofillFields(recognizedText);
@@ -144,8 +188,7 @@ public class DisplayImageAndText extends AppCompatActivity {
                 })
         );
 
-
-        // Save button functionality
+        // Guardar
         saveButton.setOnClickListener(v -> {
             recognizedText = recognizedTextEdit.getText().toString().trim();
             String wineName = wineNameEditText.getText().toString().trim();
@@ -155,24 +198,54 @@ public class DisplayImageAndText extends AppCompatActivity {
             String percentage = percentageEditText.getText().toString().trim();
             String category = categoryEditText.getText().toString().trim();
 
-            // 🔹 Normalizar aquí también, así es la que se guarda
             variety = normalizeVarietyCanonical(variety);
-            nameEditText.setText(variety); // opcional, para que el usuario vea la forma “bonita”
+            nameEditText.setText(variety);
 
             if (!validateInputs(wineName, variety, vintage, origin, percentage, category)) {
                 return;
             }
-//            aiProgressGif.setVisibility(View.GONE);  // 👈 añadir
-            progressBar.setVisibility(View.VISIBLE);       // o quitarlo del todo si ya no lo usas
+
+            progressBar.setVisibility(View.VISIBLE);
             saveDataToFirebase(wineName, variety, vintage, origin, percentage, category);
         });
 
-
-        // Discard button functionality
-        discardButton.setOnClickListener(v -> {
-            navigateToHome();
-        });
+        // Descartar
+        discardButton.setOnClickListener(v -> navigateToHome());
     }
+
+    // --- Drawer helpers ---
+
+    private void redirectToActivity(Class<?> activityClass) {
+        Intent intent = new Intent(DisplayImageAndText.this, activityClass);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
+
+    private void performLogout() {
+        FirebaseAuth.getInstance().signOut();
+
+        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("remember_session", false)
+                .apply();
+
+        Intent intent = new Intent(DisplayImageAndText.this, AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Si el drawer está abierto, lo cerramos primero
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    // ---------- LÓGICA ORIGINAL (validaciones, guardado, etc.) ----------
 
     // Quita tildes/acentos para comparar de forma neutra
     private String stripAccents(String input) {
@@ -187,7 +260,6 @@ public class DisplayImageAndText extends AppCompatActivity {
         String trimmed = variety.trim();
         String plain = stripAccents(trimmed).toLowerCase(Locale.ROOT);
 
-        // Aquí definimos nuestras formas oficiales
         if (plain.contains("carmenere")) return "Carmenère";
         if (plain.contains("cabernet sauvignon")) return "Cabernet Sauvignon";
         if (plain.contains("merlot")) return "Merlot";
@@ -197,19 +269,14 @@ public class DisplayImageAndText extends AppCompatActivity {
         if (plain.contains("chardonnay")) return "Chardonnay";
         if (plain.contains("sauvignon blanc")) return "Sauvignon Blanc";
 
-        // Si no la reconocemos, devolvemos como viene
         return trimmed;
     }
 
+    private boolean validateInputs(String wineName, String variety, String vintage,
+                                   String origin, String percentage, String category) {
 
-    private boolean validateInputs(String wineName, String variety, String vintage, String origin, String percentage, String category) {
+        if (recognizedText == null) recognizedText = "";
 
-        // Evitar null en recognizedText (aunque ya no es obligatorio)
-        if (recognizedText == null) {
-            recognizedText = "";
-        }
-
-        // Normalizar espacios
         if (wineName != null) wineName = wineName.trim();
         if (variety != null) variety = variety.trim();
         if (vintage != null) vintage = vintage.trim();
@@ -217,19 +284,15 @@ public class DisplayImageAndText extends AppCompatActivity {
         if (percentage != null) percentage = percentage.trim();
         if (category != null) category = category.trim();
 
-        // 👉 Normalizar variedad a forma oficial
         variety = normalizeVarietyCanonical(variety);
 
-
-        // 1) Campos obligatorios (category es opcional)
-        if (wineName.isEmpty() || variety.isEmpty() || vintage.isEmpty() ||
-                origin.isEmpty() || percentage.isEmpty()) {
+        if (wineName.isEmpty() || variety.isEmpty() || vintage.isEmpty()
+                || origin.isEmpty() || percentage.isEmpty()) {
             Toast.makeText(this, "Por favor complete todos los campos requeridos.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // 2) Validar NOMBRE del vino (texto razonable)
-        String wineNamePattern = "^[\\p{L}0-9\\s'’.-]{3,}$"; // letras, números, espacios, ', ., -
+        String wineNamePattern = "^[\\p{L}0-9\\s'’.-]{3,}$";
         if (!wineName.matches(wineNamePattern)) {
             Toast.makeText(this,
                     "El nombre del vino debe tener al menos 3 caracteres y solo letras, números y símbolos simples.",
@@ -237,13 +300,11 @@ public class DisplayImageAndText extends AppCompatActivity {
             return false;
         }
 
-        // 3) Validar año (4 dígitos)
         if (!vintage.matches("\\d{4}")) {
             Toast.makeText(this, "Ingrese un año válido (4 dígitos).", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // 4) Validar porcentaje de alcohol (0 a 100)
         if (!percentage.matches("\\d+(\\.\\d+)?")) {
             Toast.makeText(this, "Ingrese un porcentaje de alcohol válido.", Toast.LENGTH_SHORT).show();
             return false;
@@ -260,7 +321,6 @@ public class DisplayImageAndText extends AppCompatActivity {
             return false;
         }
 
-        // 5) Validación inteligente de VARIEDAD (solo letras, espacios y acentos, mínimo 3 caracteres)
         String varietyPattern = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]{3,}$";
         if (!variety.matches(varietyPattern)) {
             Toast.makeText(this,
@@ -269,7 +329,6 @@ public class DisplayImageAndText extends AppCompatActivity {
             return false;
         }
 
-        // Lista de variedades conocidas (SOLO ADVERTENCIA, NO BLOQUEA)
         String[] knownVarieties = {
                 "Cabernet Sauvignon", "Merlot", "Carmenère", "Syrah", "Pinot Noir",
                 "Malbec", "Cabernet Franc", "Grenache", "Tempranillo", "Sangiovese",
@@ -278,8 +337,6 @@ public class DisplayImageAndText extends AppCompatActivity {
         };
 
         boolean foundVariety = false;
-
-        // Normalizamos ambas cosas: lo que viene del usuario/IA y lo de la lista
         String normalizedVarietyPlain = stripAccents(variety).toLowerCase(Locale.ROOT);
 
         for (String v : knownVarieties) {
@@ -290,17 +347,12 @@ public class DisplayImageAndText extends AppCompatActivity {
             }
         }
 
-
-
-
         if (!foundVariety) {
             Toast.makeText(this,
                     "La variedad \"" + variety + "\" no está en nuestra lista conocida. ¿Está seguro que es correcta?",
                     Toast.LENGTH_LONG).show();
-            // Solo aviso, NO return false
         }
 
-        // 6) Categoría / línea: advertencia suave (opcional)
         if (category != null && !category.isEmpty()) {
             String[] knownCategories = {
                     "Reserva",
@@ -323,30 +375,24 @@ public class DisplayImageAndText extends AppCompatActivity {
                 Toast.makeText(this,
                         "La categoría \"" + category + "\" no está en nuestra lista conocida. ¿Está seguro que es correcta?",
                         Toast.LENGTH_LONG).show();
-                // Solo advertimos, NO bloqueamos
             }
         }
 
-        return true; // ✅ Todos los campos obligatorios son válidos
+        return true;
     }
 
-
-
     private void autofillFields(String text) {
-        // 1) Autocomplete variety
         String variety = identifyWine(text);
         if (variety != null) {
             nameEditText.setText(variety);
         }
 
-        // 2) Detect year
         Pattern yearPattern = Pattern.compile("\\b(19|20)\\d{2}\\b");
         Matcher yearMatcher = yearPattern.matcher(text);
         if (yearMatcher.find()) {
             vintageEditText.setText(yearMatcher.group());
         }
 
-        // 3) Detect alcohol percentage
         Pattern percentagePattern = Pattern.compile("\\b\\d+%\\b");
         Matcher percentageMatcher = percentagePattern.matcher(text);
         if (percentageMatcher.find()) {
@@ -355,8 +401,8 @@ public class DisplayImageAndText extends AppCompatActivity {
             );
         }
 
-        // 4) Autocomplete origin
-        String[] originKeywords = {"Maipo", "Colchagua", "Casablanca", "Limarí", "Itata", "Aconcagua", "Curicó", "Maule"};
+        String[] originKeywords = {"Maipo", "Colchagua", "Casablanca", "Limarí", "Itata",
+                "Aconcagua", "Curicó", "Maule"};
 
         for (String origin : originKeywords) {
             if (text.toLowerCase().contains(origin.toLowerCase())) {
@@ -366,43 +412,33 @@ public class DisplayImageAndText extends AppCompatActivity {
         }
     }
 
-
     private String identifyWine(String text) {
         String lower = text.toLowerCase();
 
         if (lower.contains("carmenere") || lower.contains("carmenère"))
             return "Carmenère";
-
         if (lower.contains("cabernet sauvignon"))
             return "Cabernet Sauvignon";
-
         if (lower.contains("cabernet") && !lower.contains("cabernet sauvignon"))
-            return "Cabernet"; // Caso raro, pero posible
-
+            return "Cabernet";
         if (lower.contains("merlot"))
             return "Merlot";
-
         if (lower.contains("syrah") || lower.contains("shiraz"))
             return "Syrah";
-
         if (lower.contains("pinot noir"))
             return "Pinot Noir";
-
         if (lower.contains("malbec"))
             return "Malbec";
-
         if (lower.contains("chardonnay"))
             return "Chardonnay";
-
         if (lower.contains("sauvignon blanc"))
             return "Sauvignon Blanc";
 
         return null;
     }
 
-
-
-    private void saveDataToFirebase(String wineName, String variety, String vintage, String origin, String percentage, String category) {
+    private void saveDataToFirebase(String wineName, String variety, String vintage,
+                                    String origin, String percentage, String category) {
         if (imageUri == null) {
             Toast.makeText(this, "No hay imagen para guardar.", Toast.LENGTH_SHORT).show();
             return;
@@ -418,18 +454,21 @@ public class DisplayImageAndText extends AppCompatActivity {
                 saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category);
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
-                aiProgressGif.setVisibility(View.GONE);   // 👈 añadir
                 Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
             });
         }).addOnFailureListener(e -> {
             progressBar.setVisibility(View.GONE);
-            aiProgressGif.setVisibility(View.GONE);   // 👈 añadir
             Snackbar.make(capturedImageView, "Error al subir la imagen.", Snackbar.LENGTH_LONG).show();
         });
     }
 
-    private void saveToFirestore(String imageUrl, String wineName, String variety, String vintage, String origin, String percentage, String category) {
-        CollectionReference userCollection = firestore.collection("descriptions").document(userId).collection("wineDescriptions");
+    private void saveToFirestore(String imageUrl, String wineName, String variety,
+                                 String vintage, String origin, String percentage, String category) {
+
+        CollectionReference userCollection = firestore
+                .collection("descriptions")
+                .document(userId)
+                .collection("wineDescriptions");
 
         Map<String, Object> imageData = new HashMap<>();
         imageData.put("imageUrl", imageUrl);
@@ -440,7 +479,6 @@ public class DisplayImageAndText extends AppCompatActivity {
         imageData.put("origin", origin);
         imageData.put("percentage", percentage);
         imageData.put("category", category);
-
 
         userCollection.add(imageData)
                 .addOnSuccessListener(aVoid -> {
