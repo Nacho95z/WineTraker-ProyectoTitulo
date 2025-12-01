@@ -1,45 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/bg_dialog_wine"
+    android:gravity="center_horizontal">
+
+    <!-- Título -->
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Editar información"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/my_dark_primary"
+        android:fontFamily="@font/dancing_script"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Nombre -->
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp"
-        tools:ignore="MissingConstraints">
+        android:hint="Nombre">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editName"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Nombre" />
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
+    <!-- Variedad -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Variedad">
+
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editVariety"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Variedad" />
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
+    <!-- Año -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Año">
+
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editVintage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Año" />
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
+    <!-- Origen -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Origen">
+
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editOrigin"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Origen" />
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
+    <!-- Grado alcohólico -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Grado alcohólico">
+
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editPercentage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Porcentaje de Alcohol" />
+            android:inputType="numberDecimal" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Botones -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="16dp">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="CANCELAR" />
+
+        <Space
+            android:layout_width="16dp"
+            android:layout_height="match_parent" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="GUARDAR" />
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

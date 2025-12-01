@@ -2,10 +2,11 @@ package com.example.winertraker;
 
 import static android.content.ContentValues.TAG;
 
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,19 +14,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton; // <--- IMPORTANTE: Importar ImageButton
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;   // <-- CAMBIO AQUÍ
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
@@ -96,13 +98,11 @@ public class ViewCollectionActivity extends AppCompatActivity {
             int id = item.getItemId();
 
             if (id == R.id.nav_home) {
-                // Ir al Home
                 Intent intent = new Intent(ViewCollectionActivity.this, HomeActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
 
             } else if (id == R.id.nav_my_cellar) {
-                // Ya estamos en Mi Bodega → solo cerrar menú
                 drawerLayoutCollection.closeDrawer(GravityCompat.START);
 
             } else if (id == R.id.nav_settings) {
@@ -210,7 +210,6 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
     }
 
-    // Cerrar drawer con back si está abierto
     @Override
     public void onBackPressed() {
         if (drawerLayoutCollection != null &&
@@ -316,17 +315,18 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
 
         private void showEditDialog(Context context, CollectionItem item, int position) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("Editar información");
 
+            // Inflamos el nuevo layout con estilo tipo login
             View dialogView = LayoutInflater.from(context)
                     .inflate(R.layout.dialog_edit_item, null);
 
-            EditText editName = dialogView.findViewById(R.id.editName);
-            EditText editVariety = dialogView.findViewById(R.id.editVariety);
-            EditText editVintage = dialogView.findViewById(R.id.editVintage);
-            EditText editOrigin = dialogView.findViewById(R.id.editOrigin);
-            EditText editPercentage = dialogView.findViewById(R.id.editPercentage);
+            TextInputEditText editName = dialogView.findViewById(R.id.editName);
+            TextInputEditText editVariety = dialogView.findViewById(R.id.editVariety);
+            TextInputEditText editVintage = dialogView.findViewById(R.id.editVintage);
+            TextInputEditText editOrigin = dialogView.findViewById(R.id.editOrigin);
+            TextInputEditText editPercentage = dialogView.findViewById(R.id.editPercentage);
+            Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+            Button btnSave = dialogView.findViewById(R.id.btnSave);
 
             editName.setText(item.name);
             editVariety.setText(item.variety);
@@ -334,14 +334,25 @@ public class ViewCollectionActivity extends AppCompatActivity {
             editOrigin.setText(item.origin);
             editPercentage.setText(item.percentage);
 
-            builder.setView(dialogView);
+            AlertDialog dialog = new AlertDialog.Builder(context)
+                    .setView(dialogView)
+                    .create();
 
-            builder.setPositiveButton("Guardar", (dialog, which) -> {
-                item.name = editName.getText().toString().trim();
-                item.variety = editVariety.getText().toString().trim();
-                item.vintage = editVintage.getText().toString().trim();
-                item.origin = editOrigin.getText().toString().trim();
-                item.percentage = editPercentage.getText().toString().trim();
+            // Fondo transparente para respetar bg_dialog_wine
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(
+                        new ColorDrawable(Color.TRANSPARENT)
+                );
+            }
+
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+            btnSave.setOnClickListener(v -> {
+                item.name = editName.getText() != null ? editName.getText().toString().trim() : "";
+                item.variety = editVariety.getText() != null ? editVariety.getText().toString().trim() : "";
+                item.vintage = editVintage.getText() != null ? editVintage.getText().toString().trim() : "";
+                item.origin = editOrigin.getText() != null ? editOrigin.getText().toString().trim() : "";
+                item.percentage = editPercentage.getText() != null ? editPercentage.getText().toString().trim() : "";
 
                 FirebaseFirestore firestore = FirebaseFirestore.getInstance();
                 firestore.collection("descriptions")
@@ -356,13 +367,13 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .addOnSuccessListener(aVoid -> {
                             Toast.makeText(context, "Datos actualizados", Toast.LENGTH_SHORT).show();
                             notifyItemChanged(position);
+                            dialog.dismiss();
                         })
                         .addOnFailureListener(e ->
                                 Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show());
             });
 
-            builder.setNegativeButton("Cancelar", null);
-            builder.create().show();
+            dialog.show();
         }
 
         @Override
