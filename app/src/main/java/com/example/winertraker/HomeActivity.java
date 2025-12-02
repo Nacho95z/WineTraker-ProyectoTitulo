@@ -23,6 +23,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout; // IMPORTANTE
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.PieData;
@@ -49,18 +50,17 @@ public class HomeActivity extends AppCompatActivity {
     private FirebaseFirestore firestore;
     private String userId;
 
-    // Drawer
+    // Componentes UI
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private ImageView menuIcon;
-
-    // Header del menú lateral
     private TextView headerTitle, headerEmail;
-
-    // Componentes del UI Dashboard
     private TextView txtTotalWines, txtOptimalWines;
     private CardView cardScan, cardCollection;
     private PieChart pieChart;
+
+    // NUEVO: Variable para el refresh
+    private SwipeRefreshLayout swipeRefreshLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,29 +80,37 @@ public class HomeActivity extends AppCompatActivity {
 
         userId = user.getUid();
 
-        // Inicializar vistas
         initializeViews();
-
-        // Configurar datos del usuario (en el header del menú)
         setupUserInfo();
-
-        // Configurar botones de acción y menú
         setupActions();
-
-        // Crear canal de notificaciones
         createNotificationChannel();
 
-        // Cargar datos del dashboard (Gráficos y Contadores)
+        // Configuración inicial de SwipeRefreshLayout
+        swipeRefreshLayout.setColorSchemeColors(android.graphics.Color.parseColor("#B22034")); // Rojo vino
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            loadCollectionStats(); // Recargar al deslizar
+        });
+
+        // Cargar datos por primera vez
         loadCollectionStats();
     }
 
+    // Método onResume: Se ejecuta cada vez que esta actividad vuelve a verse
+    // (por ejemplo, al volver de ViewCollectionActivity tras borrar un vino)
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (userId != null) {
+            loadCollectionStats();
+        }
+    }
+
     private void initializeViews() {
-        // Drawer
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
         menuIcon = findViewById(R.id.menuIcon);
 
-        // Header del NavigationView
+        // Header del drawer
         View headerView = navigationView.getHeaderView(0);
         headerTitle = headerView.findViewById(R.id.headerTitle);
         headerEmail = headerView.findViewById(R.id.headerEmail);
@@ -113,74 +121,50 @@ public class HomeActivity extends AppCompatActivity {
         cardScan = findViewById(R.id.cardScan);
         cardCollection = findViewById(R.id.cardCollection);
         pieChart = findViewById(R.id.pieChart);
+
+        // NUEVO: Enlazar SwipeRefreshLayout
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
     }
 
     private void setupUserInfo() {
-        String displayName = user.getDisplayName();
-        if (displayName == null || displayName.isEmpty()) {
-            displayName = "Amante del vino";
+        if (user != null) {
+            String displayName = user.getDisplayName();
+            if (displayName == null || displayName.isEmpty()) {
+                displayName = "Amante del vino";
+            }
+            headerTitle.setText(displayName);
+            headerEmail.setText(user.getEmail());
         }
-
-        // Mostrar nombre y correo SOLO en el header del menú lateral
-        headerTitle.setText(displayName);
-        headerEmail.setText(user.getEmail());
     }
 
     private void setupActions() {
-
-        // --- MENÚ LATERAL ---
-
-        // Abrir el drawer al tocar el ícono de menú
         menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
-        // Manejar clics del menú
-        navigationView.setNavigationItemSelectedListener(
-                new NavigationView.OnNavigationItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                        int id = item.getItemId();
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                Toast.makeText(HomeActivity.this, "Inicio", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_my_cellar) {
+                redirectToActivity(ViewCollectionActivity.class);
+            } else if (id == R.id.nav_settings) {
+                redirectToActivity(SettingsActivity.class);
+            } else if (id == R.id.nav_logout) {
+                performLogout();
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
 
-                        if (id == R.id.nav_home) {
-                            // Ya estás en Home
-                            Toast.makeText(HomeActivity.this, "Inicio", Toast.LENGTH_SHORT).show();
-
-                        } else if (id == R.id.nav_my_cellar) {
-                            // Ir a la bodega
-                            redirectToActivity(ViewCollectionActivity.class);
-
-                        } else if (id == R.id.nav_settings) {
-                            // Aquí podrías abrir una Activity de Configuración
-                            redirectToActivity(SettingsActivity.class);
-
-                        } else if (id == R.id.nav_logout) {
-                            // Cerrar sesión desde el menú
-                            performLogout();
-                        }
-
-                        drawerLayout.closeDrawer(GravityCompat.START);
-                        return true;
-                    }
-                }
-        );
-
-        // Tarjeta Escanear
         cardScan.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
-
-        // Tarjeta Ver Colección
         cardCollection.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
     }
 
     private void performLogout() {
-        // Cerrar sesión Firebase
         FirebaseAuth.getInstance().signOut();
-
-        // Marcar que NO queremos recordar la sesión
         getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
                 .edit()
                 .putBoolean("remember_session", false)
                 .apply();
-
-        // Volver a pantalla de autenticación
         Intent intent = new Intent(HomeActivity.this, AuthActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
@@ -188,13 +172,19 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadCollectionStats() {
-        if (userId == null) return;
+        if (userId == null) {
+            swipeRefreshLayout.setRefreshing(false);
+            return;
+        }
 
         CollectionReference collectionRef = firestore.collection("descriptions")
                 .document(userId)
                 .collection("wineDescriptions");
 
         collectionRef.get().addOnCompleteListener(task -> {
+            // DETENER ANIMACIÓN DE CARGA (IMPORTANTE)
+            swipeRefreshLayout.setRefreshing(false);
+
             if (task.isSuccessful() && task.getResult() != null) {
                 int totalWines = 0;
                 int optimalCount = 0;
@@ -227,14 +217,10 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
 
-                // ACTUALIZAR DASHBOARD UI
                 txtTotalWines.setText(String.valueOf(totalWines));
                 txtOptimalWines.setText(String.valueOf(optimalCount));
-
-                // Actualizar gráfico
                 updatePieChart(wineVarietyCounts);
 
-                // Notificar si es necesario
                 if (!optimalWineNames.isEmpty()) {
                     sendOptimalConsumptionNotification(optimalWineNames);
                 }
@@ -243,11 +229,11 @@ public class HomeActivity extends AppCompatActivity {
                 txtOptimalWines.setText("-");
             }
         }).addOnFailureListener(e -> {
+            // DETENER ANIMACIÓN SI FALLA
+            swipeRefreshLayout.setRefreshing(false);
             Toast.makeText(this, "Error cargando datos", Toast.LENGTH_SHORT).show();
         });
     }
-
-    // --- MÉTODOS AUXILIARES (Gráfico, Permisos, Lógica Vinos) ---
 
     private void updatePieChart(Map<String, Integer> wineVarietyCounts) {
         List<PieEntry> entries = new ArrayList<>();
@@ -373,12 +359,10 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // Implementación básica para cumplir con override
     }
 
     @Override
     public void onBackPressed() {
-        // Si el drawer está abierto, ciérralo; si no, comportamiento normal
         if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         } else {
