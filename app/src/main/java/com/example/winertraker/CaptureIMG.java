@@ -21,6 +21,11 @@ import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.exifinterface.media.ExifInterface;   // <-- NUEVO
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
@@ -35,6 +40,7 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
@@ -55,33 +61,27 @@ public class CaptureIMG extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_capture_img);
 
-        // Ocultar ActionBar para usar nuestra barra personalizada
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
         user = FirebaseAuth.getInstance().getCurrentUser();
 
-        // Edge-to-edge para el contenido principal (ConstraintLayout con id main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // ---------- Drawer & menú lateral ----------
         drawerLayoutCapture = findViewById(R.id.drawerLayoutCapture);
         navigationView = findViewById(R.id.navigationView);
         menuIcon = findViewById(R.id.menuIcon);
 
-        // Abrir menú al tocar el ícono
         menuIcon.setOnClickListener(v ->
                 drawerLayoutCapture.openDrawer(GravityCompat.START)
         );
 
-        // Manejar clics del menú
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
 
@@ -115,14 +115,11 @@ public class CaptureIMG extends AppCompatActivity {
             return true;
         });
 
-        // ---------- Cámara ----------
         previewView = findViewById(R.id.viewFinder);
         FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
 
-        // Iniciar cámara cuando la vista esté lista
         previewView.post(this::startCamera);
 
-        // Capturar foto
         captureButton.setOnClickListener(v -> captureImage());
     }
 
@@ -174,6 +171,10 @@ public class CaptureIMG extends AppCompatActivity {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+
+                        // 🔄 Corregimos orientación ANTES de seguir
+                        fixImageOrientation(photoFile);
+
                         Uri fileUri = Uri.fromFile(photoFile);
 
                         ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
@@ -190,6 +191,65 @@ public class CaptureIMG extends AppCompatActivity {
                     }
                 }
         );
+    }
+
+    /**
+     * Lee el EXIF del archivo y rota la imagen si es necesario,
+     * sobrescribiendo el mismo JPG.
+     */
+    private void fixImageOrientation(File photoFile) {
+        try {
+            String path = photoFile.getAbsolutePath();
+            ExifInterface exif = new ExifInterface(path);
+            int orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+            );
+
+            int rotationDegrees = 0;
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotationDegrees = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotationDegrees = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotationDegrees = 270;
+                    break;
+                default:
+                    rotationDegrees = 0;
+            }
+
+            if (rotationDegrees == 0) {
+                return; // ya está bien orientada
+            }
+
+            Bitmap bitmap = BitmapFactory.decodeFile(path);
+            if (bitmap == null) return;
+
+            Matrix matrix = new Matrix();
+            matrix.postRotate(rotationDegrees);
+            Bitmap rotated = Bitmap.createBitmap(
+                    bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true
+            );
+            bitmap.recycle();
+
+            // sobrescribimos el archivo
+            FileOutputStream out = new FileOutputStream(photoFile);
+            rotated.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+            rotated.recycle();
+
+            // dejamos la orientación en normal
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION,
+                    String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+            exif.saveAttributes();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void processImageForText(Uri uri, ProgressDialog progressDialog) {
@@ -223,7 +283,6 @@ public class CaptureIMG extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // Si el drawer está abierto, ciérralo; si no, comportamiento normal
         if (drawerLayoutCapture != null &&
                 drawerLayoutCapture.isDrawerOpen(GravityCompat.START)) {
             drawerLayoutCapture.closeDrawer(GravityCompat.START);

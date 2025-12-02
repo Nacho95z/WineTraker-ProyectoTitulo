@@ -16,7 +16,7 @@
         android:text="Editar información"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@color/my_dark_primary"
+        android:textColor="#B22034"
         android:fontFamily="@font/dancing_script"
         android:layout_marginBottom="12dp" />
 
@@ -24,12 +24,17 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nombre">
+        android:hint="Nombre"
+        app:boxStrokeColor="@color/my_dark_primary"
+        app:hintTextColor="@color/my_dark_primary"
+        >
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editName"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/my_dark_primary"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Variedad -->
@@ -37,12 +42,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Variedad">
+        android:hint="Variedad"
+        app:boxStrokeColor="@color/my_dark_primary"
+        app:hintTextColor="@color/my_dark_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editVariety"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/my_dark_primary"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Año -->
@@ -50,13 +59,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Año">
+        android:hint="Año"
+        app:boxStrokeColor="@color/my_dark_primary"
+        app:hintTextColor="@color/my_dark_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editVintage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number" />
+            android:inputType="number"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/my_dark_primary"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Origen -->
@@ -64,12 +77,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Origen">
+        android:hint="Origen"
+        app:boxStrokeColor="@color/my_dark_primary"
+        app:hintTextColor="@color/my_dark_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editOrigin"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/my_dark_primary"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Grado alcohólico -->
@@ -77,13 +94,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Grado alcohólico">
+        android:hint="Grado alcohólico"
+        app:boxStrokeColor="@color/my_dark_primary"
+        app:hintTextColor="@color/my_dark_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editPercentage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal" />
+            android:inputType="numberDecimal"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/my_dark_primary"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Botones -->
@@ -99,7 +120,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="CANCELAR" />
+            android:text="CANCELAR"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B22034"/>
 
         <Space
             android:layout_width="16dp"
@@ -110,7 +133,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="GUARDAR" />
+            android:text="GUARDAR"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B22034"/>
     </LinearLayout>
 
 </LinearLayout>
