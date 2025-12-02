@@ -89,6 +89,9 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-analytics")
 
+    // 🔔 Cloud Messaging
+    implementation("com.google.firebase:firebase-messaging")
+
     // Auth (ya no necesitas poner la versión)
     implementation("com.google.firebase:firebase-auth")
 

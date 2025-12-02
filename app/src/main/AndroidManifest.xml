@@ -46,7 +46,11 @@
         <activity
             android:name=".ViewCollectionActivity"
             android:exported="false" />
-        <activity android:name=".DisplayImageAndText" />
+
+        <activity
+            android:name=".DisplayImageAndText"
+            android:exported="false" />
+
 
         <!-- Aquí aplicaremos la lógica del Pop-up de cámara -->
         <activity
@@ -61,8 +65,22 @@
             android:exported="false" />
 
         <activity
-            android:name="SettingsActivity"
+            android:name=".SettingsActivity"
             android:exported="false" />
+
+        <service
+            android:name=".MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- (Opcional, pero recomendado) Canal por defecto para notificaciones de FCM -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="wine_optimal_channel" />
+
 
     </application>
 

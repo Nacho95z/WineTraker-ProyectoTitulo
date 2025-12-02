@@ -321,13 +321,16 @@ public class DisplayImageAndText extends AppCompatActivity {
             return false;
         }
 
-        String varietyPattern = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]{3,}$";
+        // 5) Validación inteligente de VARIEDAD (solo letras y espacios, mínimo 3 caracteres)
+        String varietyPattern = "^[\\p{L}\\s]{3,}$";  // \p{L} = cualquier letra (con tildes, diéresis, etc.)
+
         if (!variety.matches(varietyPattern)) {
             Toast.makeText(this,
                     "La variedad debe contener solo letras y al menos 3 caracteres.",
                     Toast.LENGTH_SHORT).show();
             return false;
         }
+
 
         String[] knownVarieties = {
                 "Cabernet Sauvignon", "Merlot", "Carmenère", "Syrah", "Pinot Noir",
