@@ -61,7 +61,7 @@ val camerax_version = "1.2.2"
 
 dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
-
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.transport.api)
     implementation(libs.transport.api)
     implementation(libs.transport.api)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
