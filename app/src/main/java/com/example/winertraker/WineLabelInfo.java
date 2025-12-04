@@ -8,6 +8,7 @@ public class WineLabelInfo {
     private String percentage;
     private String rawText; // opcional: descripción completa o texto detectado
     private String category; // opcional: categoría o línea
+    private String comment;
 
 
     public String getWineName() {
@@ -64,5 +65,13 @@ public class WineLabelInfo {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 }

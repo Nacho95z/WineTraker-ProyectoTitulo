@@ -87,22 +87,39 @@ public class OpenAiClient {
         // Bloque de texto
         Map<String, Object> textBlock = new HashMap<>();
         textBlock.put("type", "text");
-        textBlock.put("text",
-                "Analiza esta imagen de una etiqueta de vino y devuelve un JSON con los campos:\n" +
-                        "- wineName: nombre del vino o de la viña principal (por ejemplo 'Santa Alicia').\n" +
-                        "- variety: cepa principal (por ejemplo 'Carmenere', 'Cabernet Sauvignon').\n" +
-                        "- vintage: año de cosecha en 4 dígitos (por ejemplo '2012'). Si no está visible usa \"\".\n" +
-                        "- origin: región o denominación de origen (por ejemplo 'Valle del Maipo'). Si no está visible usa \"\".\n" +
-                        "- percentage: grado alcohólico numérico sin el símbolo %, por ejemplo '13.5'. Si no está visible usa \"\".\n" +
-                        "- category: categoría o línea comercial del vino (por ejemplo 'Reserva', 'Gran Reserva', 'Gran Reserva de los Andes', 'Edición Limitada'). " +
-                        "Si no está visible usa \"\".\n" +
-                        "- rawText: todo el texto relevante de la etiqueta en una sola cadena.\n\n" +
-                        "Importante:\n" +
-                        "- NO pongas la categoría (por ejemplo 'Gran Reserva de los Andes') en wineName.\n" +
-                        "- NO añadas comentarios fuera del JSON.\n" +
-                        "- Si algún dato no está claramente visible, usa \"\" en ese campo."
+        textBlock.put(
+                "text",
+                "Analiza esta imagen de una etiqueta de vino chileno y devuelve EXCLUSIVAMENTE un JSON con las siguientes claves:\n" +
+                        "- wineName\n" +
+                        "- variety\n" +
+                        "- vintage\n" +
+                        "- origin\n" +
+                        "- percentage\n" +
+                        "- category\n" +
+                        "- rawText\n" +
+                        "- comment\n\n" +
+
+                        "Instrucciones para 'comment':\n" +
+                        "Genera un comentario breve, redactado con el tono de un enólogo profesional, usando lenguaje técnico y objetivo. " +
+                        "Describe únicamente características propias del vino: estilo, estructura, expresión típica de la cepa, características esperadas del valle o zona de origen, y perfil general de la cosecha.\n\n" +
+
+                        "Restricciones estrictas para 'comment':\n" +
+                        "- NO recomendar consumo, momentos de consumo ni cantidades.\n" +
+                        "- NO sugerir maridajes.\n" +
+                        "- NO mencionar precios, promociones ni ventas.\n" +
+                        "- NO indicar beneficios, efectos ni incentivos a beber.\n" +
+                        "- NO usar lenguaje imperativo ni persuasivo. Solo análisis técnico.\n\n" +
+
+                        "El comentario debe sonar como una descripción enológica profesional, breve, concisa y completamente neutral.\n\n" +
+
+                        "Devuelve SIEMPRE un JSON válido con EXACTAMENTE estas claves: " +
+                        "{ \"wineName\": \"...\", \"variety\": \"...\", \"vintage\": \"...\", \"origin\": \"...\", " +
+                        "\"percentage\": \"...\", \"category\": \"...\", \"rawText\": \"...\", \"comment\": \"...\" }. " +
+                        "Si algún dato no aparece, devuélvelo como cadena vacía \"\"."
         );
+
         contentList.add(textBlock);
+
 
         // Bloque de imagen
         Map<String, Object> imageBlock = new HashMap<>();

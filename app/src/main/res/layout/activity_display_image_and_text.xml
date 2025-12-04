@@ -109,65 +109,225 @@
                 android:orientation="vertical"
                 android:layout_below="@id/contentLayout"
                 android:layout_marginTop="16dp">
-
-                <EditText
-                    android:id="@+id/wineNameEditText"
+                <!-- Nombre -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Nombre del Vino"
-                    android:inputType="text"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#B22034"
+                        android:text="Nombre:"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/wineNameEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Nombre del Vino"
+                        android:inputType="text"
+                        android:padding="8dp"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+                <!-- Categoría -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#B22034"
+                        android:text="Categoría:"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/categoryEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Categoría / línea (ej: Gran Reserva de los Andes)"
+                        android:inputType="textCapWords"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+                <!-- Variedad -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#B22034"
+                        android:text="Variedad:"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/nameEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Variedad"
+                        android:inputType="text"
+                        android:padding="8dp"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+
+                <!-- Cosecha -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#B22034"
+                        android:text="Cosecha:"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/vintageEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Año de cosecha"
+                        android:inputType="number"
+                        android:padding="8dp"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+
+                <!-- Región -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#B22034"
+                        android:textStyle="bold"
+                        android:text="Región:"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/originEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Valle o región"
+                        android:inputType="text"
+                        android:padding="8dp"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+
+                <!-- Grado alcohólico -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="25dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#B22034"
+                        android:text="G. Alcohólico:"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/percentageEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Ej: 13.5"
+                        android:inputType="numberDecimal"
+                        android:padding="8dp"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+
+                <LinearLayout
+                    android:id="@+id/commentHeaderLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/commentLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:text="Comentario asistente IA"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#1976D2" />
+
+
+                    <pl.droidsonroids.gif.GifImageView
+                        android:id="@+id/commentAiGif"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="4dp"
+                        android:src="@drawable/sparkles_ia"
+                        android:contentDescription="Animación asistente IA" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/commentEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:padding="8dp"
                     android:textColor="@color/my_dark_primary"
-                    android:textColorHint="#888888" />
+                    android:textSize="14sp"
+                    android:textStyle="italic"
+                    android:visibility="gone"
+                    />
 
-                <EditText
-                    android:id="@+id/categoryEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Categoría / línea (ej: Gran Reserva de los Andes)"
-                    android:inputType="textCapWords"
-                    android:textColor="@color/my_dark_primary"
-                    android:layout_marginTop="8dp" />
 
-                <EditText
-                    android:id="@+id/nameEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Variedad"
-                    android:inputType="text"
-                    android:padding="8dp"
-                    android:textColor="@color/my_dark_primary"
-                    android:textColorHint="#888888" />
 
-                <EditText
-                    android:id="@+id/vintageEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Cosecha (Año)"
-                    android:inputType="number"
-                    android:padding="8dp"
-                    android:textColor="@color/my_dark_primary"
-                    android:textColorHint="#888888" />
 
-                <EditText
-                    android:id="@+id/originEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Región"
-                    android:inputType="text"
-                    android:padding="8dp"
-                    android:textColor="@color/my_dark_primary"
-                    android:textColorHint="#888888" />
-
-                <EditText
-                    android:id="@+id/percentageEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Grado alcohólico"
-                    android:inputType="numberDecimal"
-                    android:padding="8dp"
-                    android:textColor="@color/my_dark_primary"
-                    android:textColorHint="#888888" />
             </LinearLayout>
 
             <!-- Contenedor para los botones en la parte inferior -->

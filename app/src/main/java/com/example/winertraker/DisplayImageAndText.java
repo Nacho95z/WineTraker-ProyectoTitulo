@@ -3,16 +3,16 @@ package com.example.winertraker;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -27,7 +27,6 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import java.io.IOException;
 import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.Locale;
@@ -35,7 +34,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import pl.droidsonroids.gif.GifDrawable;
+import pl.droidsonroids.gif.GifImageView;
 
 public class DisplayImageAndText extends AppCompatActivity {
 
@@ -46,9 +45,12 @@ public class DisplayImageAndText extends AppCompatActivity {
 
     // UI
     private ImageView capturedImageView, aiProgressGif;
+    private GifImageView commentAiGif;
     private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText,
             percentageEditText, wineNameEditText, categoryEditText;
+    private TextView commentEditText;
     private ProgressBar progressBar;
+    private LinearLayout commentHeaderLayout;
 
     // Datos
     private Uri imageUri;
@@ -74,34 +76,6 @@ public class DisplayImageAndText extends AppCompatActivity {
         navigationView = findViewById(R.id.navigationView);
         menuIcon = findViewById(R.id.menuIcon);
 
-        // Abrir menú lateral
-        menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
-
-        // Manejo de clics del menú lateral
-        navigationView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-
-            if (id == R.id.nav_home) {
-                // Ir al Home
-                redirectToActivity(HomeActivity.class);
-
-            } else if (id == R.id.nav_my_cellar) {
-                // Ir a Mi Bodega
-                redirectToActivity(ViewCollectionActivity.class);
-
-            } else if (id == R.id.nav_settings) {
-                // Configuración
-                redirectToActivity(SettingsActivity.class);
-
-            } else if (id == R.id.nav_logout) {
-                // Cerrar sesión
-                performLogout();
-            }
-
-            drawerLayout.closeDrawer(GravityCompat.START);
-            return true;
-        });
-
         // --- Vistas de contenido ---
         capturedImageView = findViewById(R.id.capturedImageView);
         recognizedTextEdit = findViewById(R.id.recognizedTextEdit);
@@ -111,18 +85,43 @@ public class DisplayImageAndText extends AppCompatActivity {
         percentageEditText = findViewById(R.id.percentageEditText);
         wineNameEditText = findViewById(R.id.wineNameEditText);
         categoryEditText = findViewById(R.id.categoryEditText);
+
         Button saveButton = findViewById(R.id.buttonSave);
         Button discardButton = findViewById(R.id.buttonDiscard);
+
         progressBar = findViewById(R.id.progressBar);
         aiProgressGif = findViewById(R.id.aiProgressGif);
 
-        // GIF IA
-        try {
-            GifDrawable gifDrawable = new GifDrawable(getResources(), R.drawable.ai_progress);
-            aiProgressGif.setImageDrawable(gifDrawable);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // Bloque comentario IA
+        commentHeaderLayout = findViewById(R.id.commentHeaderLayout);
+        commentEditText = findViewById(R.id.commentEditText);
+        commentAiGif = findViewById(R.id.commentAiGif);
+
+        // Ocultar bloque comentario IA al inicio
+        commentHeaderLayout.setVisibility(View.GONE);
+        commentEditText.setVisibility(View.GONE);
+        commentAiGif.setVisibility(View.GONE);
+
+        // Abrir menú lateral
+        menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+
+        // Manejo de clics del menú lateral
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                redirectToActivity(HomeActivity.class);
+            } else if (id == R.id.nav_my_cellar) {
+                redirectToActivity(ViewCollectionActivity.class);
+            } else if (id == R.id.nav_settings) {
+                redirectToActivity(SettingsActivity.class);
+            } else if (id == R.id.nav_logout) {
+                performLogout();
+            }
+
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
 
         // Firebase
         storageRef = FirebaseStorage.getInstance().getReference();
@@ -146,7 +145,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         // Mostrar progreso mientras analizamos
         progressBar.setVisibility(View.VISIBLE);
 
-        //  OpenAI primero, OCR local como fallback
+        // OpenAI primero, OCR local como fallback
         WineLabelAnalyzer.analyzeImage(
                 this,
                 imageUri,
@@ -171,8 +170,23 @@ public class DisplayImageAndText extends AppCompatActivity {
                             recognizedTextEdit.setText(recognizedText);
                         }
 
+                        // Comentario IA descriptivo del vino
+                        String comment = info.getComment();
+                        if (comment != null && !comment.isEmpty()) {
+                            String formatted = "\"" + comment + "\"";   // «"texto"»
+                            commentEditText.setText(formatted);
+                            commentHeaderLayout.setVisibility(View.VISIBLE);
+                            commentEditText.setVisibility(View.VISIBLE);
+                            commentAiGif.setVisibility(View.VISIBLE);
+                        } else {
+                            commentHeaderLayout.setVisibility(View.GONE);
+                            commentEditText.setVisibility(View.GONE);
+                            commentAiGif.setVisibility(View.GONE);
+                        }
+
+
                     } else if (rawOcrText != null) {
-                        //  Fallback: OCR local
+                        // Fallback: OCR local
                         recognizedText = rawOcrText;
                         recognizedTextEdit.setText(recognizedText);
                         autofillFields(recognizedText);
@@ -197,6 +211,7 @@ public class DisplayImageAndText extends AppCompatActivity {
             String origin = originEditText.getText().toString().trim();
             String percentage = percentageEditText.getText().toString().trim();
             String category = categoryEditText.getText().toString().trim();
+            String comment = commentEditText.getText().toString().trim();
 
             variety = normalizeVarietyCanonical(variety);
             nameEditText.setText(variety);
@@ -206,7 +221,7 @@ public class DisplayImageAndText extends AppCompatActivity {
             }
 
             progressBar.setVisibility(View.VISIBLE);
-            saveDataToFirebase(wineName, variety, vintage, origin, percentage, category);
+            saveDataToFirebase(wineName, variety, vintage, origin, percentage, category, comment);
         });
 
         // Descartar
@@ -321,7 +336,7 @@ public class DisplayImageAndText extends AppCompatActivity {
             return false;
         }
 
-        // 5) Validación inteligente de VARIEDAD (solo letras y espacios, mínimo 3 caracteres)
+        // Validación inteligente de VARIEDAD (solo letras y espacios, mínimo 3 caracteres)
         String varietyPattern = "^[\\p{L}\\s]{3,}$";  // \p{L} = cualquier letra (con tildes, diéresis, etc.)
 
         if (!variety.matches(varietyPattern)) {
@@ -330,7 +345,6 @@ public class DisplayImageAndText extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             return false;
         }
-
 
         String[] knownVarieties = {
                 "Cabernet Sauvignon", "Merlot", "Carmenère", "Syrah", "Pinot Noir",
@@ -441,7 +455,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private void saveDataToFirebase(String wineName, String variety, String vintage,
-                                    String origin, String percentage, String category) {
+                                    String origin, String percentage, String category, String comment) {
         if (imageUri == null) {
             Toast.makeText(this, "No hay imagen para guardar.", Toast.LENGTH_SHORT).show();
             return;
@@ -454,7 +468,7 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         uploadTask.addOnSuccessListener(taskSnapshot -> {
             imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category);
+                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category, comment);
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
                 Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
@@ -466,7 +480,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private void saveToFirestore(String imageUrl, String wineName, String variety,
-                                 String vintage, String origin, String percentage, String category) {
+                                 String vintage, String origin, String percentage, String category, String comment) {
 
         CollectionReference userCollection = firestore
                 .collection("descriptions")
@@ -482,6 +496,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         imageData.put("origin", origin);
         imageData.put("percentage", percentage);
         imageData.put("category", category);
+        imageData.put("comment", comment);
 
         userCollection.add(imageData)
                 .addOnSuccessListener(aVoid -> {
