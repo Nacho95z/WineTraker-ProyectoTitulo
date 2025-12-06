@@ -37,6 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import pl.droidsonroids.gif.GifImageView;
+import com.google.firebase.Timestamp;
 
 public class DisplayImageAndText extends AppCompatActivity {
 
@@ -52,7 +53,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     private ImageView capturedImageView, aiProgressGif;
     private GifImageView commentAiGif;
     private EditText nameEditText, vintageEditText, originEditText,
-            percentageEditText, wineNameEditText, categoryEditText;
+            percentageEditText, wineNameEditText, categoryEditText, priceEditText;
     private TextView commentEditText;
     private ProgressBar progressBar;
     private LinearLayout commentHeaderLayout;
@@ -94,7 +95,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         percentageEditText = findViewById(R.id.percentageEditText);
         wineNameEditText = findViewById(R.id.wineNameEditText);
         categoryEditText = findViewById(R.id.categoryEditText);
-
+        priceEditText = findViewById(R.id.priceEditText); // 👈 NUEVO
 
         Button saveButton = findViewById(R.id.buttonSave);
         Button discardButton = findViewById(R.id.buttonDiscard);
@@ -173,16 +174,6 @@ public class DisplayImageAndText extends AppCompatActivity {
         // Cerrar tocando la imagen (un tap, sin romper el zoom)
         fullScreenImageView.setOnViewTapListener((view, x, y) -> closeImageOverlay());
 
-
-
-        // Al tocar cualquier parte del overlay, cerrar vista grande
-        imagePreviewOverlay.setOnClickListener(v -> {
-            imagePreviewOverlay.setVisibility(View.GONE);
-        });
-
-
-
-
         // Mostrar progreso mientras analizamos
         progressBar.setVisibility(View.VISIBLE);
 
@@ -208,7 +199,6 @@ public class DisplayImageAndText extends AppCompatActivity {
 
                         recognizedText = info.getRawText();
 
-
                         // Comentario IA descriptivo del vino
                         String comment = info.getComment();
                         if (comment != null && !comment.isEmpty()) {
@@ -222,7 +212,6 @@ public class DisplayImageAndText extends AppCompatActivity {
                             commentEditText.setVisibility(View.GONE);
                             commentAiGif.setVisibility(View.GONE);
                         }
-
 
                     } else if (rawOcrText != null) {
                         // Fallback: OCR local
@@ -249,16 +238,24 @@ public class DisplayImageAndText extends AppCompatActivity {
             String percentage = percentageEditText.getText().toString().trim();
             String category = categoryEditText.getText().toString().trim();
             String comment = commentEditText.getText().toString().trim();
+            String priceStr = priceEditText.getText().toString().trim();   // 👈 NUEVO
 
             variety = normalizeVarietyCanonical(variety);
             nameEditText.setText(variety);
 
-            if (!validateInputs(wineName, variety, vintage, origin, percentage, category)) {
+            if (!validateInputs(wineName, variety, vintage, origin, percentage, category, priceStr)) {
                 return;
             }
 
+            Double price = null;
+            try {
+                price = Double.parseDouble(priceStr);
+            } catch (NumberFormatException e) {
+                price = null;
+            }
+
             progressBar.setVisibility(View.VISIBLE);
-            saveDataToFirebase(wineName, variety, vintage, origin, percentage, category, comment);
+            saveDataToFirebase(wineName, variety, vintage, origin, percentage, category, comment, price);
         });
 
         // Descartar
@@ -336,7 +333,7 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private boolean validateInputs(String wineName, String variety, String vintage,
-                                   String origin, String percentage, String category) {
+                                   String origin, String percentage, String category, String priceStr) {
 
         if (recognizedText == null) recognizedText = "";
 
@@ -346,6 +343,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         if (origin != null) origin = origin.trim();
         if (percentage != null) percentage = percentage.trim();
         if (category != null) category = category.trim();
+        if (priceStr != null) priceStr = priceStr.trim();
 
         variety = normalizeVarietyCanonical(variety);
 
@@ -443,6 +441,23 @@ public class DisplayImageAndText extends AppCompatActivity {
             }
         }
 
+        // --- Validación de precio (requerido y positivo) ---
+        if (priceStr == null || priceStr.isEmpty()) {
+            Toast.makeText(this, "Ingrese el precio de la botella.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        try {
+            double price = Double.parseDouble(priceStr);
+            if (price <= 0) {
+                Toast.makeText(this, "El precio debe ser mayor a 0.", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Ingrese un precio válido.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
         return true;
     }
 
@@ -503,7 +518,8 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private void saveDataToFirebase(String wineName, String variety, String vintage,
-                                    String origin, String percentage, String category, String comment) {
+                                    String origin, String percentage, String category,
+                                    String comment, Double price) {
         if (imageUri == null) {
             Toast.makeText(this, "No hay imagen para guardar.", Toast.LENGTH_SHORT).show();
             return;
@@ -516,7 +532,7 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         uploadTask.addOnSuccessListener(taskSnapshot -> {
             imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category, comment);
+                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category, comment, price);
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
                 Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
@@ -528,7 +544,8 @@ public class DisplayImageAndText extends AppCompatActivity {
     }
 
     private void saveToFirestore(String imageUrl, String wineName, String variety,
-                                 String vintage, String origin, String percentage, String category, String comment) {
+                                 String vintage, String origin, String percentage,
+                                 String category, String comment, Double price) {
 
         CollectionReference userCollection = firestore
                 .collection("descriptions")
@@ -545,6 +562,10 @@ public class DisplayImageAndText extends AppCompatActivity {
         imageData.put("percentage", percentage);
         imageData.put("category", category);
         imageData.put("comment", comment);
+        imageData.put("createdAt", Timestamp.now());
+        if (price != null) {
+            imageData.put("price", price); // 👈 NUEVO
+        }
 
         userCollection.add(imageData)
                 .addOnSuccessListener(aVoid -> {

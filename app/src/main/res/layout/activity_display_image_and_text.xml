@@ -113,7 +113,7 @@
                         android:textStyle="bold"
                         android:textColor="#B22034"
                         android:text="Nombre:"
-                        android:textSize="14sp"
+                        android:textSize="16sp"
                         android:layout_marginEnd="8dp" />
 
                     <EditText
@@ -142,7 +142,7 @@
                         android:textStyle="bold"
                         android:textColor="#B22034"
                         android:text="Categoría:"
-                        android:textSize="14sp"
+                        android:textSize="16sp"
                         android:layout_marginEnd="8dp" />
 
                     <EditText
@@ -169,7 +169,7 @@
                         android:textStyle="bold"
                         android:textColor="#B22034"
                         android:text="Variedad:"
-                        android:textSize="14sp"
+                        android:textSize="16sp"
                         android:layout_marginEnd="8dp" />
 
                     <EditText
@@ -199,7 +199,7 @@
                         android:textStyle="bold"
                         android:textColor="#B22034"
                         android:text="Cosecha:"
-                        android:textSize="14sp"
+                        android:textSize="16sp"
                         android:layout_marginEnd="8dp" />
 
                     <EditText
@@ -229,7 +229,7 @@
                         android:textColor="#B22034"
                         android:textStyle="bold"
                         android:text="Región:"
-                        android:textSize="14sp"
+                        android:textSize="16sp"
                         android:layout_marginEnd="8dp" />
 
                     <EditText
@@ -251,8 +251,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="25dp">
+                    android:layout_marginTop="8dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -260,7 +259,7 @@
                         android:textStyle="bold"
                         android:textColor="#B22034"
                         android:text="G. Alcohólico:"
-                        android:textSize="14sp"
+                        android:textSize="15sp"
                         android:layout_marginEnd="8dp" />
 
                     <EditText
@@ -274,6 +273,39 @@
                         android:textColor="@color/my_dark_primary"
                         android:textColorHint="#888888" />
                 </LinearLayout>
+
+                <!-- Precio -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="25dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#B22034"
+                        android:text="Precio:"
+                        android:textSize="16sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <EditText
+                        android:id="@+id/priceEditText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Precio en CLP"
+                        android:inputType="numberDecimal"
+                        android:padding="8dp"
+                        android:textColor="@color/my_dark_primary"
+                        android:textColorHint="#888888" />
+                </LinearLayout>
+
+
+
 
 
                 <LinearLayout

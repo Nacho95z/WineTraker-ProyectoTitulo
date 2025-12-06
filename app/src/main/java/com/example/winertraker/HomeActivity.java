@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -23,21 +22,38 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout; // IMPORTANTE
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import android.graphics.Color;
+
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,11 +71,13 @@ public class HomeActivity extends AppCompatActivity {
     private NavigationView navigationView;
     private ImageView menuIcon;
     private TextView headerTitle, headerEmail;
-    private TextView txtTotalWines, txtOptimalWines;
+    private TextView txtTotalWines, txtOptimalWines, txtTotalCellarValue;
     private CardView cardScan, cardCollection;
     private PieChart pieChart;
+    private BarChart barChart;
+    private LineChart valueLineChart;
 
-    // NUEVO: Variable para el refresh
+    // SwipeRefresh
     private SwipeRefreshLayout swipeRefreshLayout;
 
     @Override
@@ -85,18 +103,14 @@ public class HomeActivity extends AppCompatActivity {
         setupActions();
         createNotificationChannel();
 
-        // Configuración inicial de SwipeRefreshLayout
-        swipeRefreshLayout.setColorSchemeColors(android.graphics.Color.parseColor("#B22034")); // Rojo vino
-        swipeRefreshLayout.setOnRefreshListener(() -> {
-            loadCollectionStats(); // Recargar al deslizar
-        });
+        // SwipeRefresh
+        swipeRefreshLayout.setColorSchemeColors(Color.parseColor("#B22034")); // Rojo vino
+        swipeRefreshLayout.setOnRefreshListener(this::loadCollectionStats);
 
         // Cargar datos por primera vez
         loadCollectionStats();
     }
 
-    // Método onResume: Se ejecuta cada vez que esta actividad vuelve a verse
-    // (por ejemplo, al volver de ViewCollectionActivity tras borrar un vino)
     @Override
     protected void onResume() {
         super.onResume();
@@ -118,11 +132,13 @@ public class HomeActivity extends AppCompatActivity {
         // Dashboard
         txtTotalWines = findViewById(R.id.txtTotalWines);
         txtOptimalWines = findViewById(R.id.txtOptimalWines);
+        txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue);   // 👈 IMPORTANTE
         cardScan = findViewById(R.id.cardScan);
         cardCollection = findViewById(R.id.cardCollection);
         pieChart = findViewById(R.id.pieChart);
+        barChart = findViewById(R.id.barChart);
+        valueLineChart = findViewById(R.id.valueLineChart);             // 👈 IMPORTANTE
 
-        // NUEVO: Enlazar SwipeRefreshLayout
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
     }
 
@@ -182,7 +198,6 @@ public class HomeActivity extends AppCompatActivity {
                 .collection("wineDescriptions");
 
         collectionRef.get().addOnCompleteListener(task -> {
-            // DETENER ANIMACIÓN DE CARGA (IMPORTANTE)
             swipeRefreshLayout.setRefreshing(false);
 
             if (task.isSuccessful() && task.getResult() != null) {
@@ -191,15 +206,23 @@ public class HomeActivity extends AppCompatActivity {
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
                 List<String> optimalWineNames = new ArrayList<>();
 
+                int[] monthCounts = new int[12];       // botellas por mes
+                double[] monthValues = new double[12]; // valor por mes
+                double totalCellarValue = 0.0;         // valor total bodega
+
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     totalWines++;
+
                     String variety = document.getString("variety");
                     String vintageStr = document.getString("vintage");
                     String wineName = document.getString("wineName");
 
                     if (variety != null) {
                         variety = capitalize(variety);
-                        wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
+                        wineVarietyCounts.put(
+                                variety,
+                                wineVarietyCounts.getOrDefault(variety, 0) + 1
+                        );
 
                         if (vintageStr != null) {
                             try {
@@ -215,11 +238,46 @@ public class HomeActivity extends AppCompatActivity {
                             }
                         }
                     }
+
+                    // createdAt -> mes
+                    Timestamp ts = document.getTimestamp("createdAt");
+                    Integer monthIndex = null;
+                    if (ts != null) {
+                        Calendar cal = Calendar.getInstance();
+                        cal.setTime(ts.toDate());
+                        monthIndex = cal.get(Calendar.MONTH); // 0-11
+                        if (monthIndex >= 0 && monthIndex < 12) {
+                            monthCounts[monthIndex]++;
+                        }
+                    }
+
+                    // Precio
+                    Double price = null;
+                    Object priceObj = document.get("price");
+                    if (priceObj instanceof Number) {
+                        price = ((Number) priceObj).doubleValue();
+                    } else if (priceObj instanceof String) {
+                        try {
+                            price = Double.parseDouble((String) priceObj);
+                        } catch (NumberFormatException e) {
+                            price = null;
+                        }
+                    }
+
+                    if (price != null) {
+                        totalCellarValue += price;
+                        if (monthIndex != null && monthIndex >= 0 && monthIndex < 12) {
+                            monthValues[monthIndex] += price;
+                        }
+                    }
                 }
 
                 txtTotalWines.setText(String.valueOf(totalWines));
                 txtOptimalWines.setText(String.valueOf(optimalCount));
                 updatePieChart(wineVarietyCounts);
+                updateBarChart(monthCounts);
+                updateValueLineChart(monthValues);
+                updateTotalCellarValue(totalCellarValue);
 
                 if (!optimalWineNames.isEmpty()) {
                     sendOptimalConsumptionNotification(optimalWineNames);
@@ -229,11 +287,122 @@ public class HomeActivity extends AppCompatActivity {
                 txtOptimalWines.setText("-");
             }
         }).addOnFailureListener(e -> {
-            // DETENER ANIMACIÓN SI FALLA
             swipeRefreshLayout.setRefreshing(false);
             Toast.makeText(this, "Error cargando datos", Toast.LENGTH_SHORT).show();
         });
     }
+
+    // ----- Formateo y UI de valor -----
+
+    private String formatCurrency(double value) {
+        if (value <= 0) return "$0";
+        DecimalFormat df = new DecimalFormat("$###,###");
+        return df.format(value);
+    }
+
+    private void updateTotalCellarValue(double totalCellarValue) {
+        if (txtTotalCellarValue == null) return;
+        txtTotalCellarValue.setText("Valor total de la bodega: " + formatCurrency(totalCellarValue));
+    }
+
+    private void updateValueLineChart(double[] monthValues) {
+        if (valueLineChart == null) return;
+
+        final String[] months = {
+                "Ene", "Feb", "Mar", "Abr",
+                "May", "Jun", "Jul", "Ago",
+                "Sep", "Oct", "Nov", "Dic"
+        };
+
+        List<Entry> entries = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            if (monthValues[i] > 0) {
+                entries.add(new Entry(i, (float) monthValues[i]));
+            }
+        }
+
+        if (entries.isEmpty()) {
+            valueLineChart.clear();
+            valueLineChart.setNoDataText("Sin información de valor para mostrar.");
+            return;
+        }
+
+        LineDataSet dataSet = new LineDataSet(entries, "Valor mensual de la bodega");
+        dataSet.setLineWidth(2.5f);
+        dataSet.setCircleRadius(4f);
+        dataSet.setValueTextSize(10f);
+
+        // Curva suavizada premium
+        dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        dataSet.setCubicIntensity(0.2f);
+
+        // Color de la línea
+        int lineColor = Color.parseColor("#1E88E5"); // azul moderno
+        dataSet.setColor(lineColor);
+        dataSet.setCircleColor(lineColor);
+
+
+        // Puntos
+        dataSet.setCircleColor(lineColor);
+        dataSet.setCircleHoleColor(Color.WHITE);
+        dataSet.setDrawCircleHole(true);
+
+        // Etiquetas de valor en formato moneda
+        dataSet.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getPointLabel(Entry entry) {
+                return formatCurrency(entry.getY());
+            }
+        });
+
+        // Área rellena
+        dataSet.setDrawFilled(true);
+        dataSet.setFillDrawable(ContextCompat.getDrawable(this, R.drawable.area_gradient));
+
+        // Sin líneas de highlight
+        dataSet.setDrawHorizontalHighlightIndicator(false);
+        dataSet.setDrawVerticalHighlightIndicator(false);
+
+        // 🔴 AQUÍ ESTABA LO QUE FALTABA 🔴
+        LineData lineData = new LineData(dataSet);
+        valueLineChart.setData(lineData);
+        // ---------------------------------
+
+        // EJE X
+        XAxis xAxis = valueLineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setGranularity(1f);
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(months));
+        xAxis.setDrawGridLines(false);
+
+        // EJE Y IZQUIERDO
+        YAxis leftAxis = valueLineChart.getAxisLeft();
+        leftAxis.setGranularity(1f);
+        leftAxis.setAxisMinimum(0f);
+        leftAxis.setDrawGridLines(false);
+        leftAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return formatCurrency(value);
+            }
+        });
+
+        // Sin eje derecho
+        valueLineChart.getAxisRight().setEnabled(false);
+
+        // Estilo general
+        valueLineChart.setDrawGridBackground(false);
+        valueLineChart.setBackgroundColor(Color.WHITE);
+        valueLineChart.getDescription().setEnabled(false);
+        valueLineChart.getLegend().setEnabled(false);
+
+        // Animación + refresco
+        valueLineChart.animateX(900);
+        valueLineChart.invalidate();
+    }
+
+
+    // ----- Pie chart variedades -----
 
     private void updatePieChart(Map<String, Integer> wineVarietyCounts) {
         List<PieEntry> entries = new ArrayList<>();
@@ -244,10 +413,10 @@ public class HomeActivity extends AppCompatActivity {
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
         dataSet.setValueTextSize(14f);
-        dataSet.setValueTextColor(android.graphics.Color.WHITE);
+        dataSet.setValueTextColor(Color.WHITE);
 
         PieData data = new PieData(dataSet);
-        data.setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
+        data.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
                 return String.valueOf((int) value);
@@ -257,8 +426,8 @@ public class HomeActivity extends AppCompatActivity {
         pieChart.setData(data);
         pieChart.setUsePercentValues(false);
         pieChart.setDrawHoleEnabled(true);
-        pieChart.setHoleColor(android.graphics.Color.TRANSPARENT);
-        pieChart.setEntryLabelColor(android.graphics.Color.BLACK);
+        pieChart.setHoleColor(Color.TRANSPARENT);
+        pieChart.setEntryLabelColor(Color.BLACK);
         pieChart.setCenterText("Variedades");
         pieChart.setCenterTextSize(16f);
         pieChart.getDescription().setEnabled(false);
@@ -267,8 +436,92 @@ public class HomeActivity extends AppCompatActivity {
         pieChart.invalidate();
     }
 
+    // ----- Bar chart botellas por mes -----
+
+    private void updateBarChart(int[] monthCounts) {
+        if (barChart == null) return;
+
+        final String[] months = {
+                "Ene", "Feb", "Mar", "Abr",
+                "May", "Jun", "Jul", "Ago",
+                "Sep", "Oct", "Nov", "Dic"
+        };
+
+        List<BarEntry> entries = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            if (monthCounts[i] > 0) {
+                entries.add(new BarEntry(i, monthCounts[i]));
+            }
+        }
+
+        if (entries.isEmpty()) {
+            barChart.clear();
+            barChart.setNoDataText("Sin registros suficientes para mostrar el historial.");
+            return;
+        }
+
+        BarDataSet dataSet = new BarDataSet(entries, "Botellas registradas por mes");
+
+        List<Integer> barColors = new ArrayList<>();
+        barColors.add(Color.parseColor("#B22034")); // vino
+        barColors.add(Color.parseColor("#FF9800")); // naranjo
+        barColors.add(Color.parseColor("#FFEB3B")); // amarillo
+        barColors.add(Color.parseColor("#4CAF50")); // verde
+        barColors.add(Color.parseColor("#2196F3")); // azul
+        barColors.add(Color.parseColor("#9C27B0")); // púrpura
+        barColors.add(Color.parseColor("#009688")); // teal
+        barColors.add(Color.parseColor("#E91E63")); // rosado
+        barColors.add(Color.parseColor("#3F51B5")); // índigo
+        barColors.add(Color.parseColor("#CDDC39")); // lima
+        barColors.add(Color.parseColor("#FF5722")); // naranjo oscuro
+        barColors.add(Color.parseColor("#795548")); // café
+
+        dataSet.setColors(barColors);
+        dataSet.setValueTextColor(Color.parseColor("#B22034"));
+        dataSet.setValueTextSize(12f);
+
+        dataSet.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return String.valueOf((int) value);
+            }
+        });
+
+        BarData data = new BarData(dataSet);
+        data.setBarWidth(0.6f);
+        barChart.setData(data);
+
+        XAxis xAxis = barChart.getXAxis();
+        xAxis.setGranularity(1f);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(months));
+        xAxis.setDrawGridLines(false);
+
+        YAxis leftAxis = barChart.getAxisLeft();
+        leftAxis.setGranularity(1f);
+        leftAxis.setAxisMinimum(0f);
+        leftAxis.setDrawGridLines(false);
+        leftAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return String.valueOf((int) value);
+            }
+        });
+
+        barChart.getAxisRight().setEnabled(false);
+        barChart.setDrawGridBackground(false);
+        barChart.setBackgroundColor(Color.WHITE);
+        barChart.getDescription().setEnabled(false);
+        barChart.getLegend().setEnabled(false);
+
+        barChart.animateY(1000);
+        barChart.invalidate();
+    }
+
+    // ----- Lógica de negocio + permisos + notificaciones -----
+
     private boolean isOptimalForConsumption(String variety, int vintageYear) {
-        int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
         int wineAge = currentYear - vintageYear;
 
         switch (variety.toLowerCase()) {
