@@ -74,6 +74,8 @@ dependencies {
     implementation(libs.transport.api)
     implementation(libs.transport.api)
 
+    //Pinch-to-zoom
+    implementation ("com.github.chrisbanes:PhotoView:2.3.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

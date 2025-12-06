@@ -14,9 +14,11 @@ import android.widget.Toast;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -43,14 +45,18 @@ public class DisplayImageAndText extends AppCompatActivity {
     private NavigationView navigationView;
     private ImageView menuIcon;
 
+    private PhotoView fullScreenImageView;
+    private View imagePreviewOverlay;
+
     // UI
     private ImageView capturedImageView, aiProgressGif;
     private GifImageView commentAiGif;
-    private EditText recognizedTextEdit, nameEditText, vintageEditText, originEditText,
+    private EditText nameEditText, vintageEditText, originEditText,
             percentageEditText, wineNameEditText, categoryEditText;
     private TextView commentEditText;
     private ProgressBar progressBar;
     private LinearLayout commentHeaderLayout;
+    private CardView imageCard;
 
     // Datos
     private Uri imageUri;
@@ -78,13 +84,17 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         // --- Vistas de contenido ---
         capturedImageView = findViewById(R.id.capturedImageView);
-        recognizedTextEdit = findViewById(R.id.recognizedTextEdit);
+        fullScreenImageView = findViewById(R.id.fullScreenImageView);
+        imagePreviewOverlay = findViewById(R.id.imagePreviewOverlay);
+        imageCard = findViewById(R.id.imageCard);
+
         nameEditText = findViewById(R.id.nameEditText);
         vintageEditText = findViewById(R.id.vintageEditText);
         originEditText = findViewById(R.id.originEditText);
         percentageEditText = findViewById(R.id.percentageEditText);
         wineNameEditText = findViewById(R.id.wineNameEditText);
         categoryEditText = findViewById(R.id.categoryEditText);
+
 
         Button saveButton = findViewById(R.id.buttonSave);
         Button discardButton = findViewById(R.id.buttonDiscard);
@@ -133,14 +143,45 @@ public class DisplayImageAndText extends AppCompatActivity {
         imageUri = getIntent().getParcelableExtra("imageUri");
         recognizedText = getIntent().getStringExtra("recognizedText");
 
+        // Después de comprobar que imageUri no es null
         if (imageUri == null) {
             Toast.makeText(this, "No se encontró la imagen.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        // Mostrar imagen
+        // MINIATURA: aquí sí se carga la imagen en pequeño
         capturedImageView.setImageURI(imageUri);
+
+        // Al tocar la miniatura, mostrarla en grande
+        imageCard.setOnClickListener(v -> {
+            if (imageUri != null) {
+                fullScreenImageView.setImageURI(imageUri);
+
+                imagePreviewOverlay.setAlpha(0f);
+                imagePreviewOverlay.setVisibility(View.VISIBLE);
+                imagePreviewOverlay.animate()
+                        .alpha(1f)
+                        .setDuration(200)
+                        .start();
+            }
+        });
+
+        // Cerrar tocando el fondo oscuro
+        imagePreviewOverlay.setOnClickListener(v -> closeImageOverlay());
+
+        // Cerrar tocando la imagen (un tap, sin romper el zoom)
+        fullScreenImageView.setOnViewTapListener((view, x, y) -> closeImageOverlay());
+
+
+
+        // Al tocar cualquier parte del overlay, cerrar vista grande
+        imagePreviewOverlay.setOnClickListener(v -> {
+            imagePreviewOverlay.setVisibility(View.GONE);
+        });
+
+
+
 
         // Mostrar progreso mientras analizamos
         progressBar.setVisibility(View.VISIBLE);
@@ -166,9 +207,7 @@ public class DisplayImageAndText extends AppCompatActivity {
                         }
 
                         recognizedText = info.getRawText();
-                        if (recognizedText != null && !recognizedText.isEmpty()) {
-                            recognizedTextEdit.setText(recognizedText);
-                        }
+
 
                         // Comentario IA descriptivo del vino
                         String comment = info.getComment();
@@ -188,7 +227,6 @@ public class DisplayImageAndText extends AppCompatActivity {
                     } else if (rawOcrText != null) {
                         // Fallback: OCR local
                         recognizedText = rawOcrText;
-                        recognizedTextEdit.setText(recognizedText);
                         autofillFields(recognizedText);
 
                     } else if (error != null) {
@@ -204,7 +242,6 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         // Guardar
         saveButton.setOnClickListener(v -> {
-            recognizedText = recognizedTextEdit.getText().toString().trim();
             String wineName = wineNameEditText.getText().toString().trim();
             String variety = nameEditText.getText().toString().trim();
             String vintage = vintageEditText.getText().toString().trim();
@@ -226,6 +263,17 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         // Descartar
         discardButton.setOnClickListener(v -> navigateToHome());
+    }
+
+    private void closeImageOverlay() {
+        imagePreviewOverlay.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    imagePreviewOverlay.setVisibility(View.GONE);
+                    imagePreviewOverlay.setAlpha(1f); // dejarlo listo para la próxima vez
+                })
+                .start();
     }
 
     // --- Drawer helpers ---

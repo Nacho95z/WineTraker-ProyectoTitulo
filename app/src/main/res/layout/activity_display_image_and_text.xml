@@ -70,44 +70,35 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <!-- Contenedor horizontal para la imagen y el texto -->
-            <LinearLayout
-                android:id="@+id/contentLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_alignParentTop="true"
-                android:layout_marginBottom="16dp">
+            <!-- Imagen capturada centrada -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/imageCard"
+                android:layout_width="250dp"
+                android:layout_height="250dp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#B22034"
+                app:strokeWidth="3dp">
 
-                <!-- Imagen capturada (a la izquierda) -->
                 <ImageView
                     android:id="@+id/capturedImageView"
-                    android:layout_width="0dp"
-                    android:layout_height="250dp"
-                    android:layout_weight="1"
-                    android:scaleType="centerCrop"
-                    android:layout_marginEnd="8dp" />
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop" />
+            </com.google.android.material.card.MaterialCardView>
 
-                <!-- Texto reconocido editable (a la derecha) -->
-                <EditText
-                    android:id="@+id/recognizedTextEdit"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="#80000000"
-                    android:padding="8dp"
-                    android:hint="Edit recognized text here"
-                    android:textColor="#FFFFFF"
-                    android:textColorHint="#FFFFFF" />
-            </LinearLayout>
+
 
             <!-- Campos adicionales -->
             <LinearLayout
                 android:id="@+id/textFieldsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_below="@id/imageCard"
                 android:orientation="vertical"
-                android:layout_below="@id/contentLayout"
                 android:layout_marginTop="16dp">
                 <!-- Nombre -->
                 <LinearLayout
@@ -300,7 +291,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="5dp"
                         android:text="Comentario asistente IA"
-                        android:textSize="14sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"
                         android:textColor="#1976D2" />
 
@@ -371,6 +362,32 @@
                 android:layout_centerInParent="true"
                 android:visibility="gone" />
         </RelativeLayout>
+
+        <!-- OVERLAY DE PREVISUALIZACIÓN A PANTALLA COMPLETA -->
+        <!-- OVERLAY DE PREVISUALIZACIÓN A PANTALLA COMPLETA -->
+        <FrameLayout
+            android:id="@+id/imagePreviewOverlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="#CC000000"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <com.github.chrisbanes.photoview.PhotoView
+                android:id="@+id/fullScreenImageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
+                android:contentDescription="Vista previa de la etiqueta" />
+        </FrameLayout>
+
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
