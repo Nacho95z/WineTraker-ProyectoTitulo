@@ -55,11 +55,11 @@
         <!-- Aquí aplicaremos la lógica del Pop-up de cámara -->
         <activity
             android:name=".CaptureIMG"
-            android:exported="false" />
+            android:screenOrientation="portrait"
+            android:exported="false"
+            tools:ignore="LockedOrientationActivity" />
 
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="false" />
+
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
