@@ -24,6 +24,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <!-- Header superior con título WineTrack y menú -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -66,17 +67,63 @@
                             android:textColor="#B22034"
                             android:textSize="28sp"
                             android:fontFamily="@font/dancing_script"
-                            android:textStyle="bold"
-                            />
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
+                <!-- Contenido principal -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="24dp">
 
+                    <!-- 🔹 Banner informativo desplazándose debajo de "WineTrack" -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/infoBannerCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="20dp"
+                        app:cardElevation="0dp"
+                        app:cardUseCompatPadding="true"
+                        app:cardBackgroundColor="#60B22034">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp"
+                            android:gravity="center_vertical">
+
+                            <!-- Scroll horizontal que permite que el texto mida todo su largo -->
+                            <HorizontalScrollView
+                                android:id="@+id/bannerScroll"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:scrollbars="none">
+
+                                <TextView
+                                    android:id="@+id/bannerTextView"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:singleLine="true"
+                                    android:maxLines="1"
+                                    android:ellipsize="none"
+                                    android:text="Bienvenido a WineTrack • Aquí verás tips enológicos, novedades y estadísticas de tu bodega personal."
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="13sp" />
+                            </HorizontalScrollView>
+
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+
+
+
+                    <!-- Tarjetas de resumen: Mi Bodega / Listos para beber -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -153,6 +200,7 @@
                         </androidx.cardview.widget.CardView>
                     </LinearLayout>
 
+                    <!-- Botones principales: Escanear / Ver Bodega -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -216,6 +264,7 @@
                         </androidx.cardview.widget.CardView>
                     </LinearLayout>
 
+                    <!-- Gráfico de torta: distribución por variedad -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -246,6 +295,8 @@
                             android:layout_height="match_parent"
                             android:padding="16dp"/>
                     </androidx.cardview.widget.CardView>
+
+                    <!-- Gráfico de barras: histórico de botellas -->
                     <TextView
                         android:id="@+id/txtHistoryTitle"
                         android:layout_width="wrap_content"
@@ -271,9 +322,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:padding="16dp" />
-
                     </androidx.cardview.widget.CardView>
 
+                    <!-- Gráfico de línea: evolución del valor -->
                     <TextView
                         android:id="@+id/txtValueHistoryTitle"
                         android:layout_width="wrap_content"
@@ -301,6 +352,7 @@
                             android:padding="16dp" />
                     </androidx.cardview.widget.CardView>
 
+                    <!-- Valor total de la bodega -->
                     <TextView
                         android:id="@+id/txtTotalCellarValue"
                         android:layout_width="wrap_content"
@@ -311,9 +363,6 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginBottom="16dp"
                         android:textColor="#1E88E5" />
-
-
-
 
                 </LinearLayout>
             </LinearLayout>

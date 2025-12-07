@@ -48,6 +48,8 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import android.animation.ValueAnimator;
+import android.view.animation.LinearInterpolator;
 
 import android.graphics.Color;
 
@@ -76,7 +78,13 @@ public class HomeActivity extends AppCompatActivity {
     private PieChart pieChart;
     private BarChart barChart;
     private LineChart valueLineChart;
-
+    private TextView bannerTextView;
+    private ValueAnimator bannerAnimator;
+    // Rotación de mensajes del banner
+    private final List<String> bannerMessages = new ArrayList<>();
+    private int currentBannerIndex = 0;
+    private static final long BANNER_CYCLE_MS = 20000; // debe calzar con la duración de la animación
+    private final android.os.Handler bannerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     // SwipeRefresh
     private SwipeRefreshLayout swipeRefreshLayout;
 
@@ -109,6 +117,7 @@ public class HomeActivity extends AppCompatActivity {
 
         // Cargar datos por primera vez
         loadCollectionStats();
+
     }
 
     @Override
@@ -118,6 +127,8 @@ public class HomeActivity extends AppCompatActivity {
             loadCollectionStats();
         }
     }
+
+
 
     private void initializeViews() {
         drawerLayout = findViewById(R.id.drawerLayout);
@@ -140,7 +151,106 @@ public class HomeActivity extends AppCompatActivity {
         valueLineChart = findViewById(R.id.valueLineChart);             // 👈 IMPORTANTE
 
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+        // 🔹 Banner
+        bannerTextView = findViewById(R.id.bannerTextView);
+
     }
+
+    private void startBannerAnimationSingleCycle() {
+        if (bannerTextView == null) return;
+
+        bannerTextView.post(() -> {
+            View parent = (View) bannerTextView.getParent();
+            if (parent == null) return;
+
+            float parentWidth = parent.getWidth();
+            float textWidth = bannerTextView.getWidth();
+
+            if (parentWidth == 0 || textWidth == 0) return;
+
+            // Cancelar animación previa
+            if (bannerAnimator != null) {
+                bannerAnimator.cancel();
+            }
+
+            // El texto parte justo fuera del borde derecho
+            bannerTextView.setTranslationX(parentWidth);
+
+            bannerAnimator = ValueAnimator.ofFloat(parentWidth, -textWidth);
+            bannerAnimator.setDuration(BANNER_CYCLE_MS); // mismo valor que la constante
+            bannerAnimator.setInterpolator(new LinearInterpolator());
+            bannerAnimator.setRepeatCount(0); // SOLO un ciclo
+
+            bannerAnimator.addUpdateListener(animation -> {
+                float value = (float) animation.getAnimatedValue();
+                bannerTextView.setTranslationX(value);
+            });
+
+            bannerAnimator.start();
+        });
+    }
+
+    private void startBannerRotation() {
+        if (bannerTextView == null || bannerMessages.isEmpty()) return;
+
+        // Limpiar cualquier ciclo anterior
+        bannerHandler.removeCallbacksAndMessages(null);
+        currentBannerIndex = 0;
+
+        Runnable rotationRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (bannerMessages.isEmpty() || bannerTextView == null) return;
+
+                String msg = bannerMessages.get(currentBannerIndex);
+                currentBannerIndex = (currentBannerIndex + 1) % bannerMessages.size();
+
+                bannerTextView.setText(msg);
+                startBannerAnimationSingleCycle();
+
+                // programar siguiente mensaje
+                bannerHandler.postDelayed(this, BANNER_CYCLE_MS);
+            }
+        };
+
+        // Lanzar de inmediato el primer mensaje
+        bannerHandler.post(rotationRunnable);
+    }
+
+
+    private void updateBannerMessage(int totalWines, double totalCellarValue) {
+        bannerMessages.clear();
+
+        // Mensaje principal dinámico según la bodega
+        if (totalWines > 0) {
+            String formattedValue = formatCurrency(totalCellarValue);
+            bannerMessages.add(
+                    "Tu bodega tiene " + totalWines + " botellas registradas • Valor estimado: " + formattedValue + "."
+            );
+        } else {
+            bannerMessages.add("WineTrack • Comienza registrando tus primeras botellas y organiza tu bodega digital.");
+        }
+
+        // Mensajes estáticos / tips enológicos
+        bannerMessages.add("Dato SAG 2025: la producción total de vinos fue de 838,6 millones de litros, cerca de un 10% menos que el 2024.");
+        bannerMessages.add("En 2025, el 82,5% del vino producido en Chile fue con denominación de origen, según SAG.");
+        bannerMessages.add("Solo el 1,2% del vino producido en Chile el 2025 provino de uvas de mesa, de acuerdo al SAG.");
+        bannerMessages.add("Maule concentra cerca del 47,4% de todo el vino producido en Chile en 2025, liderando a nivel nacional.");
+        bannerMessages.add("Las regiones de Maule, O’Higgins y Coquimbo suman el 88,5% de la producción de vino chileno 2025.");
+        bannerMessages.add("En 2025, el Cabernet Sauvignon representó alrededor del 28% de los vinos con denominación de origen en Chile.");
+        bannerMessages.add("Sauvignon Blanc y Chardonnay suman más de un 27% de los vinos con D.O. producidos en Chile el 2025.");
+        bannerMessages.add("Entre 2024 y 2025, los vinos con D.O. bajaron un 14%, pero los vinos sin D.O. crecieron un 17,1%, según el SAG.");
+        bannerMessages.add("La producción de vinos para pisco creció cerca de un 18% en 2025 respecto de 2024, de acuerdo al SAG.");
+        bannerMessages.add("Desde 2012 a 2025, la producción de vino en Chile ha mostrado ciclos de alzas y bajas, pero se mantiene en niveles altos.");
+
+
+
+        // Iniciar / reiniciar la rotación de mensajes
+        startBannerRotation();
+    }
+
+
+
 
     private void setupUserInfo() {
         if (user != null) {
@@ -278,6 +388,8 @@ public class HomeActivity extends AppCompatActivity {
                 updateBarChart(monthCounts);
                 updateValueLineChart(monthValues);
                 updateTotalCellarValue(totalCellarValue);
+                // 🔹 Actualizar banner con info de la bodega
+                updateBannerMessage(totalWines, totalCellarValue);
 
                 if (!optimalWineNames.isEmpty()) {
                     sendOptimalConsumptionNotification(optimalWineNames);
