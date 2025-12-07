@@ -83,7 +83,7 @@ public class HomeActivity extends AppCompatActivity {
     // Rotación de mensajes del banner
     private final List<String> bannerMessages = new ArrayList<>();
     private int currentBannerIndex = 0;
-    private static final long BANNER_CYCLE_MS = 20000; // debe calzar con la duración de la animación
+    private static final long BANNER_CYCLE_MS = 15000; // debe calzar con la duración de la animación
     private final android.os.Handler bannerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     // SwipeRefresh
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -222,10 +222,15 @@ public class HomeActivity extends AppCompatActivity {
         bannerMessages.clear();
 
         // Mensaje principal dinámico según la bodega
-        if (totalWines > 0) {
+        if (totalWines >= 2) {
             String formattedValue = formatCurrency(totalCellarValue);
             bannerMessages.add(
                     "Tu bodega tiene " + totalWines + " botellas registradas • Valor estimado: " + formattedValue + "."
+            );
+        } else if (totalWines == 1) {
+            String formattedValue = formatCurrency(totalCellarValue);
+            bannerMessages.add(
+                    "Tu bodega tiene " + totalWines + " botella registrada • Valor estimado: " + formattedValue + "."
             );
         } else {
             bannerMessages.add("WineTrack • Comienza registrando tus primeras botellas y organiza tu bodega digital.");
