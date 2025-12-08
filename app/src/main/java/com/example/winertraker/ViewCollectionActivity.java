@@ -128,6 +128,11 @@ public class ViewCollectionActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        // 🔧 Optimizar rendimiento del scroll
+        recyclerView.setHasFixedSize(true);        // si los items no cambian de tamaño
+        recyclerView.setItemViewCacheSize(20);     // mantiene vistas ya infladas en memoria
+        // recyclerView.setItemAnimator(null);     // opcional, si notas tirones al borrar/editar
+
         collectionList = new ArrayList<>();
         adapter = new CollectionAdapter(collectionList, userId);
         recyclerView.setAdapter(adapter);
@@ -269,10 +274,16 @@ public class ViewCollectionActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             CollectionItem item = collectionList.get(position);
 
+            // Siempre reseteamos la imagen con un placeholder básico
+            holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+
             if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
                 Picasso.get()
                         .load(item.imageUrl)
                         .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_report_image)
+                        .fit()          // ⚡ se ajusta al tamaño real del ImageView (100x140dp)
+                        .centerCrop()   // mantiene proporción, recortando si es necesario
                         .into(holder.imageView);
             }
 
@@ -281,6 +292,8 @@ public class ViewCollectionActivity extends AppCompatActivity {
             holder.vintageTextView.setText("Año: " + item.vintage);
             holder.originTextView.setText("Origen: " + item.origin);
             holder.percentageTextView.setText("Alcohol: " + item.percentage);
+
+            // --- Lo demás tal como lo tienes ---
 
             holder.deleteButton.setOnClickListener(v -> {
                 new AlertDialog.Builder(holder.itemView.getContext())
@@ -313,6 +326,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
                     showEditDialog(holder.itemView.getContext(), item, position)
             );
         }
+
 
         private void showEditDialog(Context context, CollectionItem item, int position) {
 

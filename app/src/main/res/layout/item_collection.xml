@@ -30,7 +30,9 @@
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@android:drawable/ic_menu_gallery"
+                android:adjustViewBounds="true"
                 tools:ignore="ContentDescription" />
+
         </androidx.cardview.widget.CardView>
 
         <LinearLayout
