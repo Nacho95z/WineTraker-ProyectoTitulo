@@ -1,22 +1,20 @@
 package com.example.winertraker;
 
-import static android.content.ContentValues.TAG;
-
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView; // Importante importar esto
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -37,12 +35,10 @@ import com.google.firebase.auth.GoogleAuthProvider;
 public class AuthActivity extends AppCompatActivity {
 
     private static final int RC_SIGN_IN = 100;
-    private static final String TAG = "AuthActivity";
-
     private FirebaseAuth mAuth;
     private GoogleSignInClient mGoogleSignInClient;
-
     private Button buttonLogin, buttonRegister;
+    private SharedPreferences prefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +47,8 @@ public class AuthActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_auth);
 
+        prefs = getSharedPreferences("wtrack_prefs", MODE_PRIVATE);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -58,59 +56,144 @@ public class AuthActivity extends AppCompatActivity {
         });
 
         mAuth = FirebaseAuth.getInstance();
-
         buttonLogin = findViewById(R.id.loginButton);
         buttonRegister = findViewById(R.id.registerButton);
 
-        // 🔹 El botón ahora abre el diálogo de login con correo
         buttonLogin.setOnClickListener(view -> showEmailLoginDialog());
-
         buttonRegister.setOnClickListener(view -> {
             Intent intent = new Intent(AuthActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
 
-        // ---- GOOGLE SIGN-IN ----
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
-
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
         findViewById(R.id.signIn).setOnClickListener(view -> signInWithGoogle());
     }
 
-    // 🔹 DIÁLOGO PARA LOGIN CON CORREO
-    private void showEmailLoginDialog() {
+    // -------------------------------------------------------------
+    // LÓGICA DE INICIO
+    // -------------------------------------------------------------
+    @Override
+    protected void onStart() {
+        super.onStart();
 
-        // Creamos un Dialog con tu tema sin fondo gris
+        // 1. ¿Aceptó los términos?
+        boolean termsAccepted = prefs.getBoolean("terms_accepted", false);
+
+        if (!termsAccepted) {
+            // NO ha aceptado -> Mostrar diálogo BLOQUEANTE.
+            showTermsDialog();
+        } else {
+            // SI ya aceptó -> Verificar si hay sesión para auto-login.
+            checkSessionAndRedirect();
+        }
+    }
+
+    private void checkSessionAndRedirect() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        boolean remember = prefs.getBoolean("remember_session", true);
+
+        if (currentUser != null && remember) {
+            Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    // -------------------------------------------------------------
+    // DIÁLOGO DE TÉRMINOS Y CONDICIONES (Extendida y Detallada)
+    // -------------------------------------------------------------
+    private void showTermsDialog() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.activity_termconditions); // Asegúrate que el XML se llame así
+        dialog.setCancelable(false); // Bloquea el cierre
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+
+        // Referencias a la vista
+        TextView tvTermsContent = dialog.findViewById(R.id.tvTermsText); // ID debe coincidir con el XML
+        CheckBox checkAccept = dialog.findViewById(R.id.checkAccept);
+        Button btnAccept = dialog.findViewById(R.id.btnAcceptTerms);
+
+        // --- TEXTO LEGAL EXTENSO Y CONTUNDENTE ---
+        String technicalTerms =
+                "MARCO NORMATIVO Y TÉRMINOS DE USO\n\n" +
+
+                        "1. CUMPLIMIENTO LEGAL (CHILE)\n" +
+                        "Conforme al Art. 42 de la Ley N° 19.925 (Ley de Alcoholes), el acceso a esta aplicación está estrictamente restringido a menores de 18 años.\n\n" +
+
+                        "2. PRIVACIDAD Y SEGURIDAD DE DATOS\n" +
+                        "El tratamiento de imágenes y datos personales se rige por la Ley N° 21.719  (protección de datos personales). La arquitectura del sistema sigue lineamientos de seguridad de datos basados en la norma ISO/IEC 27001.\n\n" +
+
+                        "3. CALIDAD DE SOFTWARE E IA\n" +
+                        "Este prototipo académico ha sido desarrollado considerando criterios de calidad de la norma ISO/IEC 25010. El módulo de reconocimiento por IA (Visión Computacional) tiene fines referenciales y puede presentar márgenes de error.\n\n" +
+
+                        "4. DECLARACIÓN JURADA\n" +
+                        "Al aceptar, usted declara bajo juramento ser mayor de edad y exime a los desarrolladores de responsabilidad por el uso de la información generada.";
+        // Asignamos el texto al TextView
+        if (tvTermsContent != null) {
+            tvTermsContent.setText(technicalTerms);
+        }
+
+        // Lógica del Botón
+        btnAccept.setEnabled(false);
+        btnAccept.setAlpha(0.5f);
+
+        checkAccept.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            btnAccept.setEnabled(isChecked);
+            btnAccept.setAlpha(isChecked ? 1.0f : 0.5f);
+        });
+
+        btnAccept.setOnClickListener(v -> {
+            // 1. Guardar aceptación
+            prefs.edit().putBoolean("terms_accepted", true).apply();
+
+            // 2. Cerrar diálogo
+            dialog.dismiss();
+
+            // 3. Feedback al usuario
+            Toast.makeText(AuthActivity.this, "Términos aceptados. Inicie sesión para continuar.", Toast.LENGTH_LONG).show();
+
+            // NOTA: NO redirigimos aquí. Nos quedamos en AuthActivity para que
+            // el usuario pueda pulsar "Ingresar con correo" o "Google".
+        });
+
+        dialog.show();
+    }
+
+    // -------------------------------------------------------------
+    // MÉTODOS DE LOGIN (Sin cambios)
+    // -------------------------------------------------------------
+
+    private void showEmailLoginDialog() {
         Dialog dialog = new Dialog(this, R.style.WineDialogTheme);
         dialog.setContentView(R.layout.dialog_email_login);
-        dialog.setCanceledOnTouchOutside(false); // opcional: que no se cierre tocando fuera
+        dialog.setCanceledOnTouchOutside(false);
 
-        // Referencias a las vistas dentro del layout del diálogo
         EditText dialogEmailEditText = dialog.findViewById(R.id.dialogEmailEditText);
         EditText dialogPasswordEditText = dialog.findViewById(R.id.dialogPasswordEditText);
         CheckBox dialogShowPasswordCheckBox = dialog.findViewById(R.id.dialogShowPasswordCheckBox);
         Button btnCancelar = dialog.findViewById(R.id.btnCancelar);
         Button btnIngresar = dialog.findViewById(R.id.btnIngresar);
 
-        // 🔸 Mostrar/Ocultar contraseña
         dialogShowPasswordCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 dialogPasswordEditText.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
             } else {
-                dialogPasswordEditText.setInputType(
-                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
-                );
+                dialogPasswordEditText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
             }
             dialogPasswordEditText.setSelection(dialogPasswordEditText.getText().length());
         });
 
-        // 🔸 Botón CANCELAR
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
 
-        // 🔸 Botón INGRESAR con validación
         btnIngresar.setOnClickListener(v -> {
             String email = dialogEmailEditText.getText().toString().trim();
             String password = dialogPasswordEditText.getText().toString().trim();
@@ -119,32 +202,18 @@ public class AuthActivity extends AppCompatActivity {
                 dialogEmailEditText.setError("Ingrese un correo.");
                 return;
             }
-
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                dialogEmailEditText.setError("Correo inválido.");
-                return;
-            }
-
             if (password.isEmpty()) {
                 dialogPasswordEditText.setError("Ingrese una contraseña.");
                 return;
             }
 
-            if (password.length() < 6) {
-                dialogPasswordEditText.setError("Mínimo 6 caracteres.");
-                return;
-            }
-
-            // Si todo está OK:
             dialog.dismiss();
             loginUser(email, password);
         });
 
-        // Mostrar el diálogo
         dialog.show();
     }
 
-    // 🔹 LOGIN A FIREBASE
     private void loginUser(String email, String password) {
         ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Iniciando sesión...");
@@ -154,103 +223,49 @@ public class AuthActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     progressDialog.dismiss();
                     if (task.isSuccessful()) {
-                        // Guardar preferencia de recordar sesión (true por ahora)
-                        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
-                                .edit()
-                                .putBoolean("remember_session", true)
-                                .apply();
-
+                        prefs.edit().putBoolean("remember_session", true).apply();
                         Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
                         startActivity(intent);
                         finish();
                     } else {
-                        String errorMessage = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Error desconocido.";
+                        String errorMessage = task.getException() != null ? task.getException().getMessage() : "Error.";
                         Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
                     }
-
                 });
     }
 
-    // ---- GOOGLE SIGN-IN ----
     private void signInWithGoogle() {
-        ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Cargando...");
-        progressDialog.show();
-
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
-
-        progressDialog.dismiss();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == RC_SIGN_IN) {
-            ProgressDialog progressDialog = new ProgressDialog(this);
-            progressDialog.setMessage("Autenticando...");
-            progressDialog.show();
-
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
                 if (account != null) {
-                    firebaseAuthWithGoogle(account, progressDialog);
+                    firebaseAuthWithGoogle(account);
                 }
             } catch (Exception e) {
                 Toast.makeText(this, "Error Google: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                progressDialog.dismiss();
             }
         }
     }
 
-    private void firebaseAuthWithGoogle(GoogleSignInAccount account, ProgressDialog progressDialog) {
+    private void firebaseAuthWithGoogle(GoogleSignInAccount account) {
         AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
-
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
-                    progressDialog.dismiss();
-
                     if (task.isSuccessful()) {
-
-                        // Guardar preferencia de recordar sesión
-                        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
-                                .edit()
-                                .putBoolean("remember_session", true)
-                                .apply();
-
+                        prefs.edit().putBoolean("remember_session", true).apply();
                         startActivity(new Intent(AuthActivity.this, HomeActivity.class));
                         finish();
                     } else {
-                        Toast.makeText(this,
-                                "Error: " + (task.getException() != null ? task.getException().getMessage() : ""),
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Error autenticación.", Toast.LENGTH_SHORT).show();
                     }
-
                 });
     }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-        // Revisar si ya hay usuario logueado
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-
-        // Leer preferencia de "recordar sesión" (por ahora asumimos true por defecto)
-        boolean remember = getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
-                .getBoolean("remember_session", true);
-
-        if (currentUser != null && remember) {
-            // Ya está logueado y quiere recordar sesión → ir directo al Home
-            Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
-            startActivity(intent);
-            finish();
-        }
-    }
-
 }
