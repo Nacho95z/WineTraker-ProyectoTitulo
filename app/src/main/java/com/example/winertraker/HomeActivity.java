@@ -1,14 +1,22 @@
 package com.example.winertraker;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,8 +59,6 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import android.animation.ValueAnimator;
 import android.view.animation.LinearInterpolator;
 
-import android.graphics.Color;
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -80,11 +86,13 @@ public class HomeActivity extends AppCompatActivity {
     private LineChart valueLineChart;
     private TextView bannerTextView;
     private ValueAnimator bannerAnimator;
+
     // Rotación de mensajes del banner
     private final List<String> bannerMessages = new ArrayList<>();
     private int currentBannerIndex = 0;
-    private static final long BANNER_CYCLE_MS = 15000; // debe calzar con la duración de la animación
+    private static final long BANNER_CYCLE_MS = 15000;
     private final android.os.Handler bannerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
     // SwipeRefresh
     private SwipeRefreshLayout swipeRefreshLayout;
 
@@ -118,6 +126,8 @@ public class HomeActivity extends AppCompatActivity {
         // Cargar datos por primera vez
         loadCollectionStats();
 
+        // 🆕 NUEVO: Verificar términos y condiciones al iniciar
+        checkTermsAndConditions();
     }
 
     @Override
@@ -128,6 +138,64 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
+    // -------------------------------------------------------------
+    // ⚖️ LÓGICA DE TÉRMINOS Y CONDICIONES (NUEVO)
+    // -------------------------------------------------------------
+
+    private void checkTermsAndConditions() {
+        SharedPreferences prefs = getSharedPreferences("wtrack_prefs", MODE_PRIVATE);
+        boolean termsAccepted = prefs.getBoolean("terms_accepted", false);
+
+        if (!termsAccepted) {
+            showTermsDialog();
+        }
+    }
+
+    private void showTermsDialog() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.activity_termconditions); // Asegúrate de haber creado este layout
+        dialog.setCancelable(false); // Evita cerrar tocando fuera o atrás
+
+        // Configurar fondo transparente para ver bordes redondeados
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT
+            );
+        }
+
+        CheckBox checkAccept = dialog.findViewById(R.id.checkAccept);
+        Button btnAccept = dialog.findViewById(R.id.btnAcceptTerms);
+
+        // Botón deshabilitado por defecto
+        btnAccept.setEnabled(false);
+        btnAccept.setAlpha(0.5f);
+
+        // Activar botón solo si el checkbox está marcado
+        checkAccept.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            btnAccept.setEnabled(isChecked);
+            btnAccept.setAlpha(isChecked ? 1.0f : 0.5f);
+        });
+
+        btnAccept.setOnClickListener(v -> {
+            // Guardar aceptación
+            getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("terms_accepted", true)
+                    .apply();
+
+            dialog.dismiss();
+            Toast.makeText(HomeActivity.this, "¡Bienvenido a WineTrack!", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.show();
+    }
+
+    // -------------------------------------------------------------
+    // FIN LÓGICA TÉRMINOS Y CONDICIONES
+    // -------------------------------------------------------------
 
 
     private void initializeViews() {
@@ -143,17 +211,15 @@ public class HomeActivity extends AppCompatActivity {
         // Dashboard
         txtTotalWines = findViewById(R.id.txtTotalWines);
         txtOptimalWines = findViewById(R.id.txtOptimalWines);
-        txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue);   // 👈 IMPORTANTE
+        txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue);
         cardScan = findViewById(R.id.cardScan);
         cardCollection = findViewById(R.id.cardCollection);
         pieChart = findViewById(R.id.pieChart);
         barChart = findViewById(R.id.barChart);
-        valueLineChart = findViewById(R.id.valueLineChart);             // 👈 IMPORTANTE
+        valueLineChart = findViewById(R.id.valueLineChart);
 
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-        // 🔹 Banner
         bannerTextView = findViewById(R.id.bannerTextView);
-
     }
 
     private void startBannerAnimationSingleCycle() {
@@ -177,7 +243,7 @@ public class HomeActivity extends AppCompatActivity {
             bannerTextView.setTranslationX(parentWidth);
 
             bannerAnimator = ValueAnimator.ofFloat(parentWidth, -textWidth);
-            bannerAnimator.setDuration(BANNER_CYCLE_MS); // mismo valor que la constante
+            bannerAnimator.setDuration(BANNER_CYCLE_MS);
             bannerAnimator.setInterpolator(new LinearInterpolator());
             bannerAnimator.setRepeatCount(0); // SOLO un ciclo
 
@@ -248,13 +314,9 @@ public class HomeActivity extends AppCompatActivity {
         bannerMessages.add("La producción de vinos para pisco creció cerca de un 18% en 2025 respecto de 2024, de acuerdo al SAG.");
         bannerMessages.add("Desde 2012 a 2025, la producción de vino en Chile ha mostrado ciclos de alzas y bajas, pero se mantiene en niveles altos.");
 
-
-
         // Iniciar / reiniciar la rotación de mensajes
         startBannerRotation();
     }
-
-
 
 
     private void setupUserInfo() {
@@ -480,10 +542,8 @@ public class HomeActivity extends AppCompatActivity {
         dataSet.setDrawHorizontalHighlightIndicator(false);
         dataSet.setDrawVerticalHighlightIndicator(false);
 
-        // 🔴 AQUÍ ESTABA LO QUE FALTABA 🔴
         LineData lineData = new LineData(dataSet);
         valueLineChart.setData(lineData);
-        // ---------------------------------
 
         // EJE X
         XAxis xAxis = valueLineChart.getXAxis();
