@@ -33,6 +33,24 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.squareup.picasso.Picasso;
+import android.widget.AdapterView;
+
+
+// Filtros dinámicos
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
+
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +72,16 @@ public class ViewCollectionActivity extends AppCompatActivity {
     // 🔍 Overlay y zoom
     private View fullscreenOverlay;        // ✅ overlay negro
     private PhotoView fullscreenImage;     // ✅ imagen con pinch-to-zoom
+
+    // Filtros dinámicos
+    private EditText editFilterValue;
+
+    private final List<CollectionItem> fullCollectionList = new ArrayList<>(); // lista completa sin filtrar
+    private final Set<String> availableFilterKeys = new LinkedHashSet<>();     // set para construir dinámicamente
+    // Filtros dinámicos
+    private Spinner spinnerField;
+    private final List<String> filterFieldKeys = new ArrayList<>();            // keys reales (wineName, variety, etc.)
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -151,6 +179,45 @@ public class ViewCollectionActivity extends AppCompatActivity {
             fullscreenImage.setOnViewTapListener((view, x, y) -> closeFullImage());
         }
 
+        // 🔎 Barra de filtros
+
+        spinnerField = findViewById(R.id.spinnerField);
+        editFilterValue = findViewById(R.id.editFilterValue);
+
+        // Cuando el usuario cambia el campo en el spinner, volvemos a aplicar el filtro
+        spinnerField.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String currentText = editFilterValue.getText() != null
+                        ? editFilterValue.getText().toString().trim()
+                        : "";
+                applyFilter(currentText);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Si no hay nada seleccionado, mostramos todo
+                applyFilter("");
+            }
+        });
+
+
+        // Cuando el usuario escribe, aplicamos filtro al vuelo
+        editFilterValue.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                applyFilter(s.toString().trim());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) { }
+        });
+
+
+
 
         collectionList = new ArrayList<>();
 
@@ -175,24 +242,67 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 .document(userId)
                 .collection("wineDescriptions");
 
+        availableFilterKeys.clear();
+        fullCollectionList.clear();
+        collectionList.clear();
+
         userCollection.get()
                 .addOnCompleteListener(task -> {
                     progressDialog.dismiss();
                     if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
-                        collectionList.clear();
+
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String documentId = document.getId();
+
+                            // 👇 Usamos getData SOLO para filtros (allFields)
+                            Map<String, Object> data = document.getData();
+                            if (data == null) {
+                                data = new HashMap<>();
+                            }
+
+                            // 1) Leemos como antes
                             String imageUrl = document.getString("imageUrl");
-                            String name = document.getString("wineName");
-                            String variety = document.getString("variety");
-                            String vintage = document.getString("vintage");
-                            String origin = document.getString("origin");
+
+                            // 2) Por si Firestore lo guarda raro o con otro tipo, intentamos sacarlo igual
+                            if (imageUrl == null || imageUrl.isEmpty()) {
+                                Object rawUrl = data.get("imageUrl");
+                                if (rawUrl != null) {
+                                    imageUrl = rawUrl.toString();
+                                }
+                            }
+
+                            // 👀 Log de depuración para ver qué viene
+                            android.util.Log.d("ViewCollection", "Doc " + documentId + " imageUrl = " + imageUrl);
+
+                            String name       = document.getString("wineName");
+                            String variety    = document.getString("variety");
+                            String vintage    = document.getString("vintage");
+                            String origin     = document.getString("origin");
                             String percentage = document.getString("percentage");
+
                             boolean isOptimal = isOptimalForConsumption(variety, vintage);
-                            collectionList.add(new CollectionItem(
-                                    documentId, imageUrl, name, variety, vintage, origin, percentage, isOptimal
-                            ));
+
+                            // Crear item con todos los campos
+                            CollectionItem item = new CollectionItem(
+                                    documentId, imageUrl, name, variety, vintage, origin, percentage, isOptimal, data
+                            );
+
+                            fullCollectionList.add(item);
+                            collectionList.add(item);
+
+                            // Detectar campos filtrables dinámicamente
+                            for (String key : data.keySet()) {
+                                if (shouldIncludeFieldForFilter(key)) {
+                                    availableFilterKeys.add(key);
+                                }
+                            }
                         }
+
+
+
+                        // ⬅️ IMPORTANTE: llenar el Spinner una vez detectados los campos
+                        setupFilterSpinner();
+
                         adapter.notifyDataSetChanged();
                     } else {
                         Toast.makeText(this, "No se encontraron vinos en la colección", Toast.LENGTH_SHORT).show();
@@ -202,7 +312,10 @@ public class ViewCollectionActivity extends AppCompatActivity {
                     progressDialog.dismiss();
                     Toast.makeText(this, "Error al cargar la colección", Toast.LENGTH_SHORT).show();
                 });
+
     }
+
+
 
     private boolean isOptimalForConsumption(String variety, String vintageStr) {
         if (variety == null || vintageStr == null) return false;
@@ -236,18 +349,168 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
     }
 
+    // Omitimos campos que no queremos usar como filtro
+    private boolean shouldIncludeFieldForFilter(String key) {
+        if (key == null) return false;
+        switch (key) {
+            case "rawText":
+            case "comment":
+            case "imageUrl":
+                return false;
+            default:
+                return true;
+        }
+    }
+
+
+    private void setupFilterSpinner() {
+        filterFieldKeys.clear();
+
+        if (spinnerField == null) return;
+        if (availableFilterKeys.isEmpty()) return;
+
+        List<String> labels = new ArrayList<>();
+
+        // Posición 0 = "Todos"
+        filterFieldKeys.add(null);       // sin key asociada
+        labels.add("Todos");
+
+        // Luego, cada campo real
+        for (String key : availableFilterKeys) {
+            filterFieldKeys.add(key);
+            labels.add(getDisplayNameForField(key));
+        }
+
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                labels
+        );
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerField.setAdapter(spinnerAdapter);
+    }
+
+
+    // Nombre amigable para el spinner
+    private String getDisplayNameForField(String key) {
+        if (key == null) return "";
+        switch (key) {
+            case "wineName": return "Nombre";
+            case "variety": return "Variedad";
+            case "vintage": return "Cosecha";
+            case "origin": return "Origen / Región";
+            case "percentage": return "Grado alcohólico";
+            case "category": return "Categoría";
+            default:
+                // Capitaliza primera letra por defecto (para campos nuevos)
+                return key.substring(0,1).toUpperCase() + key.substring(1);
+        }
+    }
+
+
+
+    private void applyFilter(String value) {
+        value = (value != null) ? value.trim() : "";
+        collectionList.clear();
+
+        // Si no hay texto, mostramos todo
+        if (value.isEmpty()) {
+            collectionList.addAll(fullCollectionList);
+            adapter.notifyDataSetChanged();
+            return;
+        }
+
+        if (availableFilterKeys.isEmpty()) {
+            // Si por algún motivo no tenemos campos filtrables, mostramos todo
+            collectionList.addAll(fullCollectionList);
+            adapter.notifyDataSetChanged();
+            return;
+        }
+
+        String valueLower = value.toLowerCase();
+
+        int pos = (spinnerField != null)
+                ? spinnerField.getSelectedItemPosition()
+                : Spinner.INVALID_POSITION;
+
+        // 🟣 Caso 1: "Todos" o selección inválida → búsqueda global en todos los campos
+        if (pos == Spinner.INVALID_POSITION || pos == 0 || filterFieldKeys.isEmpty()) {
+
+            for (CollectionItem item : fullCollectionList) {
+                if (item.allFields == null) continue;
+
+                boolean matches = false;
+
+                for (String key : availableFilterKeys) {
+                    Object raw = item.allFields.get(key);
+                    if (raw != null) {
+                        String text = raw.toString().toLowerCase();
+                        if (text.contains(valueLower)) {
+                            matches = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (matches) {
+                    collectionList.add(item);
+                }
+            }
+        } else {
+            // 🟢 Caso 2: un campo específico elegido en el spinner
+            String selectedKey = filterFieldKeys.get(pos); // posición 0 es "Todos", así que aquí siempre hay key
+
+            for (CollectionItem item : fullCollectionList) {
+                if (item.allFields == null) continue;
+
+                Object raw = item.allFields.get(selectedKey);
+                if (raw == null) continue;
+
+                String text = raw.toString();
+
+                // 🔢 Si es un campo numérico (vintage o percentage), comparamos por número "limpio"
+                if ("percentage".equals(selectedKey) || "vintage".equals(selectedKey)) {
+                    // Dejamos solo dígitos tanto del valor almacenado como del filtro
+                    String cleanField = text.replaceAll("[^0-9]", "");
+                    String cleanFilter = value.replaceAll("[^0-9]", "");
+
+                    if (!cleanFilter.isEmpty() && cleanField.equals(cleanFilter)) {
+                        collectionList.add(item);
+                    }
+                } else {
+                    // 🔤 Para otros campos, seguimos usando contains "normal"
+                    String textLower = text.toLowerCase();
+                    if (textLower.contains(valueLower)) {
+                        collectionList.add(item);
+                    }
+                }
+            }
+        }
+
+
+        adapter.notifyDataSetChanged();
+    }
+
+
+
+
     // 🔍 Mostrar imagen en grande con fade-in
     private void showFullImage(String imageUrl) {
-        if (imageUrl == null || imageUrl.isEmpty() || fullscreenOverlay == null || fullscreenImage == null) {
+        if (imageUrl == null || imageUrl.isEmpty()
+                || fullscreenOverlay == null || fullscreenImage == null) {
             return;
         }
 
         fullscreenOverlay.setVisibility(View.VISIBLE);
         fullscreenOverlay.setAlpha(0f);
 
-        // Carga la imagen (Picasso la toma desde cache si ya se usó antes)
-        Picasso.get()
+        // Carga la imagen en el PhotoView a pantalla completa
+        PicassoClient.getInstance(fullscreenImage.getContext())
                 .load(imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_report_image)
+                .fit()
+                .centerInside()   // o centerCrop, como prefieras
                 .into(fullscreenImage);
 
         fullscreenOverlay.animate()
@@ -255,6 +518,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 .setDuration(200)
                 .start();
     }
+
 
     private void closeFullImage() {
         if (fullscreenOverlay == null || fullscreenOverlay.getVisibility() != View.VISIBLE) return;
@@ -300,9 +564,12 @@ public class ViewCollectionActivity extends AppCompatActivity {
         String percentage;
         boolean isOptimal;
 
+        Map<String, Object> allFields;  // 🔎 todos los campos del documento
+
         CollectionItem(String documentId, String imageUrl, String name,
                        String variety, String vintage, String origin,
-                       String percentage, boolean isOptimal) {
+                       String percentage, boolean isOptimal,
+                       Map<String, Object> allFields) {
 
             this.documentId = documentId;
             this.imageUrl = imageUrl;
@@ -312,8 +579,10 @@ public class ViewCollectionActivity extends AppCompatActivity {
             this.origin = (origin != null) ? origin : "No disponible";
             this.percentage = (percentage != null) ? percentage : "No disponible";
             this.isOptimal = isOptimal;
+            this.allFields = (allFields != null) ? allFields : new HashMap<>();
         }
     }
+
 
     private static class CollectionAdapter extends RecyclerView.Adapter<CollectionAdapter.ViewHolder> {
 
@@ -348,7 +617,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
             holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
 
             if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
-                Picasso.get()
+                PicassoClient.getInstance(holder.imageView.getContext())
                         .load(item.imageUrl)
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_report_image)
@@ -356,6 +625,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .centerCrop()   // mantiene proporción, recortando si es necesario
                         .into(holder.imageView);
             }
+
 
             // 🔍 Click en miniatura → mostrar overlay con zoom
             holder.imageView.setOnClickListener(v -> {

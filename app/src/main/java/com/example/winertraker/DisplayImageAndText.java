@@ -38,6 +38,12 @@ import java.util.regex.Pattern;
 
 import pl.droidsonroids.gif.GifImageView;
 import com.google.firebase.Timestamp;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+
 
 public class DisplayImageAndText extends AppCompatActivity {
 
@@ -520,28 +526,92 @@ public class DisplayImageAndText extends AppCompatActivity {
     private void saveDataToFirebase(String wineName, String variety, String vintage,
                                     String origin, String percentage, String category,
                                     String comment, Double price) {
+
         if (imageUri == null) {
             Toast.makeText(this, "No hay imagen para guardar.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String uniqueFileName = System.currentTimeMillis() + ".jpg";
-
         StorageReference imageRef = storageRef.child("images/" + userId + "/" + uniqueFileName);
-        UploadTask uploadTask = imageRef.putFile(imageUri);
 
-        uploadTask.addOnSuccessListener(taskSnapshot -> {
-            imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                saveToFirestore(uri.toString(), wineName, variety, vintage, origin, percentage, category, comment, price);
+        try {
+            // 1️⃣ Leer la imagen original desde el Uri
+            InputStream inputStream = getContentResolver().openInputStream(imageUri);
+            Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
+            if (inputStream != null) inputStream.close();
+
+            if (originalBitmap == null) {
+                progressBar.setVisibility(View.GONE);
+                Snackbar.make(capturedImageView, "No se pudo leer la imagen para comprimirla.", Snackbar.LENGTH_LONG).show();
+                return;
+            }
+
+            // 2️⃣ Calcular escala para limitar a máx 1280 px (manteniendo proporción)
+            int maxSize = 1280; // si quieres aún menos peso puedes bajar a 1024
+            int width = originalBitmap.getWidth();
+            int height = originalBitmap.getHeight();
+
+            float scale = 1f;
+            if (width > height && width > maxSize) {
+                scale = (float) maxSize / width;
+            } else if (height >= width && height > maxSize) {
+                scale = (float) maxSize / height;
+            }
+
+            Bitmap scaledBitmap = originalBitmap;
+            if (scale < 1f) {
+                int newWidth = Math.round(width * scale);
+                int newHeight = Math.round(height * scale);
+                scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true);
+            }
+
+            // 3️⃣ Comprimir a JPEG calidad 70
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
+            byte[] imageData = baos.toByteArray();
+
+            // Liberar memoria
+            originalBitmap.recycle();
+            if (scaledBitmap != originalBitmap) {
+                scaledBitmap.recycle();
+            }
+
+            // 4️⃣ Subir los BYTES comprimidos a Firebase Storage
+            UploadTask uploadTask = imageRef.putBytes(imageData);
+
+            uploadTask.addOnSuccessListener(taskSnapshot -> {
+                imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    saveToFirestore(
+                            uri.toString(),
+                            wineName, variety, vintage, origin,
+                            percentage, category, comment, price
+                    );
+                }).addOnFailureListener(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    Snackbar.make(capturedImageView,
+                            "No se pudo obtener la URL de la imagen.",
+                            Snackbar.LENGTH_LONG
+                    ).show();
+                });
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
-                Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(capturedImageView,
+                        "Error al subir la imagen.",
+                        Snackbar.LENGTH_LONG
+                ).show();
             });
-        }).addOnFailureListener(e -> {
+
+        } catch (Exception e) {
+            e.printStackTrace();
             progressBar.setVisibility(View.GONE);
-            Snackbar.make(capturedImageView, "Error al subir la imagen.", Snackbar.LENGTH_LONG).show();
-        });
+            Snackbar.make(capturedImageView,
+                    "Error al procesar la imagen antes de subirla.",
+                    Snackbar.LENGTH_LONG
+            ).show();
+        }
     }
+
 
     private void saveToFirestore(String imageUrl, String wineName, String variety,
                                  String vintage, String origin, String percentage,

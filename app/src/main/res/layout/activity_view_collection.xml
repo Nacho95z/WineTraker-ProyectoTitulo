@@ -56,6 +56,49 @@
                 app:layout_constraintBottom_toBottomOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- Barra de filtros dinámica -->
+        <LinearLayout
+            android:id="@+id/filterBar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toBottomOf="@id/topBar"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <!-- Spinner: campo de filtro -->
+            <Spinner
+                android:textColor="#B22034"
+                app:cardBackgroundColor="#60B22034"
+                android:id="@+id/spinnerField"
+                android:layout_width="0dp"
+                android:background="#60B22034"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#B22034"
+
+                android:layout_weight="1" />
+
+            <!-- Texto de búsqueda -->
+            <EditText
+                android:id="@+id/editFilterValue"
+                android:background="#60B22034"
+                android:shadowColor="#60B22034"
+                android:textColor="#FF0000"
+                android:textColorHint="#B22034"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:layout_marginStart="8dp"
+                android:hint="Buscar en mi bodega..."
+                android:imeOptions="actionDone"
+                android:singleLine="true" />
+        </LinearLayout>
+
 
         <!-- Lista -->
         <androidx.recyclerview.widget.RecyclerView
@@ -64,10 +107,11 @@
             android:layout_height="0dp"
             android:paddingTop="8dp"
             android:clipToPadding="false"
-            app:layout_constraintTop_toBottomOf="@id/topBar"
+            app:layout_constraintTop_toBottomOf="@id/filterBar"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
+
 
         <!-- OVERLAY PARA IMAGEN A PANTALLA COMPLETA -->
         <FrameLayout
