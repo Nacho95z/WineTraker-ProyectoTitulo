@@ -8,24 +8,23 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AlertDialog;   // <-- CAMBIO AQUÍ
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.github.chrisbanes.photoview.PhotoView;       // ✅ IMPORT PARA ZOOM
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
@@ -51,6 +50,10 @@ public class ViewCollectionActivity extends AppCompatActivity {
     private FirebaseFirestore firestore;
     private FirebaseUser user;
     private String userId;
+
+    // 🔍 Overlay y zoom
+    private View fullscreenOverlay;        // ✅ overlay negro
+    private PhotoView fullscreenImage;     // ✅ imagen con pinch-to-zoom
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,8 +136,26 @@ public class ViewCollectionActivity extends AppCompatActivity {
         recyclerView.setItemViewCacheSize(20);     // mantiene vistas ya infladas en memoria
         // recyclerView.setItemAnimator(null);     // opcional, si notas tirones al borrar/editar
 
+        // 🔍 Overlay y PhotoView
+        fullscreenOverlay = findViewById(R.id.fullscreenOverlay);
+        fullscreenImage = findViewById(R.id.fullscreenImage);
+
+        // Cerrar al tocar el overlay (por si hay zona libre)
+        if (fullscreenOverlay != null) {
+            fullscreenOverlay.setOnClickListener(v -> closeFullImage());
+        }
+
+        // Cerrar al tocar la imagen (tap simple)
+        // Usamos el listener propio de PhotoView para taps
+        if (fullscreenImage != null) {
+            fullscreenImage.setOnViewTapListener((view, x, y) -> closeFullImage());
+        }
+
+
         collectionList = new ArrayList<>();
-        adapter = new CollectionAdapter(collectionList, userId);
+
+        // ✅ Pasamos un callback al adapter para el click en la imagen
+        adapter = new CollectionAdapter(collectionList, userId, imageUrl -> showFullImage(imageUrl));
         recyclerView.setAdapter(adapter);
 
         if (userId != null) {
@@ -215,8 +236,49 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
     }
 
+    // 🔍 Mostrar imagen en grande con fade-in
+    private void showFullImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty() || fullscreenOverlay == null || fullscreenImage == null) {
+            return;
+        }
+
+        fullscreenOverlay.setVisibility(View.VISIBLE);
+        fullscreenOverlay.setAlpha(0f);
+
+        // Carga la imagen (Picasso la toma desde cache si ya se usó antes)
+        Picasso.get()
+                .load(imageUrl)
+                .into(fullscreenImage);
+
+        fullscreenOverlay.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .start();
+    }
+
+    private void closeFullImage() {
+        if (fullscreenOverlay == null || fullscreenOverlay.getVisibility() != View.VISIBLE) return;
+
+        fullscreenOverlay.animate()
+                .alpha(0f)
+                .setDuration(150)
+                .withEndAction(() -> {
+                    fullscreenOverlay.setVisibility(View.GONE);
+                    fullscreenOverlay.setAlpha(1f);
+                    fullscreenImage.setImageDrawable(null);
+                })
+                .start();
+    }
+
+
     @Override
     public void onBackPressed() {
+        // Si el overlay está visible, ciérralo primero
+        if (fullscreenOverlay != null && fullscreenOverlay.getVisibility() == View.VISIBLE) {
+            closeFullImage();
+            return;
+        }
+
         if (drawerLayoutCollection != null &&
                 drawerLayoutCollection.isDrawerOpen(GravityCompat.START)) {
             drawerLayoutCollection.closeDrawer(GravityCompat.START);
@@ -224,6 +286,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
+
 
     // --------- MODELO Y ADAPTER ---------
 
@@ -254,12 +317,19 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
     private static class CollectionAdapter extends RecyclerView.Adapter<CollectionAdapter.ViewHolder> {
 
+        interface OnImageClickListener {
+            void onImageClick(String imageUrl);
+        }
+
         private final List<CollectionItem> collectionList;
         private final String userId;
+        private final OnImageClickListener imageClickListener;   // ✅ callback
 
-        CollectionAdapter(List<CollectionItem> collectionList, String userId) {
+        CollectionAdapter(List<CollectionItem> collectionList, String userId,
+                          OnImageClickListener imageClickListener) {
             this.collectionList = collectionList;
             this.userId = userId;
+            this.imageClickListener = imageClickListener;
         }
 
         @NonNull
@@ -282,10 +352,17 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .load(item.imageUrl)
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_report_image)
-                        .fit()          // ⚡ se ajusta al tamaño real del ImageView (100x140dp)
+                        .fit()          // se ajusta al tamaño real del ImageView (100x140dp)
                         .centerCrop()   // mantiene proporción, recortando si es necesario
                         .into(holder.imageView);
             }
+
+            // 🔍 Click en miniatura → mostrar overlay con zoom
+            holder.imageView.setOnClickListener(v -> {
+                if (imageClickListener != null && item.imageUrl != null && !item.imageUrl.isEmpty()) {
+                    imageClickListener.onImageClick(item.imageUrl);
+                }
+            });
 
             holder.nameTextView.setText(item.name);
             holder.varietyTextView.setText("Variedad: " + item.variety);
@@ -293,8 +370,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
             holder.originTextView.setText("Origen: " + item.origin);
             holder.percentageTextView.setText("Alcohol: " + item.percentage);
 
-            // --- Lo demás tal como lo tienes ---
-
+            // --- Eliminar ---
             holder.deleteButton.setOnClickListener(v -> {
                 new AlertDialog.Builder(holder.itemView.getContext())
                         .setTitle("Eliminar vino")
@@ -322,10 +398,12 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .show();
             });
 
+            // --- Editar ---
             holder.editButton.setOnClickListener(v ->
                     showEditDialog(holder.itemView.getContext(), item, position)
             );
         }
+
 
 
         private void showEditDialog(Context context, CollectionItem item, int position) {

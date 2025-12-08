@@ -26,48 +26,71 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Ícono menú -->
-        <ImageView
-            android:id="@+id/menuIcon"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_menu"
-            app:tint="#B22034"
-            android:contentDescription="Abrir menú"
+            <!-- Ícono menú -->
+            <ImageView
+                android:id="@+id/menuIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_menu"
+                app:tint="#B22034"
+                android:contentDescription="Abrir menú"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <!-- Título estilo WineTrack -->
+            <TextView
+                android:id="@+id/titleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mi Bodega"
+                android:textColor="#B22034"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/dancing_script"
+                android:layout_marginStart="8dp"
+                app:layout_constraintStart_toEndOf="@id/menuIcon"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Lista -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:paddingTop="8dp"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toBottomOf="@id/topBar"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- OVERLAY PARA IMAGEN A PANTALLA COMPLETA -->
+        <FrameLayout
+            android:id="@+id/fullscreenOverlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="#CC000000"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Título estilo WineTrack -->
-        <TextView
-            android:id="@+id/titleText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Mi Bodega"
-            android:textColor="#B22034"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:fontFamily="@font/dancing_script"
-            android:layout_marginStart="8dp"
-            app:layout_constraintStart_toEndOf="@id/menuIcon"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            <com.github.chrisbanes.photoview.PhotoView
+                android:id="@+id/fullscreenImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Lista -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:paddingTop="8dp"
-        android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
