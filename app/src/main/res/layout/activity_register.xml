@@ -19,7 +19,7 @@
             android:textSize="32sp"
             android:textStyle="bold"
             android:textColor="#B22034"
-            android:fontFamily="sans-serif-black"
+            android:fontFamily="@font/dancing_script"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -285,6 +285,7 @@
             android:layout_marginTop="32dp"
             android:layout_marginBottom="24dp"
             android:backgroundTint="#B22034"
+            android:textColor="#FFFFFF"
             android:textStyle="bold"
             android:textSize="16sp"
             app:cornerRadius="8dp" />
