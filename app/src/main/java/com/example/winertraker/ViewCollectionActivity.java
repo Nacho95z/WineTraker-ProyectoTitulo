@@ -281,12 +281,22 @@ public class ViewCollectionActivity extends AppCompatActivity {
                             String vintage    = document.getString("vintage");
                             String origin     = document.getString("origin");
                             String percentage = document.getString("percentage");
+                            String category   = document.getString("category");
+                            String comment    = document.getString("comment");
+
+                            // PRICE: puede ser número o texto
+                            String price = null;
+                            Object rawPrice = document.get("price");
+                            if (rawPrice != null) {
+                                price = rawPrice.toString();
+                            }
+
 
                             boolean isOptimal = isOptimalForConsumption(variety, vintage);
 
                             // Crear item con todos los campos
                             CollectionItem item = new CollectionItem(
-                                    documentId, imageUrl, name, variety, vintage, origin, percentage, isOptimal, data
+                                    documentId, imageUrl, name, variety, vintage, origin, percentage, category, comment, price, isOptimal, data
                             );
 
                             fullCollectionList.add(item);
@@ -403,6 +413,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
             case "origin": return "Origen / Región";
             case "percentage": return "Grado alcohólico";
             case "category": return "Categoría";
+            case "price": return "Precio";
             default:
                 // Capitaliza primera letra por defecto (para campos nuevos)
                 return key.substring(0,1).toUpperCase() + key.substring(1);
@@ -471,7 +482,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 String text = raw.toString();
 
                 // 🔢 Si es un campo numérico (vintage o percentage), comparamos por número "limpio"
-                if ("percentage".equals(selectedKey) || "vintage".equals(selectedKey)) {
+                if ("percentage".equals(selectedKey) || "vintage".equals(selectedKey) || "price".equals(selectedKey)) {
                     // Dejamos solo dígitos tanto del valor almacenado como del filtro
                     String cleanField = text.replaceAll("[^0-9]", "");
                     String cleanFilter = value.replaceAll("[^0-9]", "");
@@ -564,13 +575,17 @@ public class ViewCollectionActivity extends AppCompatActivity {
         String vintage;
         String origin;
         String percentage;
+        String category;   // ✅ nuevo
+        String comment;    // ✅ nuevo
+        String price;
         boolean isOptimal;
 
-        Map<String, Object> allFields;  // 🔎 todos los campos del documento
+        Map<String, Object> allFields;
 
         CollectionItem(String documentId, String imageUrl, String name,
                        String variety, String vintage, String origin,
-                       String percentage, boolean isOptimal,
+                       String percentage, String category, String comment, String price,
+                       boolean isOptimal,
                        Map<String, Object> allFields) {
 
             this.documentId = documentId;
@@ -580,10 +595,14 @@ public class ViewCollectionActivity extends AppCompatActivity {
             this.vintage = (vintage != null) ? vintage : "No disponible";
             this.origin = (origin != null) ? origin : "No disponible";
             this.percentage = (percentage != null) ? percentage : "No disponible";
+            this.category = (category != null) ? category : "No disponible";
+            this.comment  = (comment  != null) ? comment  : "Sin comentario del asistente";
+            this.price    = (price    != null) ? price    : "No disponible";
             this.isOptimal = isOptimal;
             this.allFields = (allFields != null) ? allFields : new HashMap<>();
         }
     }
+
 
 
     private static class CollectionAdapter extends RecyclerView.Adapter<CollectionAdapter.ViewHolder> {
@@ -659,6 +678,25 @@ public class ViewCollectionActivity extends AppCompatActivity {
             holder.originTextView.setText("Origen: " + item.origin);
             holder.percentageTextView.setText("Alcohol: " + item.percentage);
 
+            // ✅ nuevos
+            holder.categoryTextView.setText("Categoría: " + item.category);
+            holder.commentTextView.setText("Comentario IA: " + item.comment);
+            holder.priceTextView.setText("Precio: " + item.price);
+
+            // Si prefieres ocultar cuando no haya info:
+            if ("No disponible".equals(item.category)) {
+                holder.categoryTextView.setVisibility(View.GONE);
+            } else {
+                holder.categoryTextView.setVisibility(View.VISIBLE);
+            }
+
+            if ("Sin comentario del asistente".equals(item.comment)) {
+                holder.commentTextView.setVisibility(View.GONE);
+            } else {
+                holder.commentTextView.setVisibility(View.VISIBLE);
+            }
+
+
             // --- Eliminar ---
             holder.deleteButton.setOnClickListener(v -> {
                 int currentPosition = holder.getAdapterPosition();
@@ -712,29 +750,38 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
         private void showEditDialog(Context context, CollectionItem item, int position) {
 
-            // Inflamos el nuevo layout con estilo tipo login
             View dialogView = LayoutInflater.from(context)
                     .inflate(R.layout.dialog_edit_item, null);
 
-            TextInputEditText editName = dialogView.findViewById(R.id.editName);
-            TextInputEditText editVariety = dialogView.findViewById(R.id.editVariety);
-            TextInputEditText editVintage = dialogView.findViewById(R.id.editVintage);
-            TextInputEditText editOrigin = dialogView.findViewById(R.id.editOrigin);
-            TextInputEditText editPercentage = dialogView.findViewById(R.id.editPercentage);
-            Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-            Button btnSave = dialogView.findViewById(R.id.btnSave);
+            TextInputEditText editName      = dialogView.findViewById(R.id.editName);
+            TextInputEditText editVariety   = dialogView.findViewById(R.id.editVariety);
+            TextInputEditText editVintage   = dialogView.findViewById(R.id.editVintage);
+            TextInputEditText editOrigin    = dialogView.findViewById(R.id.editOrigin);
+            TextInputEditText editPercentage= dialogView.findViewById(R.id.editPercentage);
 
+            // 🔴 NUEVOS
+            TextInputEditText editCategory  = dialogView.findViewById(R.id.editCategory);
+            TextInputEditText editPrice     = dialogView.findViewById(R.id.editPrice);
+            TextInputEditText editComment   = dialogView.findViewById(R.id.editComment);
+
+            Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+            Button btnSave   = dialogView.findViewById(R.id.btnSave);
+
+            // Rellenar con los datos actuales
             editName.setText(item.name);
             editVariety.setText(item.variety);
             editVintage.setText(item.vintage);
             editOrigin.setText(item.origin);
             editPercentage.setText(item.percentage);
 
+            editCategory.setText(item.category);
+            editPrice.setText(item.price);
+            editComment.setText(item.comment);
+
             AlertDialog dialog = new AlertDialog.Builder(context)
                     .setView(dialogView)
                     .create();
 
-            // Fondo transparente para respetar bg_dialog_wine
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setBackgroundDrawable(
                         new ColorDrawable(Color.TRANSPARENT)
@@ -744,33 +791,52 @@ public class ViewCollectionActivity extends AppCompatActivity {
             btnCancel.setOnClickListener(v -> dialog.dismiss());
 
             btnSave.setOnClickListener(v -> {
-                item.name = editName.getText() != null ? editName.getText().toString().trim() : "";
-                item.variety = editVariety.getText() != null ? editVariety.getText().toString().trim() : "";
-                item.vintage = editVintage.getText() != null ? editVintage.getText().toString().trim() : "";
-                item.origin = editOrigin.getText() != null ? editOrigin.getText().toString().trim() : "";
-                item.percentage = editPercentage.getText() != null ? editPercentage.getText().toString().trim() : "";
+                item.name = getTextOrEmpty(editName);
+                item.variety = getTextOrEmpty(editVariety);
+                item.vintage = getTextOrEmpty(editVintage);
+                item.origin = getTextOrEmpty(editOrigin);
+                item.percentage = getTextOrEmpty(editPercentage);
+
+                // 🔴 NUEVOS
+                item.category = getTextOrEmpty(editCategory);
+                item.price    = getTextOrEmpty(editPrice);
+                item.comment  = getTextOrEmpty(editComment);
 
                 FirebaseFirestore firestore = FirebaseFirestore.getInstance();
                 firestore.collection("descriptions")
                         .document(userId)
                         .collection("wineDescriptions")
                         .document(item.documentId)
-                        .update("wineName", item.name,
-                                "variety", item.variety,
-                                "vintage", item.vintage,
-                                "origin", item.origin,
-                                "percentage", item.percentage)
+                        .update(
+                                "wineName",   item.name,
+                                "variety",    item.variety,
+                                "vintage",    item.vintage,
+                                "origin",     item.origin,
+                                "percentage", item.percentage,
+                                "category",   item.category,
+                                "price",      item.price,
+                                "comment",    item.comment
+                        )
                         .addOnSuccessListener(aVoid -> {
                             Toast.makeText(context, "Datos actualizados", Toast.LENGTH_SHORT).show();
                             notifyItemChanged(position);
                             dialog.dismiss();
                         })
                         .addOnFailureListener(e ->
-                                Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show());
+                                Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show()
+                        );
             });
 
             dialog.show();
         }
+
+        // helper pequeño
+        private String getTextOrEmpty(TextInputEditText editText) {
+            return editText.getText() != null
+                    ? editText.getText().toString().trim()
+                    : "";
+        }
+
 
         @Override
         public int getItemCount() {
@@ -779,7 +845,9 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             ImageView imageView;
-            TextView nameTextView, varietyTextView, vintageTextView, originTextView, percentageTextView;
+            TextView nameTextView, varietyTextView, vintageTextView,
+                    originTextView, percentageTextView,
+                    categoryTextView, commentTextView, priceTextView;
             Button deleteButton, editButton;
 
             ViewHolder(View itemView) {
@@ -790,9 +858,14 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 vintageTextView = itemView.findViewById(R.id.itemVintage);
                 originTextView = itemView.findViewById(R.id.itemOrigin);
                 percentageTextView = itemView.findViewById(R.id.itemPercentage);
+                categoryTextView = itemView.findViewById(R.id.itemCategory);   // 👈
+                commentTextView  = itemView.findViewById(R.id.itemComment);    // 👈
+                priceTextView    = itemView.findViewById(R.id.itemPrice);      // 👈
                 deleteButton = itemView.findViewById(R.id.buttonDelete);
                 editButton = itemView.findViewById(R.id.buttonEdit);
             }
         }
+
+
     }
 }

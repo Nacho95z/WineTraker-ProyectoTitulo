@@ -9,6 +9,8 @@ public class WineLabelInfo {
     private String rawText; // opcional: descripción completa o texto detectado
     private String category; // opcional: categoría o línea
     private String comment;
+    private String price;
+
 
 
     public String getWineName() {
@@ -73,5 +75,13 @@ public class WineLabelInfo {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public String getPrice() {
+        return price;
+    }
+
+    public void setPrice(String price) {
+        this.price = price;
     }
 }
