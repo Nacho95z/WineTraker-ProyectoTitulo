@@ -217,8 +217,11 @@ public class AuthActivity extends AppCompatActivity {
 
     // --- GOOGLE LOGIN ---
     private void signInWithGoogle() {
-        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+        // Forzar cierre de sesión en Google para mostrar selector de cuenta
+        mGoogleSignInClient.signOut().addOnCompleteListener(task -> {
+            Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+            startActivityForResult(signInIntent, RC_SIGN_IN);
+        });
     }
 
     @Override
