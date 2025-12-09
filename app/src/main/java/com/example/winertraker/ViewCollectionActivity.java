@@ -32,6 +32,8 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.squareup.picasso.Picasso;
 import android.widget.AdapterView;
 
@@ -609,6 +611,23 @@ public class ViewCollectionActivity extends AppCompatActivity {
             return new ViewHolder(view);
         }
 
+        private void deleteImageFromStorage(String imageUrl) {
+            try {
+                StorageReference photoRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl);
+                photoRef.delete()
+                        .addOnSuccessListener(aVoid ->
+                                android.util.Log.d("Storage", "Imagen eliminada del Storage")
+                        )
+                        .addOnFailureListener(e ->
+                                android.util.Log.e("Storage", "Error al eliminar imagen", e)
+                        );
+            } catch (IllegalArgumentException e) {
+                android.util.Log.e("Storage", "URL de imagen inválida: " + imageUrl, e);
+            }
+        }
+
+
+
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             CollectionItem item = collectionList.get(position);
@@ -642,23 +661,36 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
             // --- Eliminar ---
             holder.deleteButton.setOnClickListener(v -> {
+                int currentPosition = holder.getAdapterPosition();
+                if (currentPosition == RecyclerView.NO_POSITION) return;
+
+                CollectionItem currentItem = collectionList.get(currentPosition);
+
                 new AlertDialog.Builder(holder.itemView.getContext())
                         .setTitle("Eliminar vino")
                         .setMessage("¿Estás seguro de que deseas eliminar este vino?")
                         .setPositiveButton("Sí", (dialog, which) -> {
+
                             FirebaseFirestore firestore = FirebaseFirestore.getInstance();
 
                             firestore.collection("descriptions")
                                     .document(userId)
                                     .collection("wineDescriptions")
-                                    .document(item.documentId)
+                                    .document(currentItem.documentId)
                                     .delete()
                                     .addOnSuccessListener(aVoid -> {
-                                        collectionList.remove(position);
-                                        notifyItemRemoved(position);
-                                        notifyItemRangeChanged(position, collectionList.size());
+
+                                        if (currentItem.imageUrl != null && !currentItem.imageUrl.isEmpty()) {
+                                            deleteImageFromStorage(currentItem.imageUrl);
+                                        }
+
+                                        collectionList.remove(currentPosition);
+                                        notifyItemRemoved(currentPosition);
+                                        notifyItemRangeChanged(currentPosition, collectionList.size());
+
                                         Toast.makeText(holder.itemView.getContext(),
-                                                "Vino eliminado", Toast.LENGTH_SHORT).show();
+                                                "Vino eliminado correctamente",
+                                                Toast.LENGTH_SHORT).show();
                                     })
                                     .addOnFailureListener(e ->
                                             Toast.makeText(holder.itemView.getContext(),
@@ -667,6 +699,8 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .setNegativeButton("No", null)
                         .show();
             });
+
+
 
             // --- Editar ---
             holder.editButton.setOnClickListener(v ->
