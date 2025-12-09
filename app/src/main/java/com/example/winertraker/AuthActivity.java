@@ -12,7 +12,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.TextView; // Importante importar esto
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -73,21 +73,15 @@ public class AuthActivity extends AppCompatActivity {
         findViewById(R.id.signIn).setOnClickListener(view -> signInWithGoogle());
     }
 
-    // -------------------------------------------------------------
-    // LÓGICA DE INICIO
-    // -------------------------------------------------------------
     @Override
     protected void onStart() {
         super.onStart();
-
-        // 1. ¿Aceptó los términos?
+        // Lógica de inicio: Términos -> Sesión
         boolean termsAccepted = prefs.getBoolean("terms_accepted", false);
 
         if (!termsAccepted) {
-            // NO ha aceptado -> Mostrar diálogo BLOQUEANTE.
             showTermsDialog();
         } else {
-            // SI ya aceptó -> Verificar si hay sesión para auto-login.
             checkSessionAndRedirect();
         }
     }
@@ -96,53 +90,43 @@ public class AuthActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         boolean remember = prefs.getBoolean("remember_session", true);
 
-        if (currentUser != null && remember) {
+        // Solo redirigir si hay usuario, quiere recordar Y EL CORREO ESTÁ VERIFICADO
+        if (currentUser != null && remember && currentUser.isEmailVerified()) {
             Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
         }
     }
 
-    // -------------------------------------------------------------
-    // DIÁLOGO DE TÉRMINOS Y CONDICIONES (Extendida y Detallada)
-    // -------------------------------------------------------------
+    // --- DIÁLOGO DE TÉRMINOS Y CONDICIONES ---
     private void showTermsDialog() {
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.activity_termconditions); // Asegúrate que el XML se llame así
-        dialog.setCancelable(false); // Bloquea el cierre
+        dialog.setContentView(R.layout.activity_termconditions); // Nombre de tu XML de términos
+        dialog.setCancelable(false);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
         }
 
-        // Referencias a la vista
-        TextView tvTermsContent = dialog.findViewById(R.id.tvTermsText); // ID debe coincidir con el XML
+        TextView tvTermsContent = dialog.findViewById(R.id.tvTermsText);
         CheckBox checkAccept = dialog.findViewById(R.id.checkAccept);
         Button btnAccept = dialog.findViewById(R.id.btnAcceptTerms);
 
-        // --- TEXTO LEGAL EXTENSO Y CONTUNDENTE ---
         String technicalTerms =
                 "MARCO NORMATIVO Y TÉRMINOS DE USO\n\n" +
-
                         "1. CUMPLIMIENTO LEGAL (CHILE)\n" +
-                        "Conforme al Art. 42 de la Ley N° 19.925 (Ley de Alcoholes), el acceso a esta aplicación está estrictamente restringido a menores de 18 años.\n\n" +
-
+                        "Conforme al Art. 42 de la Ley N° 19.925 (Ley de Alcoholes), el acceso a esta aplicación está estrictamente restringido a mayores de 18 años.\n\n" +
                         "2. PRIVACIDAD Y SEGURIDAD DE DATOS\n" +
-                        "El tratamiento de imágenes y datos personales se rige por la Ley N° 21.719  (protección de datos personales). La arquitectura del sistema sigue lineamientos de seguridad de datos basados en la norma ISO/IEC 27001.\n\n" +
-
+                        "El tratamiento de datos se rige por la Ley N° 19.628. La arquitectura sigue lineamientos ISO/IEC 27001.\n\n" +
                         "3. CALIDAD DE SOFTWARE E IA\n" +
-                        "Este prototipo académico ha sido desarrollado considerando criterios de calidad de la norma ISO/IEC 25010. El módulo de reconocimiento por IA (Visión Computacional) tiene fines referenciales y puede presentar márgenes de error.\n\n" +
-
+                        "Prototipo académico desarrollado bajo criterios ISO/IEC 25010. La IA tiene fines referenciales.\n\n" +
                         "4. DECLARACIÓN JURADA\n" +
-                        "Al aceptar, usted declara bajo juramento ser mayor de edad y exime a los desarrolladores de responsabilidad por el uso de la información generada.";
-        // Asignamos el texto al TextView
-        if (tvTermsContent != null) {
-            tvTermsContent.setText(technicalTerms);
-        }
+                        "Al aceptar, usted declara ser mayor de edad y responsable del uso de la información.";
 
-        // Lógica del Botón
+        if (tvTermsContent != null) tvTermsContent.setText(technicalTerms);
+
         btnAccept.setEnabled(false);
         btnAccept.setAlpha(0.5f);
 
@@ -152,26 +136,16 @@ public class AuthActivity extends AppCompatActivity {
         });
 
         btnAccept.setOnClickListener(v -> {
-            // 1. Guardar aceptación
             prefs.edit().putBoolean("terms_accepted", true).apply();
-
-            // 2. Cerrar diálogo
             dialog.dismiss();
-
-            // 3. Feedback al usuario
-            Toast.makeText(AuthActivity.this, "Términos aceptados. Inicie sesión para continuar.", Toast.LENGTH_LONG).show();
-
-            // NOTA: NO redirigimos aquí. Nos quedamos en AuthActivity para que
-            // el usuario pueda pulsar "Ingresar con correo" o "Google".
+            Toast.makeText(AuthActivity.this, "Términos aceptados.", Toast.LENGTH_SHORT).show();
+            // No redirigimos, se queda en Login
         });
 
         dialog.show();
     }
 
-    // -------------------------------------------------------------
-    // MÉTODOS DE LOGIN (Sin cambios)
-    // -------------------------------------------------------------
-
+    // --- LOGIN CON CORREO (CON VALIDACIÓN DE VERIFICACIÓN) ---
     private void showEmailLoginDialog() {
         Dialog dialog = new Dialog(this, R.style.WineDialogTheme);
         dialog.setContentView(R.layout.dialog_email_login);
@@ -198,14 +172,8 @@ public class AuthActivity extends AppCompatActivity {
             String email = dialogEmailEditText.getText().toString().trim();
             String password = dialogPasswordEditText.getText().toString().trim();
 
-            if (email.isEmpty()) {
-                dialogEmailEditText.setError("Ingrese un correo.");
-                return;
-            }
-            if (password.isEmpty()) {
-                dialogPasswordEditText.setError("Ingrese una contraseña.");
-                return;
-            }
+            if (email.isEmpty()) { dialogEmailEditText.setError("Falta correo"); return; }
+            if (password.isEmpty()) { dialogPasswordEditText.setError("Falta contraseña"); return; }
 
             dialog.dismiss();
             loginUser(email, password);
@@ -223,17 +191,31 @@ public class AuthActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     progressDialog.dismiss();
                     if (task.isSuccessful()) {
-                        prefs.edit().putBoolean("remember_session", true).apply();
-                        Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
-                        startActivity(intent);
-                        finish();
+                        FirebaseUser user = mAuth.getCurrentUser();
+
+                        // 🔒 CANDADO DE SEGURIDAD: ¿CORREO VERIFICADO? 🔒
+                        if (user != null && user.isEmailVerified()) {
+                            // SI: Entra
+                            prefs.edit().putBoolean("remember_session", true).apply();
+                            Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            // NO: Fuera
+                            Toast.makeText(AuthActivity.this,
+                                    "Cuenta no activada. Por favor verifica el enlace enviado a tu correo.",
+                                    Toast.LENGTH_LONG).show();
+                            mAuth.signOut(); // Cerramos la sesión temporal
+                        }
+
                     } else {
-                        String errorMessage = task.getException() != null ? task.getException().getMessage() : "Error.";
-                        Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        String err = task.getException() != null ? task.getException().getMessage() : "Error.";
+                        Toast.makeText(this, "Error: " + err, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
+    // --- GOOGLE LOGIN ---
     private void signInWithGoogle() {
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
@@ -260,6 +242,7 @@ public class AuthActivity extends AppCompatActivity {
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
+                        // Google ya verifica correos, así que dejamos pasar
                         prefs.edit().putBoolean("remember_session", true).apply();
                         startActivity(new Intent(AuthActivity.this, HomeActivity.class));
                         finish();
