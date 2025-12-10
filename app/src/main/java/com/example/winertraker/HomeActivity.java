@@ -1,6 +1,7 @@
 package com.example.winertraker;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -65,6 +66,13 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import android.graphics.drawable.Drawable;
+import pl.droidsonroids.gif.GifDrawable;
+import pl.droidsonroids.gif.GifImageView;
+import androidx.appcompat.app.AlertDialog;
+
+
+
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -86,6 +94,18 @@ public class HomeActivity extends AppCompatActivity {
     private LineChart valueLineChart;
     private TextView bannerTextView;
     private ValueAnimator bannerAnimator;
+    private TextView tvOptimalBadge;
+    // Lista actual de vinos en consumo óptimo
+    private final List<String> currentOptimalWineNames = new ArrayList<>();
+
+
+
+    // 🍇 GIF de uva
+    private GifImageView headerGif;
+
+    // Estado de consumo óptimo
+    private boolean hasOptimalWines = false;
+
 
     // Rotación de mensajes del banner
     private final List<String> bannerMessages = new ArrayList<>();
@@ -220,6 +240,11 @@ public class HomeActivity extends AppCompatActivity {
 
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         bannerTextView = findViewById(R.id.bannerTextView);
+
+        // 🍇 Uva del header
+        headerGif = findViewById(R.id.headerGifLarge); // o Rgif de la uva
+        tvOptimalBadge = findViewById(R.id.tvOptimalBadge);
+
     }
 
     private void startBannerAnimationSingleCycle() {
@@ -350,7 +375,80 @@ public class HomeActivity extends AppCompatActivity {
 
         cardScan.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
         cardCollection.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
+
+        // 🍇 Click en la uva: detalle cuando hay consumo óptimo
+        if (headerGif != null) {
+            headerGif.setOnClickListener(v -> {
+                if (hasOptimalWines) {
+                    showOptimalWinesDialog();
+                } else {
+                    Toast.makeText(
+                            HomeActivity.this,
+                            "No hay botellas en consumo óptimo",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            });
+        }
+
     }
+
+    //•
+    @SuppressLint("SetTextI18n")
+    private void showOptimalWinesDialog() {
+        if (currentOptimalWineNames == null || currentOptimalWineNames.isEmpty()) {
+            Toast.makeText(
+                    this,
+                    "Tienes botellas en consumo óptimo, pero no pudimos cargar el detalle.",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_optimal_wines);
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT
+            );
+            window.setWindowAnimations(R.style.DialogAnimation);
+        }
+
+        TextView title = dialog.findViewById(R.id.dialogTitle);
+        TextView description = dialog.findViewById(R.id.dialogDescription);
+        TextView wineList = dialog.findViewById(R.id.dialogWineList);
+        Button btnClose = dialog.findViewById(R.id.btnCloseDialog);
+        Button btnOpenCellar = dialog.findViewById(R.id.btnOpenCellar);
+
+        title.setText("Botellas en su punto óptimo de consumo 🍷");
+        description.setVisibility(View.GONE);
+
+        // 🔹 Lista: nombre corto + categoría
+        StringBuilder builder = new StringBuilder();
+        for (String displayText : currentOptimalWineNames) {
+            builder.append("• ").append(displayText).append("\n");
+        }
+        wineList.setText(builder.toString().trim());
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        btnOpenCellar.setOnClickListener(v -> {
+            dialog.dismiss();
+            redirectToActivity(ViewCollectionActivity.class);
+        });
+
+        dialog.show();
+    }
+
+
+
+
+
 
     private void performLogout() {
         FirebaseAuth.getInstance().signOut();
@@ -393,8 +491,10 @@ public class HomeActivity extends AppCompatActivity {
                     String variety = document.getString("variety");
                     String vintageStr = document.getString("vintage");
                     String wineName = document.getString("wineName");
+                    String category = document.getString("category");
 
                     if (variety != null) {
+                        // Capitalizamos para usar en gráficos y en el texto
                         variety = capitalize(variety);
                         wineVarietyCounts.put(
                                 variety,
@@ -406,8 +506,31 @@ public class HomeActivity extends AppCompatActivity {
                                 int vintageYear = Integer.parseInt(vintageStr);
                                 if (isOptimalForConsumption(variety, vintageYear)) {
                                     optimalCount++;
+
                                     if (wineName != null) {
-                                        optimalWineNames.add(wineName);
+                                        // 1️⃣ Nombre corto
+                                        String shortName = getShortWineName(wineName);
+
+                                        // 2️⃣ Armamos: nombre - variedad - categoría - año
+                                        StringBuilder display = new StringBuilder(shortName);
+
+                                        // variedad
+                                        if (variety != null && !variety.trim().isEmpty()) {
+                                            display.append(" - ").append(variety.trim());
+                                        }
+
+                                        // categoría (Reserva, Gran Reserva, etc.)
+                                        if (category != null && !category.trim().isEmpty()) {
+                                            display.append(" - ").append(category.trim());
+                                        }
+
+                                        // año (vintage)
+                                        if (vintageStr != null && !vintageStr.trim().isEmpty()) {
+                                            display.append(" - ").append(vintageStr.trim());
+                                        }
+
+                                        // 3️⃣ Guardamos el texto ya formateado
+                                        optimalWineNames.add(display.toString());
                                     }
                                 }
                             } catch (NumberFormatException e) {
@@ -415,6 +538,8 @@ public class HomeActivity extends AppCompatActivity {
                             }
                         }
                     }
+
+
 
                     // createdAt -> mes
                     Timestamp ts = document.getTimestamp("createdAt");
@@ -455,19 +580,34 @@ public class HomeActivity extends AppCompatActivity {
                 updateBarChart(monthCounts);
                 updateValueLineChart(monthValues);
                 updateTotalCellarValue(totalCellarValue);
-                // 🔹 Actualizar banner con info de la bodega
+
+                // 🔁 Actualizar mensajes y reactivar animación del banner
                 updateBannerMessage(totalWines, totalCellarValue);
 
-                if (!optimalWineNames.isEmpty()) {
+                // Actualizar lista global de vinos óptimos
+                currentOptimalWineNames.clear();
+                currentOptimalWineNames.addAll(optimalWineNames);
+
+                // actualizar estado del GIF de uva
+                boolean hasOptimal = !optimalWineNames.isEmpty();
+                updateGrapeGifState(hasOptimal, optimalCount);
+
+
+                // Notificación solo si hay vinos en consumo óptimo
+                if (hasOptimal) {
                     sendOptimalConsumptionNotification(optimalWineNames);
                 }
             } else {
                 txtTotalWines.setText("-");
                 txtOptimalWines.setText("-");
+                updateGrapeGifState(false, 0); // no hay datos → asumimos sin consumo óptimo
+                // Banner en modo "sin datos"
+                updateBannerMessage(0, 0);
             }
         }).addOnFailureListener(e -> {
             swipeRefreshLayout.setRefreshing(false);
             Toast.makeText(this, "Error cargando datos", Toast.LENGTH_SHORT).show();
+            updateGrapeGifState(false, 0);
         });
     }
 
@@ -799,4 +939,77 @@ public class HomeActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
+
+    private void updateGrapeGifState(boolean hasOptimal, int optimalCount) {
+        hasOptimalWines = hasOptimal;
+
+        // Control de animación del GIF
+        if (headerGif != null) {
+            Drawable drawable = headerGif.getDrawable();
+            if (drawable instanceof GifDrawable) {
+                GifDrawable gifDrawable = (GifDrawable) drawable;
+
+                if (hasOptimal) {
+                    gifDrawable.start();
+                } else {
+                    gifDrawable.stop();
+                    gifDrawable.seekToFrameAndGet(0);
+                }
+            }
+        }
+
+
+        // Mostrar u ocultar el badge
+        if (tvOptimalBadge != null) {
+            if (hasOptimal && optimalCount > 0) {
+                tvOptimalBadge.setVisibility(View.VISIBLE);
+
+                // Muestra el número hasta 9, luego "9+"
+                String txt = optimalCount > 9 ? "9+" : String.valueOf(optimalCount);
+                tvOptimalBadge.setText(txt);
+            } else {
+                tvOptimalBadge.setVisibility(View.GONE);
+            }
+        }
+
+    }
+
+    /**
+     * Devuelve solo el "nombre corto" del vino.
+     * Ej:
+     *  "Terrazas de los Andes Cabernet Sauvignon Reserva" -> "Terrazas de los Andes"
+     *  "Casillero del Diablo Carmenere Gran Reserva" -> "Casillero del Diablo"
+     */
+    private String getShortWineName(String fullName) {
+        if (fullName == null) return "";
+
+        String lower = fullName.toLowerCase();
+
+        // Palabras donde normalmente empiezan la cepa o categoría
+        String[] corteEn = {
+                "cabernet", "merlot", "carmenere", "carmeñere", "syrah", "malbec",
+                "pinot", "chardonnay", "sauvignon", "riesling", "viognier",
+                "gran", "reserva", "estate", "limited", "selección", "selection"
+        };
+
+        // Buscamos la primera de estas palabras y cortamos antes
+        int corteIndex = -1;
+        for (String key : corteEn) {
+            int idx = lower.indexOf(key);
+            if (idx != -1) {
+                if (corteIndex == -1 || idx < corteIndex) {
+                    corteIndex = idx;
+                }
+            }
+        }
+
+        if (corteIndex > 0) {
+            return fullName.substring(0, corteIndex).trim();
+        } else {
+            // Si no encontramos ninguna palabra clave, devolvemos el nombre tal cual
+            return fullName.trim();
+        }
+    }
+
+
 }

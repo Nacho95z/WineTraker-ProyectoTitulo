@@ -86,15 +86,40 @@
                             android:layout_marginStart="6dp"/>
                     </LinearLayout>
 
-                    <!-- 🍇 GIF decorativo grande alineado al extremo derecho -->
-                    <pl.droidsonroids.gif.GifImageView
-                        android:id="@+id/headerGifLarge"
+                    <!-- 🍇 Contenedor del GIF grande + badge -->
+                    <FrameLayout
+                        android:id="@+id/grapeContainer"
                         android:layout_width="50dp"
                         android:layout_height="50dp"
-                        android:src="@drawable/grape"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"/>
+                        app:layout_constraintBottom_toBottomOf="parent">
+
+                        <!-- GIF actual -->
+                        <pl.droidsonroids.gif.GifImageView
+                            android:id="@+id/headerGifLarge"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/grape"
+                            android:adjustViewBounds="true"/>
+
+                        <!-- 🔴 Badge de consumo óptimo -->
+                        <TextView
+                            android:id="@+id/tvOptimalBadge"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="end|top"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginEnd="2dp"
+                            android:gravity="center"
+                            android:text="!"
+                            android:textColor="@android:color/white"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:visibility="gone"
+                            android:background="@drawable/bg_badge_optimal"/>
+                    </FrameLayout>
+
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
