@@ -116,14 +116,18 @@ public class AuthActivity extends AppCompatActivity {
 
         String technicalTerms =
                 "MARCO NORMATIVO Y TÉRMINOS DE USO\n\n" +
+
                         "1. CUMPLIMIENTO LEGAL (CHILE)\n" +
                         "Conforme al Art. 42 de la Ley N° 19.925 (Ley de Alcoholes), el acceso a esta aplicación está estrictamente restringido a mayores de 18 años.\n\n" +
+
                         "2. PRIVACIDAD Y SEGURIDAD DE DATOS\n" +
-                        "El tratamiento de datos se rige por la Ley N° 19.628. La arquitectura sigue lineamientos ISO/IEC 27001.\n\n" +
+                        "El tratamiento de imágenes y datos personales se rige por la Ley N° 21.719 (Protección de la Vida Privada). La arquitectura del sistema sigue lineamientos de seguridad basados en la norma ISO/IEC 27001.\n\n" +
+
                         "3. CALIDAD DE SOFTWARE E IA\n" +
-                        "Prototipo académico desarrollado bajo criterios ISO/IEC 25010. La IA tiene fines referenciales.\n\n" +
+                        "Este prototipo académico ha sido desarrollado considerando criterios de calidad de la norma ISO/IEC 25010. El módulo de reconocimiento por IA (Visión Computacional) tiene fines referenciales y puede presentar márgenes de error.\n\n" +
+
                         "4. DECLARACIÓN JURADA\n" +
-                        "Al aceptar, usted declara ser mayor de edad y responsable del uso de la información.";
+                        "Al aceptar, usted declara bajo juramento ser mayor de edad y exime a los desarrolladores de responsabilidad por el uso de la información generada.";
 
         if (tvTermsContent != null) tvTermsContent.setText(technicalTerms);
 
