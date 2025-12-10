@@ -515,19 +515,19 @@ public class HomeActivity extends AppCompatActivity {
                                         StringBuilder display = new StringBuilder(shortName);
 
                                         // variedad
-                                        if (variety != null && !variety.trim().isEmpty()) {
-                                            display.append(" - ").append(variety.trim());
-                                        }
+//                                        if (variety != null && !variety.trim().isEmpty()) {
+//                                            display.append(" - ").append(variety.trim());
+//                                        }
 
                                         // categoría (Reserva, Gran Reserva, etc.)
-                                        if (category != null && !category.trim().isEmpty()) {
-                                            display.append(" - ").append(category.trim());
-                                        }
+//                                        if (category != null && !category.trim().isEmpty()) {
+//                                            display.append(" - ").append(category.trim());
+//                                        }
 
                                         // año (vintage)
-                                        if (vintageStr != null && !vintageStr.trim().isEmpty()) {
-                                            display.append(" - ").append(vintageStr.trim());
-                                        }
+//                                        if (vintageStr != null && !vintageStr.trim().isEmpty()) {
+//                                            display.append(" - ").append(vintageStr.trim());
+//                                        }
 
                                         // 3️⃣ Guardamos el texto ya formateado
                                         optimalWineNames.add(display.toString());
