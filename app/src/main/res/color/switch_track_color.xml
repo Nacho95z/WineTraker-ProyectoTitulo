@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ACTIVO -->
+    <item android:state_checked="true" android:color="#33B22034"/> <!-- vino con transparencia -->
+    <!-- INACTIVO -->
+    <item android:color="#33000000"/> <!-- gris clarito translúcido -->
+</selector>

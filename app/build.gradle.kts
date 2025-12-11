@@ -123,8 +123,16 @@ dependencies {
     // Picasso
     implementation("com.squareup.picasso:picasso:2.71828")
 
-    // GIF
+    // GIFF
     implementation("pl.droidsonroids.gif:android-gif-drawable:1.2.25")
+
+    implementation ("com.github.bumptech.glide:glide:4.16.0'")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0'")
+
+    // Glide para cargar GIF/imagenes
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
 }
 
 

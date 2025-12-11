@@ -36,6 +36,10 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.squareup.picasso.Picasso;
 import android.widget.AdapterView;
+import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.bumptech.glide.Glide;
+
+
 
 
 // Filtros dinámicos
@@ -83,6 +87,12 @@ public class ViewCollectionActivity extends AppCompatActivity {
     // Filtros dinámicos
     private Spinner spinnerField;
     private final List<String> filterFieldKeys = new ArrayList<>();            // keys reales (wineName, variety, etc.)
+    private ArrayList<String> optimalWineIds;  // 👈 IDs que vienen desde Home
+    private boolean showOnlyOptimal = false;   // 👈 Modo "listos para beber"
+
+    // 👇 NUEVO TOGGLE
+    private SwitchMaterial switchOptimalOnly;
+    private boolean filterOnlyOptimal = false;   // estado actual del toggle
 
 
     @Override
@@ -99,6 +109,23 @@ public class ViewCollectionActivity extends AppCompatActivity {
         user = FirebaseAuth.getInstance().getCurrentUser();
         firestore = FirebaseFirestore.getInstance();
         userId = (user != null) ? user.getUid() : null;
+
+        // 👇 Revisar si venimos desde la Uva / Home con filtro de óptimos
+        optimalWineIds = getIntent().getStringArrayListExtra("optimalWineIds");
+        String filterMode = getIntent().getStringExtra("filterMode");
+
+        showOnlyOptimal = filterMode != null
+                && filterMode.equals("optimal")
+                && optimalWineIds != null
+                && !optimalWineIds.isEmpty();
+
+        // (Opcional) podrías cambiar el título de la pantalla si estás en modo filtro
+        if (showOnlyOptimal) {
+            // Si tienes un TextView de título custom en el layout, podrías hacer:
+            // TextView tvTitle = findViewById(R.id.tvTitle);
+            // tvTitle.setText("Botellas listas para beber");
+        }
+
 
         // Drawer + menú
         drawerLayoutCollection = findViewById(R.id.drawerLayoutCollection);
@@ -185,6 +212,21 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
         spinnerField = findViewById(R.id.spinnerField);
         editFilterValue = findViewById(R.id.editFilterValue);
+        switchOptimalOnly = findViewById(R.id.switchOptimalOnly);
+
+        // El toggle arranca según desde dónde vengas:
+        filterOnlyOptimal = showOnlyOptimal;
+        switchOptimalOnly.setChecked(showOnlyOptimal);
+
+        switchOptimalOnly.setOnCheckedChangeListener((button, isChecked) -> {
+            filterOnlyOptimal = isChecked;
+            String currentText = editFilterValue.getText() != null
+                    ? editFilterValue.getText().toString().trim()
+                    : "";
+            applyFilter(currentText);
+        });
+
+
 
         // Cuando el usuario cambia el campo en el spinner, volvemos a aplicar el filtro
         spinnerField.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -256,16 +298,15 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String documentId = document.getId();
 
+
                             // 👇 Usamos getData SOLO para filtros (allFields)
                             Map<String, Object> data = document.getData();
                             if (data == null) {
                                 data = new HashMap<>();
                             }
 
-                            // 1) Leemos como antes
                             String imageUrl = document.getString("imageUrl");
 
-                            // 2) Por si Firestore lo guarda raro o con otro tipo, intentamos sacarlo igual
                             if (imageUrl == null || imageUrl.isEmpty()) {
                                 Object rawUrl = data.get("imageUrl");
                                 if (rawUrl != null) {
@@ -273,7 +314,6 @@ public class ViewCollectionActivity extends AppCompatActivity {
                                 }
                             }
 
-                            // 👀 Log de depuración para ver qué viene
                             android.util.Log.d("ViewCollection", "Doc " + documentId + " imageUrl = " + imageUrl);
 
                             String name       = document.getString("wineName");
@@ -291,14 +331,16 @@ public class ViewCollectionActivity extends AppCompatActivity {
                                 price = rawPrice.toString();
                             }
 
-
                             boolean isOptimal = isOptimalForConsumption(variety, vintage);
 
-                            // Crear item con todos los campos
                             CollectionItem item = new CollectionItem(
-                                    documentId, imageUrl, name, variety, vintage, origin, percentage, category, comment, price, isOptimal, data
+                                    documentId, imageUrl, name, variety, vintage,
+                                    origin, percentage, category, comment, price,
+                                    isOptimal, data
                             );
 
+                            // 👇 OJO: en modo óptimos, fullCollectionList también solo tendrá esos,
+                            //        así los filtros trabajan solo sobre la lista filtrada.
                             fullCollectionList.add(item);
                             collectionList.add(item);
 
@@ -312,10 +354,16 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
 
 
+
                         // ⬅️ IMPORTANTE: llenar el Spinner una vez detectados los campos
                         setupFilterSpinner();
 
-                        adapter.notifyDataSetChanged();
+                        // Aplicar el filtro actual (texto + toggle óptimo)
+                        String currentText = editFilterValue.getText() != null
+                                ? editFilterValue.getText().toString().trim()
+                                : "";
+                        applyFilter(currentText);
+
                     } else {
                         Toast.makeText(this, "No se encontraron vinos en la colección", Toast.LENGTH_SHORT).show();
                     }
@@ -395,11 +443,13 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
                 this,
-                android.R.layout.simple_spinner_item,
+                R.layout.spinner_item,   // tu layout personalizado
                 labels
         );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        spinnerAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
         spinnerField.setAdapter(spinnerAdapter);
+
     }
 
 
@@ -426,12 +476,21 @@ public class ViewCollectionActivity extends AppCompatActivity {
         value = (value != null) ? value.trim() : "";
         collectionList.clear();
 
-        // Si no hay texto, mostramos todo
+        // Si no hay texto, mostramos todo o solo óptimos según el toggle
         if (value.isEmpty()) {
-            collectionList.addAll(fullCollectionList);
+            if (!filterOnlyOptimal) {
+                collectionList.addAll(fullCollectionList);
+            } else {
+                for (CollectionItem item : fullCollectionList) {
+                    if (item.isOptimal) {
+                        collectionList.add(item);
+                    }
+                }
+            }
             adapter.notifyDataSetChanged();
             return;
         }
+
 
         if (availableFilterKeys.isEmpty()) {
             // Si por algún motivo no tenemos campos filtrables, mostramos todo
@@ -466,8 +525,13 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 }
 
                 if (matches) {
+                    // 👇 si el toggle está activo, solo agregamos vinos óptimos
+                    if (filterOnlyOptimal && !item.isOptimal) {
+                        continue;
+                    }
                     collectionList.add(item);
                 }
+
             }
         } else {
             // 🟢 Caso 2: un campo específico elegido en el spinner
@@ -481,22 +545,26 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
                 String text = raw.toString();
 
-                // 🔢 Si es un campo numérico (vintage o percentage), comparamos por número "limpio"
                 if ("percentage".equals(selectedKey) || "vintage".equals(selectedKey) || "price".equals(selectedKey)) {
-                    // Dejamos solo dígitos tanto del valor almacenado como del filtro
                     String cleanField = text.replaceAll("[^0-9]", "");
                     String cleanFilter = value.replaceAll("[^0-9]", "");
 
                     if (!cleanFilter.isEmpty() && cleanField.equals(cleanFilter)) {
+                        if (filterOnlyOptimal && !item.isOptimal) {
+                            continue;
+                        }
                         collectionList.add(item);
                     }
                 } else {
-                    // 🔤 Para otros campos, seguimos usando contains "normal"
                     String textLower = text.toLowerCase();
                     if (textLower.contains(valueLower)) {
+                        if (filterOnlyOptimal && !item.isOptimal) {
+                            continue;
+                        }
                         collectionList.add(item);
                     }
                 }
+
             }
         }
 
@@ -653,6 +721,20 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
             // Siempre reseteamos la imagen con un placeholder básico
             holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+
+            if (item.isOptimal) {
+                holder.iconOptimal.setVisibility(View.VISIBLE);
+
+                Glide.with(holder.iconOptimal.getContext())
+                        .asGif()
+                        .load(R.drawable.is_wine_optimal) // 👈 mismo nombre del paso 1
+                        .into(holder.iconOptimal);
+
+            } else {
+                holder.iconOptimal.setVisibility(View.GONE);
+            }
+
+
 
             if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
                 PicassoClient.getInstance(holder.imageView.getContext())
@@ -844,7 +926,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
-            ImageView imageView;
+            ImageView imageView, iconOptimal;   // 👈 NUEVO
             TextView nameTextView, varietyTextView, vintageTextView,
                     originTextView, percentageTextView,
                     categoryTextView, commentTextView, priceTextView;
@@ -852,19 +934,21 @@ public class ViewCollectionActivity extends AppCompatActivity {
 
             ViewHolder(View itemView) {
                 super(itemView);
-                imageView = itemView.findViewById(R.id.itemImageView);
-                nameTextView = itemView.findViewById(R.id.itemName);
+                imageView     = itemView.findViewById(R.id.itemImageView);
+                iconOptimal   = itemView.findViewById(R.id.iconOptimal);   // 👈 NUEVO
+                nameTextView  = itemView.findViewById(R.id.itemName);
                 varietyTextView = itemView.findViewById(R.id.itemVariety);
                 vintageTextView = itemView.findViewById(R.id.itemVintage);
-                originTextView = itemView.findViewById(R.id.itemOrigin);
+                originTextView  = itemView.findViewById(R.id.itemOrigin);
                 percentageTextView = itemView.findViewById(R.id.itemPercentage);
-                categoryTextView = itemView.findViewById(R.id.itemCategory);   // 👈
-                commentTextView  = itemView.findViewById(R.id.itemComment);    // 👈
-                priceTextView    = itemView.findViewById(R.id.itemPrice);      // 👈
-                deleteButton = itemView.findViewById(R.id.buttonDelete);
-                editButton = itemView.findViewById(R.id.buttonEdit);
+                categoryTextView   = itemView.findViewById(R.id.itemCategory);
+                commentTextView    = itemView.findViewById(R.id.itemComment);
+                priceTextView      = itemView.findViewById(R.id.itemPrice);
+                deleteButton       = itemView.findViewById(R.id.buttonDelete);
+                editButton         = itemView.findViewById(R.id.buttonEdit);
             }
         }
+
 
 
     }

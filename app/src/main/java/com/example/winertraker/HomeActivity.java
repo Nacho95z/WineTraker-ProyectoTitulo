@@ -97,7 +97,7 @@ public class HomeActivity extends AppCompatActivity {
     private TextView tvOptimalBadge;
     // Lista actual de vinos en consumo óptimo
     private final List<String> currentOptimalWineNames = new ArrayList<>();
-
+    private final List<String> currentOptimalWineIds   = new ArrayList<>();  // 👈 NUEVA
 
 
     // 🍇 GIF de uva
@@ -439,8 +439,17 @@ public class HomeActivity extends AppCompatActivity {
 
         btnOpenCellar.setOnClickListener(v -> {
             dialog.dismiss();
-            redirectToActivity(ViewCollectionActivity.class);
+
+            Intent intent = new Intent(HomeActivity.this, ViewCollectionActivity.class);
+            intent.putStringArrayListExtra(
+                    "optimalWineIds",
+                    new ArrayList<>(currentOptimalWineIds)   // 👈 lista de IDs
+            );
+            intent.putExtra("filterMode", "optimal");       // 👈 flag
+
+            startActivity(intent);
         });
+
 
         dialog.show();
     }
@@ -480,6 +489,7 @@ public class HomeActivity extends AppCompatActivity {
                 int optimalCount = 0;
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
                 List<String> optimalWineNames = new ArrayList<>();
+                List<String> optimalWineIdsTemp = new ArrayList<>();   // 👈 NUEVA
 
                 int[] monthCounts = new int[12];       // botellas por mes
                 double[] monthValues = new double[12]; // valor por mes
@@ -488,6 +498,7 @@ public class HomeActivity extends AppCompatActivity {
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     totalWines++;
 
+                    String docId    = document.getId();          // 👈 NUEVO
                     String variety = document.getString("variety");
                     String vintageStr = document.getString("vintage");
                     String wineName = document.getString("wineName");
@@ -515,22 +526,21 @@ public class HomeActivity extends AppCompatActivity {
                                         StringBuilder display = new StringBuilder(shortName);
 
                                         // variedad
-//                                        if (variety != null && !variety.trim().isEmpty()) {
-//                                            display.append(" - ").append(variety.trim());
-//                                        }
+
 
                                         // categoría (Reserva, Gran Reserva, etc.)
-//                                        if (category != null && !category.trim().isEmpty()) {
-//                                            display.append(" - ").append(category.trim());
-//                                        }
+                                        if (category != null && !category.trim().isEmpty()) {
+                                            display.append(" - ").append(category.trim());
+                                        }
 
                                         // año (vintage)
-//                                        if (vintageStr != null && !vintageStr.trim().isEmpty()) {
-//                                            display.append(" - ").append(vintageStr.trim());
-//                                        }
+                                        if (vintageStr != null && !vintageStr.trim().isEmpty()) {
+                                            display.append(" - ").append(vintageStr.trim());
+                                        }
 
                                         // 3️⃣ Guardamos el texto ya formateado
                                         optimalWineNames.add(display.toString());
+                                        optimalWineIdsTemp.add(docId);   // 👈 NUEVO
                                     }
                                 }
                             } catch (NumberFormatException e) {
@@ -588,9 +598,14 @@ public class HomeActivity extends AppCompatActivity {
                 currentOptimalWineNames.clear();
                 currentOptimalWineNames.addAll(optimalWineNames);
 
+                // IDs de vinos óptimos
+                currentOptimalWineIds.clear();
+                currentOptimalWineIds.addAll(optimalWineIdsTemp);
+
                 // actualizar estado del GIF de uva
                 boolean hasOptimal = !optimalWineNames.isEmpty();
                 updateGrapeGifState(hasOptimal, optimalCount);
+
 
 
                 // Notificación solo si hay vinos en consumo óptimo

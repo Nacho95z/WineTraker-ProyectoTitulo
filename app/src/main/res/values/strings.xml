@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">WinerTraker</string>
     <string name="default_web_client_id">739800455486-lq4m0ui00qnqjakon6bjue2otemvd6ds.apps.googleusercontent.com</string>
+    <string name="consumo_optimo">Vino en consumo óptimo</string>
+
 
 </resources>
