@@ -89,12 +89,17 @@ public class AuthActivity extends AppCompatActivity {
     private void checkSessionAndRedirect() {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         boolean remember = prefs.getBoolean("remember_session", true);
+        boolean biometricEnabled = prefs.getBoolean("biometric_gate_enabled", true);
+
 
         if (currentUser != null && remember && currentUser.isEmailVerified()) {
-            Intent intent = new Intent(AuthActivity.this, BiometricGateActivity.class);
+            Intent intent = biometricEnabled
+                    ? new Intent(AuthActivity.this, BiometricGateActivity.class)
+                    : new Intent(AuthActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
         }
+
     }
 
 

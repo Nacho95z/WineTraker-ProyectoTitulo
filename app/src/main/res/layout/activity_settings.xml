@@ -115,6 +115,8 @@
                     android:layout_height="wrap_content"
                     android:text="Cambiar contraseña"
                     android:layout_marginTop="8dp" />
+
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -146,6 +148,14 @@
                     android:layout_height="wrap_content"
                     android:text="Mantener sesión iniciada"
                     android:layout_marginTop="8dp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchBiometricGate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Pedir huella/PIN al abrir la app"
+                    android:layout_marginTop="8dp" />
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

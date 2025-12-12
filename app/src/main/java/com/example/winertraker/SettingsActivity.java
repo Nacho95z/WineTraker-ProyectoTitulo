@@ -33,6 +33,9 @@ public class SettingsActivity extends AppCompatActivity {
     // Sesión
     private SwitchCompat switchRememberSession;
 
+    // Huella
+    private SwitchCompat switchBiometricGate;
+
     // Notificaciones
     private SwitchCompat switchNotifOptimal, switchNotifExpiry, switchNotifNews;
 
@@ -45,6 +48,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     // Acerca de
     private TextView txtAboutVersion, txtPrivacyPolicy, txtTerms;
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,6 +71,7 @@ public class SettingsActivity extends AppCompatActivity {
         txtProfileUid = findViewById(R.id.txtProfileUid);
         btnEditName = findViewById(R.id.btnEditName);
         btnEditEmail = findViewById(R.id.btnEditEmail);
+        switchBiometricGate = findViewById(R.id.switchBiometricGate);
 
 
         // Seguridad
@@ -119,6 +124,9 @@ public class SettingsActivity extends AppCompatActivity {
         switchNotifOptimal.setChecked(prefs.getBoolean("notif_optimal", true));
         switchNotifExpiry.setChecked(prefs.getBoolean("notif_expiry", true));
         switchNotifNews.setChecked(prefs.getBoolean("notif_news", true));
+        boolean biometricEnabled = prefs.getBoolean("biometric_gate_enabled", true);
+        switchBiometricGate.setChecked(biometricEnabled);
+
 
         int themeMode = prefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         if (themeMode == AppCompatDelegate.MODE_NIGHT_NO) {
@@ -146,10 +154,21 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
+        switchBiometricGate.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean("biometric_gate_enabled", isChecked).apply();
+        });
+
+
         // Recordar sesión
         switchRememberSession.setOnCheckedChangeListener((buttonView, isChecked) -> {
             prefs.edit().putBoolean("remember_session", isChecked).apply();
+
+            if (!isChecked) {
+                prefs.edit().putBoolean("biometric_gate_enabled", false).apply();
+                switchBiometricGate.setChecked(false);
+            }
         });
+
 
         // Notificaciones
         switchNotifOptimal.setOnCheckedChangeListener((buttonView, isChecked) ->

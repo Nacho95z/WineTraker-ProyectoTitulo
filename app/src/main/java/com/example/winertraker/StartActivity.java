@@ -13,7 +13,7 @@ import com.google.firebase.auth.FirebaseUser;
 
 public class StartActivity extends AppCompatActivity {
 
-    private static final long SPLASH_TIME = 1500; // ⏱ 2 segundos
+    private static final long SPLASH_TIME = 1350; // ⏱ 2 segundos
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +28,8 @@ public class StartActivity extends AppCompatActivity {
 
         boolean termsAccepted = prefs.getBoolean("terms_accepted", false);
         boolean remember = prefs.getBoolean("remember_session", true);
+        boolean biometricEnabled = prefs.getBoolean("biometric_gate_enabled", true);
+
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
@@ -40,10 +42,15 @@ public class StartActivity extends AppCompatActivity {
 
         // 2️⃣ Sesión recordada → Huella → Home
         if (user != null && remember) {
-            startActivity(new Intent(this, BiometricGateActivity.class));
+            if (biometricEnabled) {
+                startActivity(new Intent(this, BiometricGateActivity.class));
+            } else {
+                startActivity(new Intent(this, HomeActivity.class));
+            }
             finish();
             return;
         }
+
 
         // 3️⃣ Caso normal → Login
         startActivity(new Intent(this, AuthActivity.class));
