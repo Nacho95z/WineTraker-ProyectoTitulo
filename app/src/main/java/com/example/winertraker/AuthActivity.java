@@ -90,13 +90,13 @@ public class AuthActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         boolean remember = prefs.getBoolean("remember_session", true);
 
-        // Solo redirigir si hay usuario, quiere recordar Y EL CORREO ESTÁ VERIFICADO
         if (currentUser != null && remember && currentUser.isEmailVerified()) {
-            Intent intent = new Intent(AuthActivity.this, HomeActivity.class);
+            Intent intent = new Intent(AuthActivity.this, BiometricGateActivity.class);
             startActivity(intent);
             finish();
         }
     }
+
 
     // --- DIÁLOGO DE TÉRMINOS Y CONDICIONES ---
     private void showTermsDialog() {

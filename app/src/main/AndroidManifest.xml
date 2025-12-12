@@ -52,6 +52,10 @@
             android:name=".DisplayImageAndText"
             android:exported="false" />
 
+        <activity
+            android:name=".BiometricGateActivity"
+            android:exported="false" />
+
 
         <!-- Aquí aplicaremos la lógica del Pop-up de cámara -->
         <activity
