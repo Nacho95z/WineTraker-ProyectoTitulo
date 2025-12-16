@@ -80,6 +80,10 @@ import java.util.Map;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+
 public class HomeActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 112;
@@ -134,6 +138,11 @@ public class HomeActivity extends AppCompatActivity {
             "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
     };
 
+    private RecyclerView rvArticles;
+    private ArticlesAdapter articlesAdapter;
+    private final List<Article> articles = new ArrayList<>();
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -157,6 +166,7 @@ public class HomeActivity extends AppCompatActivity {
         fixPagerSwipeConflicts();
         setupUserInfo();
         setupActions();
+        setupArticlesSection();
         createNotificationChannel();
 
         swipeRefreshLayout.setColorSchemeColors(Color.parseColor("#B22034"));
@@ -250,6 +260,11 @@ public class HomeActivity extends AppCompatActivity {
         chartsPager = findViewById(R.id.chartsPager);
         chartsDots = findViewById(R.id.chartsDots);
         txtChartInsight = findViewById(R.id.txtChartInsight);
+
+        // Articulos
+        rvArticles = findViewById(R.id.rvArticles);
+
+
     }
 
     private void setupChartsPager() {
@@ -1169,4 +1184,71 @@ public class HomeActivity extends AppCompatActivity {
         }
         return out;
     }
+
+    private void setupArticlesSection() {
+        if (rvArticles == null) return;
+
+        rvArticles.setLayoutManager(
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        );
+        rvArticles.setNestedScrollingEnabled(false);
+
+        // opcional: padding para que se vea “carrusel”
+        rvArticles.setPadding(8, 0, 8, 0);
+        rvArticles.setClipToPadding(false);
+
+
+
+        articles.clear();
+
+        articles.add(new Article(
+                "a1",
+                "Cómo leer una etiqueta de vino chileno (D.O.)",
+                "Una guía corta para entender denominación de origen, valle, cepa y año sin enredos.",
+                "Wines of Chile / Guía enológica",
+                "3 min",
+                "• Denominación de Origen (D.O.): indica el origen geográfico declarado.\n" +
+                        "• Valle / Región: te orienta sobre estilo (clima, influencia costera, etc.).\n" +
+                        "• Cepa: la variedad (Cabernet Sauvignon, Carmenere, Sauvignon Blanc...).\n" +
+                        "• Añada (año): referencia climática y potencial de guarda.\n\n" +
+                        "Tip WineTrack: si escaneas una etiqueta con D.O. y añada, podrás ordenar tu bodega y detectar botellas “en su punto”.",
+                "https://www.winesofchile.org/", R.drawable.wine_article_1 // opcional
+        ));
+
+        articles.add(new Article(
+                "a2",
+                "Temperaturas de servicio: el cambio más fácil (y más notorio)",
+                "Si un vino se siente “apagado” o “muy alcohólico”, muchas veces es temperatura.",
+                "Decanter (referencia general)",
+                "3 min",
+                "• Espumantes: 6–8°C\n" +
+                        "• Blancos frescos: 8–10°C\n" +
+                        "• Blancos con más cuerpo: 10–12°C\n" +
+                        "• Tintos jóvenes: 14–16°C\n" +
+                        "• Tintos con guarda: 16–18°C\n\n" +
+                        "Tip rápido: si el tinto está muy cálido, 10 min al refri lo equilibran.",
+                "https://www.decanter.com/" // opcional
+        ));
+
+        articles.add(new Article(
+                "a3",
+                "Dato de industria: producción y tendencias (Chile)",
+                "Un vistazo simple a cómo se mueve la producción y qué significa para precios y disponibilidad.",
+                "SAG (referencias públicas)",
+                "3 min",
+                "WineTrack ya te muestra datos SAG en el banner.\n\n" +
+                        "Idea clave: cuando la producción baja, ciertas categorías pueden subir precio o escasear.\n" +
+                        "Úsalo a tu favor: registra añadas y categorías; tu histórico personal vale oro.",
+                "" // sin URL si no quieres botón
+        ));
+
+        // Mostrar solo 2 o 3 (tú decides)
+        // Si quieres solo 2, comenta uno de arriba.
+        articlesAdapter = new ArticlesAdapter(articles);
+        rvArticles.setAdapter(articlesAdapter);
+        articlesAdapter.notifyDataSetChanged();
+
+
+    }
+
 }

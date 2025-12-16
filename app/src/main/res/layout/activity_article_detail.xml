@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAFAFA"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/txtDetailTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Título"
+            android:textColor="#212121"
+            android:textStyle="bold"
+            android:textSize="22sp"/>
+
+        <TextView
+            android:id="@+id/txtDetailMeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fuente • Lectura 3 min"
+            android:textColor="#757575"
+            android:textSize="12sp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="14dp"/>
+
+        <TextView
+            android:id="@+id/txtDetailBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Contenido…"
+            android:textColor="#424242"
+            android:textSize="14sp"
+            android:lineSpacingExtra="6dp"/>
+
+        <Button
+            android:id="@+id/btnOpenSource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ver fuente"
+            android:layout_marginTop="18dp"
+            android:backgroundTint="#B22034"
+            android:textColor="#FFFFFF"/>
+    </LinearLayout>
+
+</ScrollView>
