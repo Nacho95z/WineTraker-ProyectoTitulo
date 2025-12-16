@@ -81,6 +81,26 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
+                <FrameLayout
+                    android:id="@+id/loadingOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#80000000"
+                    android:visibility="gone"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true">
+
+
+                    <ProgressBar
+                        android:id="@+id/loadingProgress"
+                        style="?android:attr/progressBarStyleLarge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"/>
+                </FrameLayout>
+
+
                 <!-- Overlay guía -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/labelGuideOverlay"

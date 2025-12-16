@@ -1,9 +1,9 @@
 package com.example.winertraker;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -52,6 +52,8 @@ public class CaptureIMG extends AppCompatActivity {
     private StorageReference storageRef;
     private FloatingActionButton captureButton;
     private boolean isCapturing = false;
+    private View loadingOverlay;
+
 
 
 
@@ -121,6 +123,7 @@ public class CaptureIMG extends AppCompatActivity {
 
         previewView = findViewById(R.id.viewFinder);
         captureButton = findViewById(R.id.image_capture_button);
+        loadingOverlay = findViewById(R.id.loadingOverlay);
 
 
         previewView.post(this::startCamera);
@@ -130,6 +133,34 @@ public class CaptureIMG extends AppCompatActivity {
             lockCaptureButton();
             captureImage();
         });
+
+        getOnBackPressedDispatcher().addCallback(this,
+                new androidx.activity.OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+
+                        // 🔒 Bloqueo mientras se captura / procesa
+                        if (isCapturing) {
+                            Toast.makeText(
+                                    CaptureIMG.this,
+                                    "Procesando imagen, espera un momento…",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                            return;
+                        }
+
+                        // 📂 Si el drawer está abierto, cerrarlo primero
+                        if (drawerLayoutCapture != null &&
+                                drawerLayoutCapture.isDrawerOpen(GravityCompat.START)) {
+                            drawerLayoutCapture.closeDrawer(GravityCompat.START);
+                            return;
+                        }
+
+                        // ⬅️ Back normal
+                        setEnabled(false);
+                        CaptureIMG.super.onBackPressed();
+                    }
+                });
 
     }
 
@@ -191,19 +222,17 @@ public class CaptureIMG extends AppCompatActivity {
 
                         Uri fileUri = Uri.fromFile(photoFile);
 
-                        ProgressDialog progressDialog = new ProgressDialog(CaptureIMG.this);
-                        progressDialog.setMessage("Procesando imagen...");
-                        progressDialog.setCancelable(false);
-                        progressDialog.show();
+                        showLoading();
+                        processImageForText(fileUri);
 
-                        processImageForText(fileUri, progressDialog);
                         // ✅ NO desbloqueamos aquí: si todo va bien, pasamos a la otra Activity.
                     }
 
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
+                        hideLoading();
                         Toast.makeText(CaptureIMG.this, "Error al capturar foto", Toast.LENGTH_SHORT).show();
-                        unlockCaptureButton(); // ✅
+                        unlockCaptureButton();
                     }
                 }
         );
@@ -269,7 +298,7 @@ public class CaptureIMG extends AppCompatActivity {
         }
     }
 
-    private void processImageForText(Uri uri, ProgressDialog progressDialog) {
+    private void processImageForText(Uri uri) {
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
             TextRecognizer recognizer =
@@ -277,21 +306,22 @@ public class CaptureIMG extends AppCompatActivity {
 
             recognizer.process(image)
                     .addOnSuccessListener(text -> {
-                        progressDialog.dismiss();
+                        hideLoading();
                         String recognizedText = text.getText();
                         showImageAndText(uri, recognizedText);
                     })
                     .addOnFailureListener(e -> {
-                        progressDialog.dismiss();
-                        unlockCaptureButton(); // ✅
-                        Toast.makeText(CaptureIMG.this, "Error al procesar texto", Toast.LENGTH_SHORT).show();
+                        hideLoading();
+                        unlockCaptureButton();
+                        Toast.makeText(this, "Error al procesar texto", Toast.LENGTH_SHORT).show();
                     });
         } catch (IOException e) {
             e.printStackTrace();
-            progressDialog.dismiss();
-            unlockCaptureButton(); // ✅
+            hideLoading();
+            unlockCaptureButton();
         }
     }
+
 
     private void showImageAndText(Uri imageUri, String recognizedText) {
         Intent intent = new Intent(this, DisplayImageAndText.class);
@@ -300,15 +330,7 @@ public class CaptureIMG extends AppCompatActivity {
         startActivity(intent);
     }
 
-    @Override
-    public void onBackPressed() {
-        if (drawerLayoutCapture != null &&
-                drawerLayoutCapture.isDrawerOpen(GravityCompat.START)) {
-            drawerLayoutCapture.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }
+
 
     private void lockCaptureButton() {
         isCapturing = true;
@@ -316,14 +338,11 @@ public class CaptureIMG extends AppCompatActivity {
             captureButton.setEnabled(false);
             captureButton.setAlpha(0.6f);
         }
-    }
+        if (drawerLayoutCapture != null) {
+            drawerLayoutCapture.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        unlockCaptureButton();
     }
-
 
     private void unlockCaptureButton() {
         isCapturing = false;
@@ -331,6 +350,32 @@ public class CaptureIMG extends AppCompatActivity {
             captureButton.setEnabled(true);
             captureButton.setAlpha(1f);
         }
+        if (drawerLayoutCapture != null) {
+            drawerLayoutCapture.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        }
+
     }
+    private void showLoading() {
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        hideLoading();
+        unlockCaptureButton();
+    }
+
+
+    private void hideLoading() {
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(View.GONE);
+        }
+    }
+
+
 
 }
