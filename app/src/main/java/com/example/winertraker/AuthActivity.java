@@ -123,7 +123,7 @@ public class AuthActivity extends AppCompatActivity {
                 "MARCO NORMATIVO Y TÉRMINOS DE USO\n\n" +
 
                         "1. CUMPLIMIENTO LEGAL (CHILE)\n" +
-                        "Conforme al Art. 42 de la Ley N° 19.925 (Ley de Alcoholes), el acceso a esta aplicación está estrictamente restringido a mayores de 18 años.\n\n" +
+                        "Conforme al Art. 42 de la Ley N° 19.925 (Ley de Alcoholes), el acceso a esta aplicación está estrictamente restringido a menores de 18 años.\n\n" +
 
                         "2. PRIVACIDAD Y SEGURIDAD DE DATOS\n" +
                         "El tratamiento de imágenes y datos personales se rige por la Ley N° 21.719 (Protección de la Vida Privada). La arquitectura del sistema sigue lineamientos de seguridad basados en la norma ISO/IEC 27001.\n\n" +
