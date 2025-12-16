@@ -50,6 +50,10 @@ public class CaptureIMG extends AppCompatActivity {
     private PreviewView previewView;
     private ImageCapture imageCapture;
     private StorageReference storageRef;
+    private FloatingActionButton captureButton;
+    private boolean isCapturing = false;
+
+
 
     // Drawer
     private DrawerLayout drawerLayoutCapture;
@@ -116,11 +120,17 @@ public class CaptureIMG extends AppCompatActivity {
         });
 
         previewView = findViewById(R.id.viewFinder);
-        FloatingActionButton captureButton = findViewById(R.id.image_capture_button);
+        captureButton = findViewById(R.id.image_capture_button);
+
 
         previewView.post(this::startCamera);
 
-        captureButton.setOnClickListener(v -> captureImage());
+        captureButton.setOnClickListener(v -> {
+            if (isCapturing) return;
+            lockCaptureButton();
+            captureImage();
+        });
+
     }
 
     private void startCamera() {
@@ -134,6 +144,7 @@ public class CaptureIMG extends AppCompatActivity {
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
                 Toast.makeText(CaptureIMG.this, "Error al iniciar cámara", Toast.LENGTH_SHORT).show();
+                unlockCaptureButton();
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -153,11 +164,15 @@ public class CaptureIMG extends AppCompatActivity {
             cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
         } catch (Exception e) {
             Toast.makeText(this, "Fallo al vincular cámara", Toast.LENGTH_SHORT).show();
+            unlockCaptureButton();
         }
     }
 
     private void captureImage() {
-        if (imageCapture == null) return;
+        if (imageCapture == null) {
+            unlockCaptureButton();
+            return;
+        }
 
         String uniqueFileName = System.currentTimeMillis() + ".jpg";
         File photoFile = new File(getExternalFilesDir(null), uniqueFileName);
@@ -172,7 +187,6 @@ public class CaptureIMG extends AppCompatActivity {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
 
-                        // 🔄 Corregimos orientación ANTES de seguir
                         fixImageOrientation(photoFile);
 
                         Uri fileUri = Uri.fromFile(photoFile);
@@ -183,15 +197,18 @@ public class CaptureIMG extends AppCompatActivity {
                         progressDialog.show();
 
                         processImageForText(fileUri, progressDialog);
+                        // ✅ NO desbloqueamos aquí: si todo va bien, pasamos a la otra Activity.
                     }
 
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
                         Toast.makeText(CaptureIMG.this, "Error al capturar foto", Toast.LENGTH_SHORT).show();
+                        unlockCaptureButton(); // ✅
                     }
                 }
         );
     }
+
 
     /**
      * Lee el EXIF del archivo y rota la imagen si es necesario,
@@ -266,11 +283,13 @@ public class CaptureIMG extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> {
                         progressDialog.dismiss();
+                        unlockCaptureButton(); // ✅
                         Toast.makeText(CaptureIMG.this, "Error al procesar texto", Toast.LENGTH_SHORT).show();
                     });
         } catch (IOException e) {
             e.printStackTrace();
             progressDialog.dismiss();
+            unlockCaptureButton(); // ✅
         }
     }
 
@@ -290,4 +309,28 @@ public class CaptureIMG extends AppCompatActivity {
             super.onBackPressed();
         }
     }
+
+    private void lockCaptureButton() {
+        isCapturing = true;
+        if (captureButton != null) {
+            captureButton.setEnabled(false);
+            captureButton.setAlpha(0.6f);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        unlockCaptureButton();
+    }
+
+
+    private void unlockCaptureButton() {
+        isCapturing = false;
+        if (captureButton != null) {
+            captureButton.setEnabled(true);
+            captureButton.setAlpha(1f);
+        }
+    }
+
 }

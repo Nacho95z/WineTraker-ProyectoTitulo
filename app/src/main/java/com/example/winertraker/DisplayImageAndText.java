@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.util.Log;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.view.GravityCompat;
@@ -64,6 +65,9 @@ public class DisplayImageAndText extends AppCompatActivity {
     private ProgressBar progressBar;
     private LinearLayout commentHeaderLayout;
     private CardView imageCard;
+    private Button saveButton, discardButton;
+    private boolean isSaving = false;
+
 
     // Datos
     private Uri imageUri;
@@ -103,8 +107,9 @@ public class DisplayImageAndText extends AppCompatActivity {
         categoryEditText = findViewById(R.id.categoryEditText);
         priceEditText = findViewById(R.id.priceEditText); // 👈 NUEVO
 
-        Button saveButton = findViewById(R.id.buttonSave);
-        Button discardButton = findViewById(R.id.buttonDiscard);
+        saveButton = findViewById(R.id.buttonSave);
+        discardButton = findViewById(R.id.buttonDiscard);
+
 
         progressBar = findViewById(R.id.progressBar);
         aiProgressGif = findViewById(R.id.aiProgressGif);
@@ -237,6 +242,11 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         // Guardar
         saveButton.setOnClickListener(v -> {
+
+            // ✅ anti multi-click
+            if (isSaving) return;
+            lockSaveButton();
+
             String wineName = wineNameEditText.getText().toString().trim();
             String variety = nameEditText.getText().toString().trim();
             String vintage = vintageEditText.getText().toString().trim();
@@ -244,16 +254,17 @@ public class DisplayImageAndText extends AppCompatActivity {
             String percentage = percentageEditText.getText().toString().trim();
             String category = categoryEditText.getText().toString().trim();
             String comment = commentEditText.getText().toString().trim();
-            String priceStr = priceEditText.getText().toString().trim();   // 👈 NUEVO
+            String priceStr = priceEditText.getText().toString().trim();
 
             variety = normalizeVarietyCanonical(variety);
             nameEditText.setText(variety);
 
             if (!validateInputs(wineName, variety, vintage, origin, percentage, category, priceStr)) {
+                unlockSaveButton(); // ✅ si falló validación, vuelve a habilitar
                 return;
             }
 
-            Double price = null;
+            Double price;
             try {
                 price = Double.parseDouble(priceStr);
             } catch (NumberFormatException e) {
@@ -264,8 +275,34 @@ public class DisplayImageAndText extends AppCompatActivity {
             saveDataToFirebase(wineName, variety, vintage, origin, percentage, category, comment, price);
         });
 
+
         // Descartar
-        discardButton.setOnClickListener(v -> navigateToHome());
+        discardButton.setOnClickListener(v -> {
+            if (isSaving) {
+                Snackbar.make(capturedImageView,
+                        "Guardando... espera a que termine para descartar.",
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            navigateToHome();
+        });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (isSaving) {
+                    Snackbar.make(capturedImageView,
+                            "Guardando... espera a que termine el proceso.",
+                            Snackbar.LENGTH_SHORT).show();
+                    return;
+                }
+                // permitir volver normalmente
+                setEnabled(false);
+                DisplayImageAndText.super.onBackPressed();
+            }
+        });
+
+
     }
 
     private void closeImageOverlay() {
@@ -301,15 +338,6 @@ public class DisplayImageAndText extends AppCompatActivity {
         finish();
     }
 
-    @Override
-    public void onBackPressed() {
-        // Si el drawer está abierto, lo cerramos primero
-        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }
 
     // ---------- LÓGICA ORIGINAL (validaciones, guardado, etc.) ----------
 
@@ -529,6 +557,7 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         if (imageUri == null) {
             Toast.makeText(this, "No hay imagen para guardar.", Toast.LENGTH_SHORT).show();
+            unlockSaveButton(); // ✅
             return;
         }
 
@@ -543,6 +572,7 @@ public class DisplayImageAndText extends AppCompatActivity {
 
             if (originalBitmap == null) {
                 progressBar.setVisibility(View.GONE);
+                unlockSaveButton();
                 Snackbar.make(capturedImageView, "No se pudo leer la imagen para comprimirla.", Snackbar.LENGTH_LONG).show();
                 return;
             }
@@ -589,26 +619,20 @@ public class DisplayImageAndText extends AppCompatActivity {
                     );
                 }).addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
-                    Snackbar.make(capturedImageView,
-                            "No se pudo obtener la URL de la imagen.",
-                            Snackbar.LENGTH_LONG
-                    ).show();
+                    unlockSaveButton();
+                    Snackbar.make(capturedImageView, "No se pudo obtener la URL de la imagen.", Snackbar.LENGTH_LONG).show();
                 });
             }).addOnFailureListener(e -> {
                 progressBar.setVisibility(View.GONE);
-                Snackbar.make(capturedImageView,
-                        "Error al subir la imagen.",
-                        Snackbar.LENGTH_LONG
-                ).show();
+                unlockSaveButton();
+                Snackbar.make(capturedImageView, "Error al subir la imagen.", Snackbar.LENGTH_LONG).show();
             });
 
         } catch (Exception e) {
             e.printStackTrace();
             progressBar.setVisibility(View.GONE);
-            Snackbar.make(capturedImageView,
-                    "Error al procesar la imagen antes de subirla.",
-                    Snackbar.LENGTH_LONG
-            ).show();
+            unlockSaveButton();
+            Snackbar.make(capturedImageView, "Error al procesar la imagen antes de subirla.", Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -641,10 +665,12 @@ public class DisplayImageAndText extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> {
                     progressBar.setVisibility(View.GONE);
                     Snackbar.make(capturedImageView, "Datos guardados correctamente.", Snackbar.LENGTH_LONG).show();
+                    unlockSaveButton();
                     navigateToHome();
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
+                    unlockSaveButton();
                     Snackbar.make(capturedImageView, "Error al guardar en Firestore.", Snackbar.LENGTH_LONG).show();
                 });
     }
@@ -655,4 +681,39 @@ public class DisplayImageAndText extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
+    private void lockSaveButton() {
+        isSaving = true;
+        if (saveButton != null) {
+            saveButton.setEnabled(false);
+            saveButton.setAlpha(0.6f);
+        }
+        if (discardButton != null) {
+            discardButton.setEnabled(false);
+            discardButton.setAlpha(0.6f);
+        }
+        if (drawerLayout != null) {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        }
+
+
+    }
+
+    private void unlockSaveButton() {
+        isSaving = false;
+        if (saveButton != null) {
+            saveButton.setEnabled(true);
+            saveButton.setAlpha(1f);
+        }
+        if (discardButton != null) {
+            discardButton.setEnabled(true);
+            discardButton.setAlpha(1f);
+        }
+        if (drawerLayout != null) {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        }
+
+
+    }
+
 }
