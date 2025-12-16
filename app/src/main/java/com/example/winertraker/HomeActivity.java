@@ -821,10 +821,36 @@ public class HomeActivity extends AppCompatActivity {
         chart.setBackgroundColor(Color.WHITE);
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(false);
-        chart.setTouchEnabled(false);
+        chart.setTouchEnabled(true);
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(false);
+        chart.setPinchZoom(false);
 
-        chart.setExtraOffsets(0f, 0f, 0f, 0f); // 👈 más margen derecho
+        chart.setHighlightPerTapEnabled(true);
+        chart.setHighlightPerDragEnabled(true);
+        dataSet.setDrawHorizontalHighlightIndicator(false);
+        dataSet.setDrawVerticalHighlightIndicator(false);
+
+
+        chart.setExtraOffsets(0f, 0f, 0f, 16f); // 👈 más margen derecho
         chart.animateX(900, Easing.EaseInOutSine);
+        dataSet.setDrawValues(false); // ✅ oculta valores
+
+        chart.setTouchEnabled(true);
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(false);
+        chart.setPinchZoom(false);
+        chart.setHighlightPerTapEnabled(true);
+        chart.setHighlightPerDragEnabled(true);
+
+        ValueMarkerView marker = new ValueMarkerView(
+                this,
+                R.layout.marker_value,
+                MONTHS_FULL,
+                value -> formatCurrency(value)
+        );
+        chart.setMarker(marker);
+
         chart.invalidate();
     }
 
