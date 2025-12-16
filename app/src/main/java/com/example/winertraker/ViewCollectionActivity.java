@@ -409,18 +409,23 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
     }
 
-    // Omitimos campos que no queremos usar como filtro
+    // Omitimos campos que no queremos usar como filtro (robusto a case)
     private boolean shouldIncludeFieldForFilter(String key) {
         if (key == null) return false;
-        switch (key) {
-            case "rawText":
-            case "comment":
-            case "imageUrl":
-                return false;
-            default:
-                return true;
-        }
+
+        String k = key.trim().toLowerCase();
+
+        // Excluidos (agrega aquí todo lo "técnico" que no quieres mostrar)
+        if (k.equals("rawtext") || k.equals("raw_text") || k.equals("rawtextfull")) return false;
+        if (k.equals("comment")) return false;
+        if (k.equals("imageurl") || k.equals("image_url")) return false;
+        if (k.equals("createdat") || k.equals("updatedat")) return false; // 👈 esto saca createdAt
+        if (k.equals("recognizedtext")) return false;
+
+
+        return true;
     }
+
 
 
     private void setupFilterSpinner() {
