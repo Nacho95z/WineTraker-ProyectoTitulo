@@ -2,6 +2,7 @@ package com.example.winertraker;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.animation.ValueAnimator;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -14,6 +15,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -23,7 +26,6 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.animation.ValueAnimator;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,15 +38,12 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.charts.Chart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
-import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -80,10 +79,6 @@ import java.util.Map;
 
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
-
-import android.view.MotionEvent;
-import android.view.ViewParent;
-
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -127,13 +122,17 @@ public class HomeActivity extends AppCompatActivity {
     // ===== Carrusel Charts =====
     private ViewPager2 chartsPager;
     private TabLayout chartsDots;
-
     private ChartsPagerAdapter chartsAdapter;
 
     // Cache datos para que el adapter pinte cuando corresponda
     private final Map<String, Integer> cachedVarietyCounts = new HashMap<>();
     private int[] cachedMonthCounts = new int[12];
     private double[] cachedMonthValues = new double[12];
+
+    private static final String[] MONTHS_FULL = {
+            "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+            "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -235,6 +234,10 @@ public class HomeActivity extends AppCompatActivity {
 
         txtTotalWines = findViewById(R.id.txtTotalWines);
         txtOptimalWines = findViewById(R.id.txtOptimalWines);
+
+        // Si tu layout lo tiene, perfecto. Si no existe, quedará null y no rompe.
+        //try { txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue); } catch (Exception ignored) {}
+
         cardScan = findViewById(R.id.cardScan);
         cardCollection = findViewById(R.id.cardCollection);
 
@@ -247,8 +250,6 @@ public class HomeActivity extends AppCompatActivity {
         chartsPager = findViewById(R.id.chartsPager);
         chartsDots = findViewById(R.id.chartsDots);
         txtChartInsight = findViewById(R.id.txtChartInsight);
-
-
     }
 
     private void setupChartsPager() {
@@ -273,7 +274,6 @@ public class HomeActivity extends AppCompatActivity {
 
         chartsPager.setPageTransformer((page, position) -> {
             float absPos = Math.abs(position);
-
             page.setScaleY(0.95f + (1 - absPos) * 0.05f);
             page.setAlpha(0.7f + (1 - absPos) * 0.3f);
         });
@@ -286,14 +286,9 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
-
-        new TabLayoutMediator(chartsDots, chartsPager, (tab, position) -> {
-            tab.setIcon(R.drawable.dot_selector);
-        }).attach();
-
+        new TabLayoutMediator(chartsDots, chartsPager, (tab, position) -> tab.setIcon(R.drawable.dot_selector)).attach();
 
         updateInsightForPage(chartsPager.getCurrentItem()); // inicializa insight
-
     }
 
     private void setupUserInfo() {
@@ -358,11 +353,7 @@ public class HomeActivity extends AppCompatActivity {
             bannerAnimator.setInterpolator(new LinearInterpolator());
             bannerAnimator.setRepeatCount(0);
 
-            bannerAnimator.addUpdateListener(animation -> {
-                float value = (float) animation.getAnimatedValue();
-                bannerTextView.setTranslationX(value);
-            });
-
+            bannerAnimator.addUpdateListener(animation -> bannerTextView.setTranslationX((float) animation.getAnimatedValue()));
             bannerAnimator.start();
         });
     }
@@ -402,6 +393,7 @@ public class HomeActivity extends AppCompatActivity {
             bannerMessages.add("WineTrack • Comienza registrando tus primeras botellas y organiza tu bodega digital.");
         }
 
+        // (mantuve tus mensajes SAG tal cual)
         bannerMessages.add("Dato SAG 2025: la producción total de vinos fue de 838,6 millones de litros, cerca de un 10% menos que el 2024.");
         bannerMessages.add("En 2025, el 82,5% del vino producido en Chile fue con denominación de origen, según SAG.");
         bannerMessages.add("Solo el 1,2% del vino producido en Chile el 2025 provino de uvas de mesa, de acuerdo al SAG.");
@@ -587,11 +579,7 @@ public class HomeActivity extends AppCompatActivity {
                 cachedMonthValues = monthValues;
 
                 if (chartsAdapter != null) chartsAdapter.notifyDataSetChanged();
-                if (chartsPager != null) {
-                    updateInsightForPage(chartsPager.getCurrentItem());
-                }
-
-
+                if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
 
                 updateTotalCellarValue(totalCellarValue);
                 updateBannerMessage(totalWines, totalCellarValue);
@@ -618,6 +606,7 @@ public class HomeActivity extends AppCompatActivity {
 
                 updateGrapeGifState(false, 0);
                 updateBannerMessage(0, 0);
+                if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
             }
         }).addOnFailureListener(e -> {
             swipeRefreshLayout.setRefreshing(false);
@@ -629,11 +618,12 @@ public class HomeActivity extends AppCompatActivity {
             if (chartsAdapter != null) chartsAdapter.notifyDataSetChanged();
 
             updateGrapeGifState(false, 0);
+            if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
         });
     }
 
     // -------------------------------------------------------------
-    // Charts (TÍTULOS DENTRO DEL GRÁFICO)
+    // Charts
     // -------------------------------------------------------------
 
     private void updatePieChart(PieChart chart, Map<String, Integer> wineVarietyCounts) {
@@ -664,7 +654,6 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         chart.setData(data);
-
         chart.setUsePercentValues(false);
 
         chart.setDrawHoleEnabled(true);
@@ -673,31 +662,20 @@ public class HomeActivity extends AppCompatActivity {
         chart.setEntryLabelColor(Color.BLACK);
         chart.setEntryLabelTextSize(10f);
 
-
-        // ✅ Título dentro del gráfico
-        chart.setCenterText(""); // o "Variedades"
+        chart.setCenterText("");
         chart.setCenterTextSize(16f);
         chart.setCenterTextColor(Color.DKGRAY);
-
-        // ✅ IMPORTANTÍSIMO: evitar "Description Label"
-        chart.getDescription().setEnabled(false);
 
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(false);
         chart.setTouchEnabled(false);
-        chart.invalidate();
 
         chart.animateY(900, Easing.EaseInOutQuad);
-
         chart.invalidate();
     }
 
     private void updateBarChart(BarChart chart, int[] monthCounts) {
         if (chart == null) return;
-
-        final String[] months = {"Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
-
-
 
         List<BarEntry> entries = new ArrayList<>();
         for (int i = 0; i < 12; i++) {
@@ -739,20 +717,17 @@ public class HomeActivity extends AppCompatActivity {
         XAxis xAxis = chart.getXAxis();
         xAxis.setGranularity(1f);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(months));
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(MONTHS_FULL));
         xAxis.setDrawGridLines(false);
-
-        //MESES
         xAxis.setLabelRotationAngle(-35f);
         xAxis.setTextSize(10f);
-
+        xAxis.setAvoidFirstLastClipping(true);
         chart.getXAxis().setDrawAxisLine(false);
 
         YAxis leftAxis = chart.getAxisLeft();
         leftAxis.setGranularity(1f);
         leftAxis.setAxisMinimum(0f);
         leftAxis.setDrawGridLines(false);
-        chart.getXAxis().setDrawAxisLine(false);
         leftAxis.setValueFormatter(new ValueFormatter() {
             @Override public String getFormattedValue(float value) { return String.valueOf((int) value); }
         });
@@ -764,18 +739,13 @@ public class HomeActivity extends AppCompatActivity {
         chart.getLegend().setEnabled(false);
         chart.setTouchEnabled(false);
 
-        chart.invalidate();
-
-        chart.setExtraOffsets(8f, 8f, 8f, 12f);
+        chart.setExtraOffsets(14f, 8f, 14f, 12f);
         chart.animateY(800, Easing.EaseOutCubic);
         chart.invalidate();
     }
 
     private void updateValueLineChart(LineChart chart, double[] monthValues) {
         if (chart == null) return;
-
-        final String[] months = {"Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
-
 
         List<Entry> entries = new ArrayList<>();
         for (int i = 0; i < 12; i++) {
@@ -792,8 +762,7 @@ public class HomeActivity extends AppCompatActivity {
         dataSet.setLineWidth(2.5f);
         dataSet.setCircleRadius(4f);
         dataSet.setValueTextSize(10f);
-        
-
+        dataSet.setDrawValues(false); // ✅ no muestra $ arriba de cada punto
         dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
         dataSet.setCubicIntensity(0.2f);
 
@@ -804,9 +773,9 @@ public class HomeActivity extends AppCompatActivity {
         dataSet.setCircleHoleColor(Color.WHITE);
         dataSet.setDrawCircleHole(true);
 
-        dataSet.setValueFormatter(new ValueFormatter() {
-            @Override public String getPointLabel(Entry entry) { return formatCurrency(entry.getY()); }
-        });
+//        dataSet.setValueFormatter(new ValueFormatter() {
+//            @Override public String getPointLabel(Entry entry) { return formatCurrency(entry.getY()); }
+//        });
 
         dataSet.setDrawFilled(true);
         dataSet.setFillDrawable(ContextCompat.getDrawable(this, R.drawable.area_gradient));
@@ -817,30 +786,31 @@ public class HomeActivity extends AppCompatActivity {
         LineData lineData = new LineData(dataSet);
         chart.setData(lineData);
 
+
+
         XAxis xAxis = chart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(months));
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(MONTHS_FULL));
         xAxis.setDrawGridLines(false);
 
-        //MESES
         xAxis.setLabelRotationAngle(-35f);
         xAxis.setTextSize(10f);
         chart.getXAxis().setDrawAxisLine(false);
-        xAxis.setAvoidFirstLastClipping(true); // ✅ evita recorte de "Diciembre"
+        xAxis.setAvoidFirstLastClipping(true);
 
-        // ✅ Dale “aire” al primer y último punto para que no se corten los labels
+        // ✅ Aire real a los bordes (para que NO se corte el valor del último mes)
         float minX = entries.get(0).getX();
         float maxX = entries.get(entries.size() - 1).getX();
-        xAxis.setAxisMinimum(minX - 0.03f);
+        // ✅ Que el gráfico empiece EXACTO en el primer punto (sin espacio blanco)
+        xAxis.setAxisMinimum(minX);
+        // ✅ Mantén aire SOLO a la derecha para que no se corte el último valor
         xAxis.setAxisMaximum(maxX + 0f);
 
         YAxis leftAxis = chart.getAxisLeft();
         leftAxis.setGranularity(1f);
         leftAxis.setAxisMinimum(0f);
-
         leftAxis.setDrawGridLines(false);
-        chart.getXAxis().setDrawAxisLine(false);
         leftAxis.setValueFormatter(new ValueFormatter() {
             @Override public String getFormattedValue(float value) { return formatCurrency(value); }
         });
@@ -853,18 +823,9 @@ public class HomeActivity extends AppCompatActivity {
         chart.getLegend().setEnabled(false);
         chart.setTouchEnabled(false);
 
-        chart.setExtraOffsets(14f, 8f, 8f, 12f);
+        chart.setExtraOffsets(0f, 0f, 0f, 0f); // 👈 más margen derecho
         chart.animateX(900, Easing.EaseInOutSine);
         chart.invalidate();
-    }
-
-    /**
-     * ✅ Pone el "Description" ARRIBA y CENTRADO dentro del chart (en vez de abajo a la derecha).
-     * Ojo: se hace con post() porque necesitamos width ya calculado.
-     */
-
-    private float dpToPx(float dp) {
-        return dp * getResources().getDisplayMetrics().density;
     }
 
     // -------------------------------------------------------------
@@ -982,11 +943,6 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-
-    @Override
     public void onBackPressed() {
         if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
@@ -1059,8 +1015,6 @@ public class HomeActivity extends AppCompatActivity {
                         startX = e.getX();
                         startY = e.getY();
                         isHorizontal = false;
-
-                        // Deja que por defecto el padre pueda interceptar, lo decidimos en MOVE
                         v.getParent().requestDisallowInterceptTouchEvent(false);
                         return false;
 
@@ -1068,12 +1022,10 @@ public class HomeActivity extends AppCompatActivity {
                         float dx = Math.abs(e.getX() - startX);
                         float dy = Math.abs(e.getY() - startY);
 
-                        // Umbral para evitar “temblor” del dedo
                         if (!isHorizontal && dx > dy && dx > 12) {
                             isHorizontal = true;
                         }
 
-                        // Si es horizontal, impedimos que ScrollView/SwipeRefresh se lo robe
                         v.getParent().requestDisallowInterceptTouchEvent(isHorizontal);
                         return false;
 
@@ -1086,11 +1038,15 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
     }
+
+    // -------------------------------------------------------------
+    // INSIGHTS (cambiados a “MES MÁS RECIENTE con registros” en Bar/Line)
+    // -------------------------------------------------------------
+
     private void updateInsightForPage(int position) {
         if (txtChartInsight == null) return;
 
         if (position == 0) {
-            // PIE: variedad dominante
             VarietyInsight vi = getTopVarietyInsight(cachedVarietyCounts);
             if (vi.total <= 0) {
                 txtChartInsight.setText("Aún no hay datos de variedad. Escanea tu primera botella 🍷");
@@ -1100,22 +1056,23 @@ public class HomeActivity extends AppCompatActivity {
             }
 
         } else if (position == 1) {
-            // BAR: mes más reciente con registros
-            MonthCountInsight mi = getMostRecentMonthCountInsight(cachedMonthCounts);
-            if (mi.totalAllMonths <= 0) {
+            // ✅ BAR: mes más reciente con registros
+            RecentMonthCountInsight mi = getMostRecentMonthWithCount(cachedMonthCounts);
+            if (mi.count <= 0) {
                 txtChartInsight.setText("Aún no hay registros mensuales suficientes.");
             } else {
-                txtChartInsight.setText("Tu registro más reciente fue en " + mi.monthName + " con " + mi.count + " botella(s).");
+                txtChartInsight.setText("Tu último mes con registros fue " + mi.monthName + " con " + mi.count + " botella(s) registrada(s).");
             }
+
         } else {
-            MonthValueInsight vi = getMostRecentMonthValueInsight(cachedMonthValues);
-            if (vi.totalAllMonths <= 0) {
+            // ✅ LINE: mes más reciente con valor (no peak)
+            RecentMonthValueInsight vi = getMostRecentMonthWithValue(cachedMonthValues);
+            if (vi.value <= 0) {
                 txtChartInsight.setText("Aún no hay historial de valor para mostrar.");
             } else {
                 txtChartInsight.setText("Tu último mes con valor registrado fue " + vi.monthName + ": " + formatCurrency(vi.value) + ".");
             }
         }
-
     }
 
     private static class VarietyInsight {
@@ -1143,109 +1100,47 @@ public class HomeActivity extends AppCompatActivity {
         return out;
     }
 
-    private static class MonthCountInsight {
+    private static class RecentMonthCountInsight {
         String monthName;
         int count;
-        int totalAllMonths;
     }
 
-    private MonthCountInsight getTopMonthCountInsight(int[] monthCounts) {
-        MonthCountInsight out = new MonthCountInsight();
-        final String[] months = {"Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"};
-
+    private RecentMonthCountInsight getMostRecentMonthWithCount(int[] monthCounts) {
+        RecentMonthCountInsight out = new RecentMonthCountInsight();
         out.monthName = "—";
         out.count = 0;
-        out.totalAllMonths = 0;
 
         if (monthCounts == null || monthCounts.length < 12) return out;
 
-        for (int i = 0; i < 12; i++) {
-            int v = monthCounts[i];
-            out.totalAllMonths += v;
-            if (v > out.count) {
-                out.count = v;
-                out.monthName = months[i];
+        for (int i = 11; i >= 0; i--) {
+            if (monthCounts[i] > 0) {
+                out.count = monthCounts[i];
+                out.monthName = MONTHS_FULL[i];
+                break;
             }
         }
         return out;
     }
 
-    private static class MonthValueInsight {
+    private static class RecentMonthValueInsight {
         String monthName;
         double value;
-        double totalAllMonths;
     }
 
-    private MonthValueInsight getTopMonthValueInsight(double[] monthValues) {
-        MonthValueInsight out = new MonthValueInsight();
-        final String[] months = {"Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"};
-
+    private RecentMonthValueInsight getMostRecentMonthWithValue(double[] monthValues) {
+        RecentMonthValueInsight out = new RecentMonthValueInsight();
         out.monthName = "—";
         out.value = 0.0;
-        out.totalAllMonths = 0.0;
 
         if (monthValues == null || monthValues.length < 12) return out;
 
-        for (int i = 0; i < 12; i++) {
-            double v = monthValues[i];
-            out.totalAllMonths += v;
-            if (v > out.value) {
-                out.value = v;
-                out.monthName = months[i];
+        for (int i = 11; i >= 0; i--) {
+            if (monthValues[i] > 0) {
+                out.value = monthValues[i];
+                out.monthName = MONTHS_FULL[i];
+                break;
             }
         }
         return out;
     }
-
-    private MonthCountInsight getMostRecentMonthCountInsight(int[] monthCounts) {
-        MonthCountInsight out = new MonthCountInsight();
-        final String[] monthsFull = {"Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
-
-        out.monthName = "—";
-        out.count = 0;
-        out.totalAllMonths = 0;
-
-        if (monthCounts == null || monthCounts.length < 12) return out;
-
-        int lastIndex = -1;
-        for (int i = 0; i < 12; i++) {
-            int v = monthCounts[i];
-            out.totalAllMonths += v;
-            if (v > 0) lastIndex = i;
-        }
-
-        if (lastIndex != -1) {
-            out.count = monthCounts[lastIndex];
-            out.monthName = monthsFull[lastIndex];
-        }
-        return out;
-    }
-
-    private MonthValueInsight getMostRecentMonthValueInsight(double[] monthValues) {
-        MonthValueInsight out = new MonthValueInsight();
-        final String[] monthsFull = {"Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"};
-
-        out.monthName = "—";
-        out.value = 0.0;
-        out.totalAllMonths = 0.0;
-
-        if (monthValues == null || monthValues.length < 12) return out;
-
-        int lastIndex = -1;
-        for (int i = 0; i < 12; i++) {
-            double v = monthValues[i];
-            out.totalAllMonths += v;
-            if (v > 0) lastIndex = i;
-        }
-
-        if (lastIndex != -1) {
-            out.value = monthValues[lastIndex];
-            out.monthName = monthsFull[lastIndex];
-        }
-        return out;
-    }
-
-
-
-
 }
