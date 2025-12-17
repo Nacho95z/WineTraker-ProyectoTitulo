@@ -1203,43 +1203,91 @@ public class HomeActivity extends AppCompatActivity {
 
         articles.add(new Article(
                 "a1",
-                "Cómo leer una etiqueta de vino chileno (D.O.)",
-                "Una guía corta para entender denominación de origen, valle, cepa y año sin enredos.",
+                "Cómo leer una etiqueta de vino chileno (Denominación de Origen)",
+                "Una guía para entender denominación de origen, valle, cepa y año sin enredos.",
                 "Wines of Chile / Guía enológica",
-                "3 min",
-                "• Denominación de Origen (D.O.): indica el origen geográfico declarado.\n" +
-                        "• Valle / Región: te orienta sobre estilo (clima, influencia costera, etc.).\n" +
-                        "• Cepa: la variedad (Cabernet Sauvignon, Carmenere, Sauvignon Blanc...).\n" +
-                        "• Añada (año): referencia climática y potencial de guarda.\n\n" +
-                        "Tip WineTrack: si escaneas una etiqueta con D.O. y añada, podrás ordenar tu bodega y detectar botellas “en su punto”.",
-                "https://www.winesofchile.org/", R.drawable.wine_article_1 // opcional
+                "2 min",
+                "La etiqueta de un vino chileno entrega información clave sobre su origen, estilo y potencial de guarda. Saber interpretarla permite tomar mejores decisiones de compra y consumo.\n" +
+                        "\n" +
+                        "• Denominación de Origen (D.O.): indica el origen geográfico declarado del vino, como Valle del Maipo, Colchagua o Casablanca. Está regulada y refleja condiciones climáticas y de suelo.\n" +
+                        "\n" +
+                        "• Valle o Región: aporta pistas sobre el estilo del vino. Zonas costeras suelen producir vinos más frescos; zonas interiores, vinos más estructurados.\n" +
+                        "\n" +
+                        "• Cepa: señala la variedad de uva utilizada, como Cabernet Sauvignon, Carmenere o Sauvignon Blanc, cada una con perfiles aromáticos y de guarda distintos.\n" +
+                        "\n" +
+                        "• Añada (año): corresponde al año de cosecha y está influida por las condiciones climáticas de esa temporada, afectando calidad y potencial de envejecimiento.\n" +
+                        "\n" +
+                        "Comprender estos elementos permite organizar mejor una bodega personal y detectar botellas que se encuentran en su momento óptimo de consumo.\n",
+                "", R.drawable.wine_article_1 // opcional
         ));
 
         articles.add(new Article(
                 "a2",
-                "Temperaturas de servicio: el cambio más fácil (y más notorio)",
-                "Si un vino se siente “apagado” o “muy alcohólico”, muchas veces es temperatura.",
-                "Decanter (referencia general)",
+                "Maridaje: El arte de combinar vino y gastronomía",
+                "convierte la cata en una experiencia educativa y multisensorial donde el maridaje se vive y se aprende en tiempo real.",
+                "Decanter · Guía de maridaje",
                 "3 min",
-                "• Espumantes: 6–8°C\n" +
-                        "• Blancos frescos: 8–10°C\n" +
-                        "• Blancos con más cuerpo: 10–12°C\n" +
-                        "• Tintos jóvenes: 14–16°C\n" +
-                        "• Tintos con guarda: 16–18°C\n\n" +
-                        "Tip rápido: si el tinto está muy cálido, 10 min al refri lo equilibran.",
-                "https://www.decanter.com/" // opcional
+                "El maridaje busca equilibrar sabores entre el vino y la comida, potenciando ambos sin que uno opaque al otro. No existen reglas absolutas, pero sí principios simples que ayudan a acertar.\n" +
+                        "\n" +
+                        "• Intensidad: platos ligeros combinan mejor con vinos ligeros, mientras que preparaciones intensas requieren vinos con más cuerpo.\n" +
+                        "\n" +
+                        "• Acidez: vinos con buena acidez funcionan muy bien con comidas grasas o cremosas, ya que limpian el paladar.\n" +
+                        "\n" +
+                        "• Taninos: los vinos tintos con taninos se suavizan al acompañarse de proteínas, como carnes rojas o preparaciones a la parrilla.\n" +
+                        "\n" +
+                        "• Dulzor: un vino debe ser igual o más dulce que el plato. Por eso los vinos dulces se recomiendan con postres o quesos azules.\n" +
+                        "\n" +
+                        "• Origen común: vinos y comidas de una misma región suelen maridar naturalmente, ya que comparten tradición y equilibrio cultural.\n" +
+                        "\n" +
+                        "Entender estos principios permite disfrutar mejor cada botella y elegir el momento adecuado para abrirla.\n",
+                "", R.drawable.wine_article_2 // opcional // opcional
         ));
 
         articles.add(new Article(
                 "a3",
-                "Dato de industria: producción y tendencias (Chile)",
-                "Un vistazo simple a cómo se mueve la producción y qué significa para precios y disponibilidad.",
-                "SAG (referencias públicas)",
+                "Guarda y envejecimiento: cuándo esperar y cuándo abrir un vino",
+                "Descubre qué convierte a un vino para ser apto para la guarda, cuáles son sus características clave y por qué el paso del tiempo puede transformarlo en una experiencia inolvidable.",
+                "Wine Enthusiast · Guía de guarda",
                 "3 min",
-                "WineTrack ya te muestra datos SAG en el banner.\n\n" +
-                        "Idea clave: cuando la producción baja, ciertas categorías pueden subir precio o escasear.\n" +
-                        "Úsalo a tu favor: registra añadas y categorías; tu histórico personal vale oro.",
-                "" // sin URL si no quieres botón
+                "No todos los vinos están hechos para guardarse. De hecho, la mayoría de los vinos se disfruta mejor dentro de los primeros años desde su cosecha. Saber identificar cuáles pueden mejorar con el tiempo evita decepciones y pérdidas.\n" +
+                        "\n" +
+                        "• Vinos para consumo temprano: la mayoría de blancos frescos, rosados y tintos ligeros están pensados para beberse jóvenes, priorizando frescura y fruta.\n" +
+                        "\n" +
+                        "• Vinos con potencial de guarda: tintos estructurados, con buena acidez y taninos (como Cabernet Sauvignon o Syrah), y algunos blancos con crianza, pueden evolucionar positivamente durante varios años.\n" +
+                        "\n" +
+                        "• Añada y estructura: el año de cosecha y el equilibrio entre alcohol, acidez y taninos influyen directamente en la capacidad de envejecimiento.\n" +
+                        "\n" +
+                        "• Condiciones de guarda: temperatura estable (idealmente 12–15 °C), ausencia de luz directa y posición horizontal ayudan a conservar el vino correctamente.\n" +
+                        "\n" +
+                        "Guardar un vino más allá de su punto óptimo no siempre lo mejora. En muchos casos, abrirlo a tiempo es la mejor decisión.\n",
+                "",R.drawable.wine_article_3 // opcional // opcional  // sin URL si no quieres botón
+        ));
+
+        articles.add(new Article(
+                "a3",
+                "Temperatura de servicio: el detalle que cambia completamente un vino.",
+                "Conoce a qué temperatura debes servir cada tipo de vino para disfrutar al máximo su aroma y sabor.",
+                "Wine Spectator · Guía de servicio",
+                "3 min",
+                "La temperatura de servicio influye directamente en los aromas, el equilibrio y la percepción del alcohol en un vino. Servirlo muy frío o muy cálido puede ocultar sus virtudes o exagerar defectos.\n" +
+                        "\n" +
+                        "• Espumantes: 6–8 °C  \n" +
+                        "Realzan frescura y burbuja. Temperaturas más altas apagan la sensación de viveza.\n" +
+                        "\n" +
+                        "• Vinos blancos ligeros: 8–10 °C  \n" +
+                        "Resaltan acidez y aromas frescos sin perder expresión.\n" +
+                        "\n" +
+                        "• Blancos con cuerpo: 10–12 °C  \n" +
+                        "Permiten apreciar textura y complejidad aromática.\n" +
+                        "\n" +
+                        "• Tintos jóvenes: 14–16 °C  \n" +
+                        "Evitan que el alcohol destaque en exceso y mantienen fruta y frescura.\n" +
+                        "\n" +
+                        "• Tintos con guarda: 16–18 °C  \n" +
+                        "Favorecen la expresión aromática y suavizan taninos.\n" +
+                        "\n" +
+                        "Un error común es servir los tintos “a temperatura ambiente”. En climas cálidos, esto suele ser demasiado alto. Un breve enfriado previo puede mejorar notablemente la experiencia.\n",
+                "",R.drawable.wine_article_4 // opcional // opcional  // sin URL si no quieres botón
         ));
 
         // Mostrar solo 2 o 3 (tú decides)

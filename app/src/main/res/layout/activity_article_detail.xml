@@ -1,52 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA"
-    android:fillViewport="true">
+    android:background="#FAFAFA">
 
-    <LinearLayout
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:layout_height="280dp"
+        android:fitsSystemWindows="true">
 
-        <TextView
-            android:id="@+id/txtDetailTitle"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsing"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fitsSystemWindows="true"
+            app:contentScrim="#FAFAFA"
+            app:scrimAnimationDuration="250"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+
+            <!-- Imagen full width -->
+            <ImageView
+                android:id="@+id/imgDetailHeader"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:fitsSystemWindows="true"
+                app:layout_collapseMode="parallax"
+                app:layout_collapseParallaxMultiplier="0.7" />
+
+            <!-- Toolbar -->
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:layout_collapseMode="pin"
+                app:titleTextColor="#212121"
+                android:background="@android:color/transparent"/>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Contenido scrolleable -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Título"
-            android:textColor="#212121"
-            android:textStyle="bold"
-            android:textSize="22sp"/>
+            android:orientation="vertical"
+            android:padding="20dp">
 
-        <TextView
-            android:id="@+id/txtDetailMeta"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Fuente • Lectura 3 min"
-            android:textColor="#757575"
-            android:textSize="12sp"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="14dp"/>
+            <TextView
+                android:id="@+id/txtDetailTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#212121"
+                android:layout_marginTop="6dp"/>
 
-        <TextView
-            android:id="@+id/txtDetailBody"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Contenido…"
-            android:textColor="#424242"
-            android:textSize="14sp"
-            android:lineSpacingExtra="6dp"/>
+            <TextView
+                android:id="@+id/txtDetailMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#757575"
+                android:textSize="12sp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="14dp"/>
 
-        <Button
-            android:id="@+id/btnOpenSource"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Ver fuente"
-            android:layout_marginTop="18dp"
-            android:backgroundTint="#B22034"
-            android:textColor="#FFFFFF"/>
-    </LinearLayout>
+            <TextView
+                android:id="@+id/txtDetailBody"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#424242"
+                android:textSize="17sp"
+                android:lineSpacingExtra="8dp"/>
 
-</ScrollView>
+            <Button
+                android:id="@+id/btnOpenSource"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ver fuente"
+                android:layout_marginTop="18dp"
+                android:backgroundTint="#B22034"
+                android:textColor="#FFFFFF"/>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

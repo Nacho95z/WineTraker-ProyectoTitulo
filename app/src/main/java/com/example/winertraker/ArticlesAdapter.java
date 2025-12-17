@@ -51,6 +51,7 @@ public class ArticlesAdapter extends RecyclerView.Adapter<ArticlesAdapter.VH> {
             i.putExtra("meta", a.source + " • " + a.readTime);
             i.putExtra("body", a.content);
             i.putExtra("url", a.url);
+            i.putExtra("imageResId", a.imageResId);
             ctx.startActivity(i);
         });
     }

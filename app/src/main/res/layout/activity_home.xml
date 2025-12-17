@@ -394,7 +394,7 @@
                         android:id="@+id/txtArticles"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Articulos"
+                        android:text="Artículos"
                         android:textSize="22sp"
                         android:textStyle="bold"
                         android:textColor="#424242"
