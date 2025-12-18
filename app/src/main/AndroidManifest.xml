@@ -49,12 +49,9 @@
             android:exported="false" />
 
         <activity
-            android:name=".ConsumedHistoryActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".DisplayImageAndText"
             android:exported="false" />
+
         <activity
             android:name=".BiometricGateActivity"
             android:exported="false" />

@@ -10,10 +10,6 @@
         android:id="@+id/nav_my_cellar"
         android:title="Mi Bodega"
         android:icon="@drawable/ic_menu_bodega" />
-    <item
-        android:id="@+id/nav_consumed_history"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="Vinos Consumidos" />
 
     <item
         android:id="@+id/nav_settings"
