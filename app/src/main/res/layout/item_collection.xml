@@ -163,9 +163,10 @@
         <!-- Botones Editar / Eliminar -->
         <LinearLayout
             android:id="@+id/actionsLayout"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:weightSum="3"
             android:layout_marginTop="12dp"
             app:layout_constraintTop_toBottomOf="@id/contentLayout"
             app:layout_constraintStart_toStartOf="parent"
@@ -178,11 +179,30 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Editar"
-                android:textSize="12sp"
-                android:backgroundTint="#B00020"
+                android:textSize="10sp"
+                android:backgroundTint="#B22034"
                 android:textColor="#FFFFFF"
-                android:layout_marginEnd="6dp"
-                android:minHeight="48dp" />
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:layout_marginEnd="2dp"
+                android:minHeight="40dp"
+                android:maxLines="1" />
+
+            <Button
+                android:id="@+id/buttonConsumed"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Consumido"
+                android:textSize="10sp"
+                android:backgroundTint="#4CAF50"
+                android:textColor="#FFFFFF"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:layout_marginHorizontal="2dp"
+                android:minHeight="40dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
             <Button
                 android:id="@+id/buttonDelete"
@@ -190,11 +210,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Eliminar"
-                android:textSize="12sp"
-                android:backgroundTint="#B00020"
+                android:textSize="10sp"
+                android:backgroundTint="#B22034"
                 android:textColor="#FFFFFF"
-                android:layout_marginStart="6dp"
-                android:minHeight="48dp" />
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:layout_marginStart="2dp"
+                android:minHeight="40dp"
+                android:maxLines="1" />
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

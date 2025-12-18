@@ -326,6 +326,9 @@ public class HomeActivity extends AppCompatActivity {
                 redirectToActivity(ViewCollectionActivity.class);
             } else if (id == R.id.nav_settings) {
                 redirectToActivity(SettingsActivity.class);
+            } else if (id == R.id.nav_consumed_history) {
+            Intent intent = new Intent(this, ConsumedHistoryActivity.class); // Tu nueva actividad
+            startActivity(intent);
             } else if (id == R.id.nav_logout) {
                 performLogout();
             }

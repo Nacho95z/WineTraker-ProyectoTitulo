@@ -1,8 +1,5 @@
 package com.example.winertraker;
 
-import static android.content.ContentValues.TAG;
-
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -11,10 +8,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.view.inputmethod.EditorInfo;
+import android.widget.*;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -24,937 +19,293 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.github.chrisbanes.photoview.PhotoView;       // ✅ IMPORT PARA ZOOM
+import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.*;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 import com.squareup.picasso.Picasso;
-import android.widget.AdapterView;
-import com.google.android.material.switchmaterial.SwitchMaterial;
-import com.bumptech.glide.Glide;
-
-
-
-
-// Filtros dinámicos
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.widget.EditText;
-
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ViewCollectionActivity extends AppCompatActivity {
 
-    // Drawer
-    private DrawerLayout drawerLayoutCollection;
-    private NavigationView navigationView;
-    private ImageView menuIcon;
-
     private RecyclerView recyclerView;
     private CollectionAdapter adapter;
-    private List<CollectionItem> collectionList;
-    private FirebaseFirestore firestore;
-    private FirebaseUser user;
+    private List<QueryDocumentSnapshot> collectionList = new ArrayList<>();
+    private List<QueryDocumentSnapshot> filteredList = new ArrayList<>();
+    private FirebaseFirestore db;
     private String userId;
 
-    // 🔍 Overlay y zoom
-    private View fullscreenOverlay;        // ✅ overlay negro
-    private PhotoView fullscreenImage;     // ✅ imagen con pinch-to-zoom
-
-    // Filtros dinámicos
-    private EditText editFilterValue;
-
-    private final List<CollectionItem> fullCollectionList = new ArrayList<>(); // lista completa sin filtrar
-    private final Set<String> availableFilterKeys = new LinkedHashSet<>();     // set para construir dinámicamente
-    // Filtros dinámicos
-    private Spinner spinnerField;
-    private final List<String> filterFieldKeys = new ArrayList<>();            // keys reales (wineName, variety, etc.)
-    private ArrayList<String> optimalWineIds;  // 👈 IDs que vienen desde Home
-    private boolean showOnlyOptimal = false;   // 👈 Modo "listos para beber"
-
-    // 👇 NUEVO TOGGLE
+    // UI
     private SwitchMaterial switchOptimalOnly;
-    private boolean filterOnlyOptimal = false;   // estado actual del toggle
-
+    private Spinner spinnerField;
+    private EditText editFilterValue;
+    private DrawerLayout drawerLayout;
+    private View fullscreenOverlay;
+    private PhotoView fullscreenImage;
+    private String currentFilterField = "Todos";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_collection);
+        if (getSupportActionBar() != null) getSupportActionBar().hide();
 
-        // Ocultar ActionBar para usar nuestro header custom
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().hide();
-        }
+        db = FirebaseFirestore.getInstance();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) { finish(); return; }
+        userId = user.getUid();
 
-        // Firebase
-        user = FirebaseAuth.getInstance().getCurrentUser();
-        firestore = FirebaseFirestore.getInstance();
-        userId = (user != null) ? user.getUid() : null;
+        initUI();
+        setupDrawer();
+        setupFilters();
+        loadCollection();
+    }
 
-        // 👇 Revisar si venimos desde la Uva / Home con filtro de óptimos
-        optimalWineIds = getIntent().getStringArrayListExtra("optimalWineIds");
-        String filterMode = getIntent().getStringExtra("filterMode");
-
-        showOnlyOptimal = filterMode != null
-                && filterMode.equals("optimal")
-                && optimalWineIds != null
-                && !optimalWineIds.isEmpty();
-
-        // (Opcional) podrías cambiar el título de la pantalla si estás en modo filtro
-        if (showOnlyOptimal) {
-            // Si tienes un TextView de título custom en el layout, podrías hacer:
-            // TextView tvTitle = findViewById(R.id.tvTitle);
-            // tvTitle.setText("Botellas listas para beber");
-        }
-
-
-        // Drawer + menú
-        drawerLayoutCollection = findViewById(R.id.drawerLayoutCollection);
-        navigationView = findViewById(R.id.navigationView);
-        menuIcon = findViewById(R.id.menuIcon);
-
-        // Abrir drawer al tocar el ícono
-        menuIcon.setOnClickListener(v ->
-                drawerLayoutCollection.openDrawer(GravityCompat.START)
-        );
-
-        // Rellenar header con nombre/correo
-        if (navigationView != null) {
-            View headerView = navigationView.getHeaderView(0);
-            TextView headerTitle = headerView.findViewById(R.id.headerTitle);
-            TextView headerEmail = headerView.findViewById(R.id.headerEmail);
-
-            if (user != null) {
-                String displayName = user.getDisplayName();
-                if (displayName == null || displayName.isEmpty()) {
-                    displayName = "Amante del vino";
-                }
-                headerTitle.setText(displayName);
-                headerEmail.setText(user.getEmail());
-            }
-        }
-
-        // Manejar clics del menú lateral
-        navigationView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-
-            if (id == R.id.nav_home) {
-                Intent intent = new Intent(ViewCollectionActivity.this, HomeActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-
-            } else if (id == R.id.nav_my_cellar) {
-                drawerLayoutCollection.closeDrawer(GravityCompat.START);
-
-            } else if (id == R.id.nav_settings) {
-                startActivity(new Intent(ViewCollectionActivity.this, SettingsActivity.class));
-
-            } else if (id == R.id.nav_logout) {
-                FirebaseAuth.getInstance().signOut();
-                getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
-                        .edit()
-                        .putBoolean("remember_session", false)
-                        .apply();
-                Intent intent = new Intent(ViewCollectionActivity.this, AuthActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish();
-            }
-
-            drawerLayoutCollection.closeDrawer(GravityCompat.START);
-            return true;
-        });
-
-        // RecyclerView
+    private void initUI() {
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        // 🔧 Optimizar rendimiento del scroll
-        recyclerView.setHasFixedSize(true);        // si los items no cambian de tamaño
-        recyclerView.setItemViewCacheSize(20);     // mantiene vistas ya infladas en memoria
-        // recyclerView.setItemAnimator(null);     // opcional, si notas tirones al borrar/editar
-
-        // 🔍 Overlay y PhotoView
-        fullscreenOverlay = findViewById(R.id.fullscreenOverlay);
-        fullscreenImage = findViewById(R.id.fullscreenImage);
-
-        // Cerrar al tocar el overlay (por si hay zona libre)
-        if (fullscreenOverlay != null) {
-            fullscreenOverlay.setOnClickListener(v -> closeFullImage());
-        }
-
-        // Cerrar al tocar la imagen (tap simple)
-        // Usamos el listener propio de PhotoView para taps
-        if (fullscreenImage != null) {
-            fullscreenImage.setOnViewTapListener((view, x, y) -> closeFullImage());
-        }
-
-        // 🔎 Barra de filtros
-
-        spinnerField = findViewById(R.id.spinnerField);
-        editFilterValue = findViewById(R.id.editFilterValue);
-        switchOptimalOnly = findViewById(R.id.switchOptimalOnly);
-
-        // El toggle arranca según desde dónde vengas:
-        filterOnlyOptimal = showOnlyOptimal;
-        switchOptimalOnly.setChecked(showOnlyOptimal);
-
-        switchOptimalOnly.setOnCheckedChangeListener((button, isChecked) -> {
-            filterOnlyOptimal = isChecked;
-            String currentText = editFilterValue.getText() != null
-                    ? editFilterValue.getText().toString().trim()
-                    : "";
-            applyFilter(currentText);
-        });
-
-
-
-        // Cuando el usuario cambia el campo en el spinner, volvemos a aplicar el filtro
-        spinnerField.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String currentText = editFilterValue.getText() != null
-                        ? editFilterValue.getText().toString().trim()
-                        : "";
-                applyFilter(currentText);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Si no hay nada seleccionado, mostramos todo
-                applyFilter("");
-            }
-        });
-
-
-        // Cuando el usuario escribe, aplicamos filtro al vuelo
-        editFilterValue.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                applyFilter(s.toString().trim());
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) { }
-        });
-
-
-
-
-        collectionList = new ArrayList<>();
-
-        // ✅ Pasamos un callback al adapter para el click en la imagen
-        adapter = new CollectionAdapter(collectionList, userId, imageUrl -> showFullImage(imageUrl));
+        adapter = new CollectionAdapter(filteredList, this);
         recyclerView.setAdapter(adapter);
 
-        if (userId != null) {
-            loadCollection();
-        } else {
-            Toast.makeText(this, "Usuario no autenticado", Toast.LENGTH_SHORT).show();
-        }
+        fullscreenOverlay = findViewById(R.id.fullscreenOverlay);
+        fullscreenImage = findViewById(R.id.fullscreenImage);
+        fullscreenOverlay.setOnClickListener(v -> toggleFullscreen(false));
+        fullscreenImage.setOnClickListener(v -> toggleFullscreen(false));
+
+        switchOptimalOnly = findViewById(R.id.switchOptimalOnly);
+        spinnerField = findViewById(R.id.spinnerField);
+        editFilterValue = findViewById(R.id.editFilterValue);
+    }
+
+    private void setupDrawer() {
+        drawerLayout = findViewById(R.id.drawerLayoutCollection);
+        findViewById(R.id.menuIcon).setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+        NavigationView nav = findViewById(R.id.navigationView);
+        nav.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) startActivity(new Intent(this, HomeActivity.class));
+            else if (id == R.id.nav_my_cellar) startActivity(new Intent(this, CaptureIMG.class));
+            else if (id == R.id.nav_settings) startActivity(new Intent(this, SettingsActivity.class));
+            else if (id == R.id.nav_consumed_history) {
+                startActivity(new Intent(this, ConsumedHistoryActivity.class));
+                //oast.makeText(this, "Historial (Próximamente)", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_logout) {
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(this, AuthActivity.class));
+                finish();
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
+    }
+
+    private void setupFilters() {
+        String[] options = {"Todos", "Nombre", "Variedad", "Año", "Origen", "Categoría"};
+        ArrayAdapter<String> spinAdapter = new ArrayAdapter<>(this, R.layout.spinner_item, options);
+        spinAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
+        spinnerField.setAdapter(spinAdapter);
+
+        spinnerField.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
+                currentFilterField = options[pos];
+                applyFilters();
+            }
+            @Override public void onNothingSelected(AdapterView<?> p) {}
+        });
+
+        switchOptimalOnly.setOnCheckedChangeListener((b, c) -> applyFilters());
+        editFilterValue.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                applyFilters(); return true;
+            }
+            return false;
+        });
     }
 
     private void loadCollection() {
-        ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Cargando colección...");
-        progressDialog.show();
-
-        CollectionReference userCollection = firestore
-                .collection("descriptions")
-                .document(userId)
-                .collection("wineDescriptions");
-
-        availableFilterKeys.clear();
-        fullCollectionList.clear();
-        collectionList.clear();
-
-        userCollection.get()
-                .addOnCompleteListener(task -> {
-                    progressDialog.dismiss();
-                    if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
-
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            String documentId = document.getId();
-
-
-                            // 👇 Usamos getData SOLO para filtros (allFields)
-                            Map<String, Object> data = document.getData();
-                            if (data == null) {
-                                data = new HashMap<>();
-                            }
-
-                            String imageUrl = document.getString("imageUrl");
-
-                            if (imageUrl == null || imageUrl.isEmpty()) {
-                                Object rawUrl = data.get("imageUrl");
-                                if (rawUrl != null) {
-                                    imageUrl = rawUrl.toString();
-                                }
-                            }
-
-                            android.util.Log.d("ViewCollection", "Doc " + documentId + " imageUrl = " + imageUrl);
-
-                            String name       = document.getString("wineName");
-                            String variety    = document.getString("variety");
-                            String vintage    = document.getString("vintage");
-                            String origin     = document.getString("origin");
-                            String percentage = document.getString("percentage");
-                            String category   = document.getString("category");
-                            String comment    = document.getString("comment");
-
-                            // PRICE: puede ser número o texto
-                            String price = null;
-                            Object rawPrice = document.get("price");
-                            if (rawPrice != null) {
-                                price = rawPrice.toString();
-                            }
-
-                            boolean isOptimal = isOptimalForConsumption(variety, vintage);
-
-                            CollectionItem item = new CollectionItem(
-                                    documentId, imageUrl, name, variety, vintage,
-                                    origin, percentage, category, comment, price,
-                                    isOptimal, data
-                            );
-
-                            // 👇 OJO: en modo óptimos, fullCollectionList también solo tendrá esos,
-                            //        así los filtros trabajan solo sobre la lista filtrada.
-                            fullCollectionList.add(item);
-                            collectionList.add(item);
-
-                            // Detectar campos filtrables dinámicamente
-                            for (String key : data.keySet()) {
-                                if (shouldIncludeFieldForFilter(key)) {
-                                    availableFilterKeys.add(key);
-                                }
-                            }
-                        }
-
-
-
-
-                        // ⬅️ IMPORTANTE: llenar el Spinner una vez detectados los campos
-                        setupFilterSpinner();
-
-                        // Aplicar el filtro actual (texto + toggle óptimo)
-                        String currentText = editFilterValue.getText() != null
-                                ? editFilterValue.getText().toString().trim()
-                                : "";
-                        applyFilter(currentText);
-
-                    } else {
-                        Toast.makeText(this, "No se encontraron vinos en la colección", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(this, "Error al cargar la colección", Toast.LENGTH_SHORT).show();
+        db.collection("descriptions").document(userId).collection("wineDescriptions")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null || value == null) return;
+                    collectionList.clear();
+                    for (QueryDocumentSnapshot doc : value) collectionList.add(doc);
+                    applyFilters();
                 });
-
     }
 
+    private void applyFilters() {
+        filteredList.clear();
+        boolean optimal = switchOptimalOnly.isChecked();
+        String query = editFilterValue.getText().toString().toLowerCase().trim();
 
+        for (QueryDocumentSnapshot doc : collectionList) {
+            if (optimal && !isWineOptimal(doc)) continue;
 
-    private boolean isOptimalForConsumption(String variety, String vintageStr) {
-        if (variety == null || vintageStr == null) return false;
-
-        try {
-            int vintageYear = Integer.parseInt(vintageStr);
-            int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
-            int wineAge = currentYear - vintageYear;
-
-            switch (variety.toLowerCase()) {
-                case "pinot noir":
-                case "gamay":
-                    return wineAge >= 2 && wineAge <= 5;
-                case "merlot":
-                case "tempranillo":
-                    return wineAge >= 5 && wineAge <= 10;
-                case "cabernet sauvignon":
-                case "syrah":
-                    return wineAge >= 10 && wineAge <= 20;
-                case "sauvignon blanc":
-                case "riesling":
-                    return wineAge >= 1 && wineAge <= 3;
-                case "chardonnay":
-                case "viognier":
-                    return wineAge >= 5 && wineAge <= 8;
-                default:
-                    return false;
+            boolean match = query.isEmpty();
+            if (!match) {
+                if (currentFilterField.equals("Todos")) match = matchesAny(doc, query);
+                else match = matchesField(doc, currentFilterField, query);
             }
-        } catch (NumberFormatException e) {
-            return false;
+            if (match) filteredList.add(doc);
         }
-    }
-
-    // Omitimos campos que no queremos usar como filtro (robusto a case)
-    private boolean shouldIncludeFieldForFilter(String key) {
-        if (key == null) return false;
-
-        String k = key.trim().toLowerCase();
-
-        // Excluidos (agrega aquí todo lo "técnico" que no quieres mostrar)
-        if (k.equals("rawtext") || k.equals("raw_text") || k.equals("rawtextfull")) return false;
-        if (k.equals("comment")) return false;
-        if (k.equals("imageurl") || k.equals("image_url")) return false;
-        if (k.equals("createdat") || k.equals("updatedat")) return false; // 👈 esto saca createdAt
-        if (k.equals("recognizedtext")) return false;
-
-
-        return true;
-    }
-
-
-
-    private void setupFilterSpinner() {
-        filterFieldKeys.clear();
-
-        if (spinnerField == null) return;
-        if (availableFilterKeys.isEmpty()) return;
-
-        List<String> labels = new ArrayList<>();
-
-        // Posición 0 = "Todos"
-        filterFieldKeys.add(null);       // sin key asociada
-        labels.add("Todos");
-
-        // Luego, cada campo real
-        for (String key : availableFilterKeys) {
-            filterFieldKeys.add(key);
-            labels.add(getDisplayNameForField(key));
-        }
-
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
-                this,
-                R.layout.spinner_item,   // tu layout personalizado
-                labels
-        );
-
-        spinnerAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
-        spinnerField.setAdapter(spinnerAdapter);
-
-    }
-
-
-    // Nombre amigable para el spinner
-    private String getDisplayNameForField(String key) {
-        if (key == null) return "";
-        switch (key) {
-            case "wineName": return "Nombre";
-            case "variety": return "Variedad";
-            case "vintage": return "Cosecha";
-            case "origin": return "Origen / Región";
-            case "percentage": return "Grado alcohólico";
-            case "category": return "Categoría";
-            case "price": return "Precio";
-            default:
-                // Capitaliza primera letra por defecto (para campos nuevos)
-                return key.substring(0,1).toUpperCase() + key.substring(1);
-        }
-    }
-
-
-
-    private void applyFilter(String value) {
-        value = (value != null) ? value.trim() : "";
-        collectionList.clear();
-
-        // Si no hay texto, mostramos todo o solo óptimos según el toggle
-        if (value.isEmpty()) {
-            if (!filterOnlyOptimal) {
-                collectionList.addAll(fullCollectionList);
-            } else {
-                for (CollectionItem item : fullCollectionList) {
-                    if (item.isOptimal) {
-                        collectionList.add(item);
-                    }
-                }
-            }
-            adapter.notifyDataSetChanged();
-            return;
-        }
-
-
-        if (availableFilterKeys.isEmpty()) {
-            // Si por algún motivo no tenemos campos filtrables, mostramos todo
-            collectionList.addAll(fullCollectionList);
-            adapter.notifyDataSetChanged();
-            return;
-        }
-
-        String valueLower = value.toLowerCase();
-
-        int pos = (spinnerField != null)
-                ? spinnerField.getSelectedItemPosition()
-                : Spinner.INVALID_POSITION;
-
-        // 🟣 Caso 1: "Todos" o selección inválida → búsqueda global en todos los campos
-        if (pos == Spinner.INVALID_POSITION || pos == 0 || filterFieldKeys.isEmpty()) {
-
-            for (CollectionItem item : fullCollectionList) {
-                if (item.allFields == null) continue;
-
-                boolean matches = false;
-
-                for (String key : availableFilterKeys) {
-                    Object raw = item.allFields.get(key);
-                    if (raw != null) {
-                        String text = raw.toString().toLowerCase();
-                        if (text.contains(valueLower)) {
-                            matches = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (matches) {
-                    // 👇 si el toggle está activo, solo agregamos vinos óptimos
-                    if (filterOnlyOptimal && !item.isOptimal) {
-                        continue;
-                    }
-                    collectionList.add(item);
-                }
-
-            }
-        } else {
-            // 🟢 Caso 2: un campo específico elegido en el spinner
-            String selectedKey = filterFieldKeys.get(pos); // posición 0 es "Todos", así que aquí siempre hay key
-
-            for (CollectionItem item : fullCollectionList) {
-                if (item.allFields == null) continue;
-
-                Object raw = item.allFields.get(selectedKey);
-                if (raw == null) continue;
-
-                String text = raw.toString();
-
-                if ("percentage".equals(selectedKey) || "vintage".equals(selectedKey) || "price".equals(selectedKey)) {
-                    String cleanField = text.replaceAll("[^0-9]", "");
-                    String cleanFilter = value.replaceAll("[^0-9]", "");
-
-                    if (!cleanFilter.isEmpty() && cleanField.equals(cleanFilter)) {
-                        if (filterOnlyOptimal && !item.isOptimal) {
-                            continue;
-                        }
-                        collectionList.add(item);
-                    }
-                } else {
-                    String textLower = text.toLowerCase();
-                    if (textLower.contains(valueLower)) {
-                        if (filterOnlyOptimal && !item.isOptimal) {
-                            continue;
-                        }
-                        collectionList.add(item);
-                    }
-                }
-
-            }
-        }
-
-
         adapter.notifyDataSetChanged();
     }
 
-
-
-
-    // 🔍 Mostrar imagen en grande con fade-in
-    private void showFullImage(String imageUrl) {
-        if (imageUrl == null || imageUrl.isEmpty()
-                || fullscreenOverlay == null || fullscreenImage == null) {
-            return;
-        }
-
-        fullscreenOverlay.setVisibility(View.VISIBLE);
-        fullscreenOverlay.setAlpha(0f);
-
-        // Carga la imagen en el PhotoView a pantalla completa
-        PicassoClient.getInstance(fullscreenImage.getContext())
-                .load(imageUrl)
-                .placeholder(android.R.drawable.ic_menu_gallery)
-                .error(android.R.drawable.ic_menu_report_image)
-                .fit()
-                .centerInside()   // o centerCrop, como prefieras
-                .into(fullscreenImage);
-
-        fullscreenOverlay.animate()
-                .alpha(1f)
-                .setDuration(200)
-                .start();
+    private boolean matchesAny(QueryDocumentSnapshot doc, String q) {
+        return safeContains(doc, "wineName", q) || safeContains(doc, "variety", q) ||
+                safeContains(doc, "origin", q) || safeContains(doc, "vintage", q);
     }
 
-
-    private void closeFullImage() {
-        if (fullscreenOverlay == null || fullscreenOverlay.getVisibility() != View.VISIBLE) return;
-
-        fullscreenOverlay.animate()
-                .alpha(0f)
-                .setDuration(150)
-                .withEndAction(() -> {
-                    fullscreenOverlay.setVisibility(View.GONE);
-                    fullscreenOverlay.setAlpha(1f);
-                    fullscreenImage.setImageDrawable(null);
-                })
-                .start();
+    private boolean matchesField(QueryDocumentSnapshot doc, String field, String q) {
+        String key = "wineName";
+        if (field.equals("Variedad")) key = "variety";
+        else if (field.equals("Año")) key = "vintage";
+        else if (field.equals("Origen")) key = "origin";
+        else if (field.equals("Categoría")) key = "category";
+        return safeContains(doc, key, q);
     }
 
+    private boolean safeContains(QueryDocumentSnapshot doc, String key, String q) {
+        String val = doc.getString(key);
+        return val != null && val.toLowerCase().contains(q);
+    }
 
-    @Override
-    public void onBackPressed() {
-        // Si el overlay está visible, ciérralo primero
-        if (fullscreenOverlay != null && fullscreenOverlay.getVisibility() == View.VISIBLE) {
-            closeFullImage();
-            return;
-        }
+    private boolean isWineOptimal(QueryDocumentSnapshot doc) {
+        String cat = doc.getString("category");
+        String yr = doc.getString("vintage");
+        if (cat == null || yr == null) return false;
+        try {
+            int age = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) - Integer.parseInt(yr);
+            if (cat.equalsIgnoreCase("Reserva")) return age >= 3 && age <= 5;
+            if (cat.equalsIgnoreCase("Gran Reserva")) return age >= 4 && age <= 8;
+        } catch (Exception ignored) {}
+        return false;
+    }
 
-        if (drawerLayoutCollection != null &&
-                drawerLayoutCollection.isDrawerOpen(GravityCompat.START)) {
-            drawerLayoutCollection.closeDrawer(GravityCompat.START);
+    // --- ACCIONES ---
+
+    private void showEditDialog(QueryDocumentSnapshot doc) {
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(getLayoutInflater().inflate(R.layout.dialog_edit_item, null)).create();
+        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+
+        // Bind Views del Dialog
+        TextInputEditText etName = dialog.findViewById(R.id.editName);
+        TextInputEditText etVariety = dialog.findViewById(R.id.editVariety);
+        TextInputEditText etPrice = dialog.findViewById(R.id.editPrice);
+        // ... (bindear resto de campos si es necesario)
+
+        etName.setText(doc.getString("wineName"));
+        etVariety.setText(doc.getString("variety"));
+        Double p = doc.getDouble("price");
+        etPrice.setText(p != null ? String.valueOf(p) : "");
+
+        dialog.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
+        dialog.findViewById(R.id.btnSave).setOnClickListener(v -> {
+            double priceVal = 0;
+            try { priceVal = Double.parseDouble(etPrice.getText().toString()); } catch(Exception e){}
+
+            db.collection("descriptions").document(userId).collection("wineDescriptions").document(doc.getId())
+                    .update("wineName", etName.getText().toString(), "variety", etVariety.getText().toString(), "price", priceVal)
+                    .addOnSuccessListener(a -> {
+                        Toast.makeText(this, "Actualizado", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    });
+        });
+    }
+
+    private void deleteItem(QueryDocumentSnapshot doc) {
+        new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Borrar definitivamente?")
+                .setPositiveButton("Sí", (d, w) -> {
+                    db.collection("descriptions").document(userId).collection("wineDescriptions").document(doc.getId()).delete();
+                    String url = doc.getString("imageUrl");
+                    if (url != null) FirebaseStorage.getInstance().getReferenceFromUrl(url).delete();
+                }).setNegativeButton("No", null).show();
+    }
+
+    private void markAsConsumed(QueryDocumentSnapshot doc) {
+        Map<String, Object> data = doc.getData();
+        data.put("consumedAt", Timestamp.now());
+
+        db.collection("descriptions").document(userId).collection("consumedWines").add(data)
+                .addOnSuccessListener(r -> {
+                    db.collection("descriptions").document(userId).collection("wineDescriptions").document(doc.getId()).delete();
+                    Toast.makeText(this, "¡Salud! Movido al historial.", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void toggleFullscreen(boolean show) {
+        if (show) {
+            fullscreenOverlay.setVisibility(View.VISIBLE);
+            fullscreenOverlay.animate().alpha(1f).setDuration(200);
         } else {
-            super.onBackPressed();
+            fullscreenOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> fullscreenOverlay.setVisibility(View.GONE));
         }
     }
 
+    // --- ADAPTER ---
+    private class CollectionAdapter extends RecyclerView.Adapter<CollectionAdapter.VH> {
+        List<QueryDocumentSnapshot> list;
+        Context ctx;
 
-    // --------- MODELO Y ADAPTER ---------
+        public CollectionAdapter(List<QueryDocumentSnapshot> l, Context c) { list = l; ctx = c; }
 
-    private static class CollectionItem {
-        String documentId;
-        String imageUrl;
-        String name;
-        String variety;
-        String vintage;
-        String origin;
-        String percentage;
-        String category;   // ✅ nuevo
-        String comment;    // ✅ nuevo
-        String price;
-        boolean isOptimal;
-
-        Map<String, Object> allFields;
-
-        CollectionItem(String documentId, String imageUrl, String name,
-                       String variety, String vintage, String origin,
-                       String percentage, String category, String comment, String price,
-                       boolean isOptimal,
-                       Map<String, Object> allFields) {
-
-            this.documentId = documentId;
-            this.imageUrl = imageUrl;
-            this.name = (name != null) ? name : "No disponible";
-            this.variety = (variety != null) ? variety : "No disponible";
-            this.vintage = (vintage != null) ? vintage : "No disponible";
-            this.origin = (origin != null) ? origin : "No disponible";
-            this.percentage = (percentage != null) ? percentage : "No disponible";
-            this.category = (category != null) ? category : "No disponible";
-            this.comment  = (comment  != null) ? comment  : "Sin comentario del asistente";
-            this.price    = (price    != null) ? price    : "No disponible";
-            this.isOptimal = isOptimal;
-            this.allFields = (allFields != null) ? allFields : new HashMap<>();
-        }
-    }
-
-
-
-    private static class CollectionAdapter extends RecyclerView.Adapter<CollectionAdapter.ViewHolder> {
-
-        interface OnImageClickListener {
-            void onImageClick(String imageUrl);
+        @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup p, int t) {
+            return new VH(LayoutInflater.from(ctx).inflate(R.layout.item_collection, p, false));
         }
 
-        private final List<CollectionItem> collectionList;
-        private final String userId;
-        private final OnImageClickListener imageClickListener;   // ✅ callback
+        @Override public void onBindViewHolder(@NonNull VH h, int pos) {
+            QueryDocumentSnapshot doc = list.get(pos);
+            h.name.setText(doc.getString("wineName"));
+            h.variety.setText("Variedad: " + doc.getString("variety"));
+            h.year.setText("Año: " + doc.getString("vintage"));
 
-        CollectionAdapter(List<CollectionItem> collectionList, String userId,
-                          OnImageClickListener imageClickListener) {
-            this.collectionList = collectionList;
-            this.userId = userId;
-            this.imageClickListener = imageClickListener;
-        }
+            String url = doc.getString("imageUrl");
+            if (url != null && !url.isEmpty()) {
+                Picasso.get().load(url).fit().centerCrop().into(h.img);
+                h.img.setOnClickListener(v -> {
+                    Picasso.get().load(url).into(fullscreenImage);
+                    toggleFullscreen(true);
+                });
+            } else h.img.setImageResource(R.drawable.ic_wine);
 
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_collection, parent, false);
-            return new ViewHolder(view);
-        }
+            h.iconOpt.setVisibility(isWineOptimal(doc) ? View.VISIBLE : View.GONE);
 
-        private void deleteImageFromStorage(String imageUrl) {
-            try {
-                StorageReference photoRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl);
-                photoRef.delete()
-                        .addOnSuccessListener(aVoid ->
-                                android.util.Log.d("Storage", "Imagen eliminada del Storage")
-                        )
-                        .addOnFailureListener(e ->
-                                android.util.Log.e("Storage", "Error al eliminar imagen", e)
-                        );
-            } catch (IllegalArgumentException e) {
-                android.util.Log.e("Storage", "URL de imagen inválida: " + imageUrl, e);
-            }
-        }
-
-
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            CollectionItem item = collectionList.get(position);
-
-            // Siempre reseteamos la imagen con un placeholder básico
-            holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
-
-            if (item.isOptimal) {
-                holder.iconOptimal.setVisibility(View.VISIBLE);
-
-                Glide.with(holder.iconOptimal.getContext())
-                        .asGif()
-                        .load(R.drawable.is_wine_optimal) // 👈 mismo nombre del paso 1
-                        .into(holder.iconOptimal);
-
-            } else {
-                holder.iconOptimal.setVisibility(View.GONE);
-            }
-
-
-
-            if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
-                PicassoClient.getInstance(holder.imageView.getContext())
-                        .load(item.imageUrl)
-                        .placeholder(android.R.drawable.ic_menu_gallery)
-                        .error(android.R.drawable.ic_menu_report_image)
-                        .fit()          // se ajusta al tamaño real del ImageView (100x140dp)
-                        .centerCrop()   // mantiene proporción, recortando si es necesario
-                        .into(holder.imageView);
-            }
-
-
-            // 🔍 Click en miniatura → mostrar overlay con zoom
-            holder.imageView.setOnClickListener(v -> {
-                if (imageClickListener != null && item.imageUrl != null && !item.imageUrl.isEmpty()) {
-                    imageClickListener.onImageClick(item.imageUrl);
-                }
-            });
-
-            holder.nameTextView.setText(item.name);
-            holder.varietyTextView.setText("Variedad: " + item.variety);
-            holder.vintageTextView.setText("Año: " + item.vintage);
-            holder.originTextView.setText("Origen: " + item.origin);
-            holder.percentageTextView.setText("Alcohol: " + item.percentage);
-
-            // ✅ nuevos
-            holder.categoryTextView.setText("Categoría: " + item.category);
-            holder.commentTextView.setText("Comentario IA: " + item.comment);
-            holder.priceTextView.setText("Precio: " + item.price);
-
-            // Si prefieres ocultar cuando no haya info:
-            if ("No disponible".equals(item.category)) {
-                holder.categoryTextView.setVisibility(View.GONE);
-            } else {
-                holder.categoryTextView.setVisibility(View.VISIBLE);
-            }
-
-            if ("Sin comentario del asistente".equals(item.comment)) {
-                holder.commentTextView.setVisibility(View.GONE);
-            } else {
-                holder.commentTextView.setVisibility(View.VISIBLE);
-            }
-
-
-            // --- Eliminar ---
-            holder.deleteButton.setOnClickListener(v -> {
-                int currentPosition = holder.getAdapterPosition();
-                if (currentPosition == RecyclerView.NO_POSITION) return;
-
-                CollectionItem currentItem = collectionList.get(currentPosition);
-
-                new AlertDialog.Builder(holder.itemView.getContext())
-                        .setTitle("Eliminar vino")
-                        .setMessage("¿Estás seguro de que deseas eliminar este vino?")
-                        .setPositiveButton("Sí", (dialog, which) -> {
-
-                            FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-
-                            firestore.collection("descriptions")
-                                    .document(userId)
-                                    .collection("wineDescriptions")
-                                    .document(currentItem.documentId)
-                                    .delete()
-                                    .addOnSuccessListener(aVoid -> {
-
-                                        if (currentItem.imageUrl != null && !currentItem.imageUrl.isEmpty()) {
-                                            deleteImageFromStorage(currentItem.imageUrl);
-                                        }
-
-                                        collectionList.remove(currentPosition);
-                                        notifyItemRemoved(currentPosition);
-                                        notifyItemRangeChanged(currentPosition, collectionList.size());
-
-                                        Toast.makeText(holder.itemView.getContext(),
-                                                "Vino eliminado correctamente",
-                                                Toast.LENGTH_SHORT).show();
-                                    })
-                                    .addOnFailureListener(e ->
-                                            Toast.makeText(holder.itemView.getContext(),
-                                                    "Error al eliminar", Toast.LENGTH_SHORT).show());
-                        })
-                        .setNegativeButton("No", null)
-                        .show();
-            });
-
-
-
-            // --- Editar ---
-            holder.editButton.setOnClickListener(v ->
-                    showEditDialog(holder.itemView.getContext(), item, position)
+            h.btnDel.setOnClickListener(v -> deleteItem(doc));
+            h.btnEdit.setOnClickListener(v -> showEditDialog(doc));
+            h.btnConsume.setOnClickListener(v ->
+                    new AlertDialog.Builder(ctx).setTitle("Confirmar consumo")
+                            .setMessage("¿Disfrutaste este vino?")
+                            .setPositiveButton("¡Sí!", (d, w) -> markAsConsumed(doc))
+                            .setNegativeButton("Cancelar", null).show()
             );
         }
 
+        @Override public int getItemCount() { return list.size(); }
 
+        class VH extends RecyclerView.ViewHolder {
+            TextView name, variety, year;
+            ImageView img, iconOpt;
+            Button btnDel, btnEdit, btnConsume;
 
-        private void showEditDialog(Context context, CollectionItem item, int position) {
-
-            View dialogView = LayoutInflater.from(context)
-                    .inflate(R.layout.dialog_edit_item, null);
-
-            TextInputEditText editName      = dialogView.findViewById(R.id.editName);
-            TextInputEditText editVariety   = dialogView.findViewById(R.id.editVariety);
-            TextInputEditText editVintage   = dialogView.findViewById(R.id.editVintage);
-            TextInputEditText editOrigin    = dialogView.findViewById(R.id.editOrigin);
-            TextInputEditText editPercentage= dialogView.findViewById(R.id.editPercentage);
-
-            // 🔴 NUEVOS
-            TextInputEditText editCategory  = dialogView.findViewById(R.id.editCategory);
-            TextInputEditText editPrice     = dialogView.findViewById(R.id.editPrice);
-            TextInputEditText editComment   = dialogView.findViewById(R.id.editComment);
-
-            Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-            Button btnSave   = dialogView.findViewById(R.id.btnSave);
-
-            // Rellenar con los datos actuales
-            editName.setText(item.name);
-            editVariety.setText(item.variety);
-            editVintage.setText(item.vintage);
-            editOrigin.setText(item.origin);
-            editPercentage.setText(item.percentage);
-
-            editCategory.setText(item.category);
-            editPrice.setText(item.price);
-            editComment.setText(item.comment);
-
-            AlertDialog dialog = new AlertDialog.Builder(context)
-                    .setView(dialogView)
-                    .create();
-
-            if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawable(
-                        new ColorDrawable(Color.TRANSPARENT)
-                );
-            }
-
-            btnCancel.setOnClickListener(v -> dialog.dismiss());
-
-            btnSave.setOnClickListener(v -> {
-                item.name = getTextOrEmpty(editName);
-                item.variety = getTextOrEmpty(editVariety);
-                item.vintage = getTextOrEmpty(editVintage);
-                item.origin = getTextOrEmpty(editOrigin);
-                item.percentage = getTextOrEmpty(editPercentage);
-
-                // 🔴 NUEVOS
-                item.category = getTextOrEmpty(editCategory);
-                item.price    = getTextOrEmpty(editPrice);
-                item.comment  = getTextOrEmpty(editComment);
-
-                FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-                firestore.collection("descriptions")
-                        .document(userId)
-                        .collection("wineDescriptions")
-                        .document(item.documentId)
-                        .update(
-                                "wineName",   item.name,
-                                "variety",    item.variety,
-                                "vintage",    item.vintage,
-                                "origin",     item.origin,
-                                "percentage", item.percentage,
-                                "category",   item.category,
-                                "price",      item.price,
-                                "comment",    item.comment
-                        )
-                        .addOnSuccessListener(aVoid -> {
-                            Toast.makeText(context, "Datos actualizados", Toast.LENGTH_SHORT).show();
-                            notifyItemChanged(position);
-                            dialog.dismiss();
-                        })
-                        .addOnFailureListener(e ->
-                                Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show()
-                        );
-            });
-
-            dialog.show();
-        }
-
-        // helper pequeño
-        private String getTextOrEmpty(TextInputEditText editText) {
-            return editText.getText() != null
-                    ? editText.getText().toString().trim()
-                    : "";
-        }
-
-
-        @Override
-        public int getItemCount() {
-            return collectionList.size();
-        }
-
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            ImageView imageView, iconOptimal;   // 👈 NUEVO
-            TextView nameTextView, varietyTextView, vintageTextView,
-                    originTextView, percentageTextView,
-                    categoryTextView, commentTextView, priceTextView;
-            Button deleteButton, editButton;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                imageView     = itemView.findViewById(R.id.itemImageView);
-                iconOptimal   = itemView.findViewById(R.id.iconOptimal);   // 👈 NUEVO
-                nameTextView  = itemView.findViewById(R.id.itemName);
-                varietyTextView = itemView.findViewById(R.id.itemVariety);
-                vintageTextView = itemView.findViewById(R.id.itemVintage);
-                originTextView  = itemView.findViewById(R.id.itemOrigin);
-                percentageTextView = itemView.findViewById(R.id.itemPercentage);
-                categoryTextView   = itemView.findViewById(R.id.itemCategory);
-                commentTextView    = itemView.findViewById(R.id.itemComment);
-                priceTextView      = itemView.findViewById(R.id.itemPrice);
-                deleteButton       = itemView.findViewById(R.id.buttonDelete);
-                editButton         = itemView.findViewById(R.id.buttonEdit);
+            VH(View v) {
+                super(v);
+                name = v.findViewById(R.id.itemName);
+                variety = v.findViewById(R.id.itemVariety);
+                year = v.findViewById(R.id.itemVintage);
+                img = v.findViewById(R.id.itemImageView);
+                iconOpt = v.findViewById(R.id.iconOptimal);
+                btnDel = v.findViewById(R.id.buttonDelete);
+                btnEdit = v.findViewById(R.id.buttonEdit);
+                btnConsume = v.findViewById(R.id.buttonConsumed);
             }
         }
-
-
-
     }
 }
