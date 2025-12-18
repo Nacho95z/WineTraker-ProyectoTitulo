@@ -100,8 +100,10 @@ public class HomeActivity extends AppCompatActivity {
     private TextView headerTitle, headerEmail, txtChartInsight;
 
     private TextView txtTotalWines, txtOptimalWines, txtTotalCellarValue;
-    private CardView cardScan, cardCollection;
 
+    private CardView cardScanBottle;
+    private CardView cardMyCellar;
+    private CardView cardReadyToDrink;
     private SwipeRefreshLayout swipeRefreshLayout;
 
     // Banner
@@ -110,7 +112,7 @@ public class HomeActivity extends AppCompatActivity {
 
     private final List<String> bannerMessages = new ArrayList<>();
     private int currentBannerIndex = 0;
-    private static final long BANNER_CYCLE_MS = 15000;
+    private static final long BANNER_CYCLE_MS = 8000;
     private final android.os.Handler bannerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     // 🍇 GIF uva + badge
@@ -184,6 +186,12 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        bannerHandler.removeCallbacksAndMessages(null);
+    }
+
     // -------------------------------------------------------------
     // ⚖️ TÉRMINOS Y CONDICIONES
     // -------------------------------------------------------------
@@ -248,8 +256,9 @@ public class HomeActivity extends AppCompatActivity {
         // Si tu layout lo tiene, perfecto. Si no existe, quedará null y no rompe.
         //try { txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue); } catch (Exception ignored) {}
 
-        cardScan = findViewById(R.id.cardScan);
-        cardCollection = findViewById(R.id.cardCollection);
+        cardScanBottle = findViewById(R.id.cardScanBottle);
+        cardMyCellar = findViewById(R.id.cardMyCellar);
+        cardReadyToDrink = findViewById(R.id.cardReadyToDrink);
 
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         bannerTextView = findViewById(R.id.bannerTextView);
@@ -333,8 +342,28 @@ public class HomeActivity extends AppCompatActivity {
             return true;
         });
 
-        cardScan.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
-        cardCollection.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
+        // BOTÓN PRINCIPAL → ESCANEAR BOTELLA
+        if (cardScanBottle != null) {
+            cardScanBottle.setOnClickListener(v ->
+                    redirectToActivity(CaptureIMG.class)
+            );
+        }
+
+        // CARD → MI BODEGA
+        if (cardMyCellar != null) {
+            cardMyCellar.setOnClickListener(v ->
+                    redirectToActivity(ViewCollectionActivity.class)
+            );
+        }
+
+        // CARD → LISTOS PARA BEBER (filtro óptimos)
+        if (cardReadyToDrink != null) {
+            cardReadyToDrink.setOnClickListener(v -> {
+                Intent intent = new Intent(HomeActivity.this, ViewCollectionActivity.class);
+                intent.putExtra("filterMode", "optimal");
+                startActivity(intent);
+            });
+        }
 
         if (headerGif != null) {
             headerGif.setOnClickListener(v -> {
@@ -348,77 +377,57 @@ public class HomeActivity extends AppCompatActivity {
     // Banner
     // -------------------------------------------------------------
 
-    private void startBannerAnimationSingleCycle() {
-        if (bannerTextView == null) return;
-
-        bannerTextView.post(() -> {
-            View parent = (View) bannerTextView.getParent();
-            if (parent == null) return;
-
-            float parentWidth = parent.getWidth();
-            float textWidth = bannerTextView.getWidth();
-            if (parentWidth == 0 || textWidth == 0) return;
-
-            if (bannerAnimator != null) bannerAnimator.cancel();
-
-            bannerTextView.setTranslationX(parentWidth);
-
-            bannerAnimator = ValueAnimator.ofFloat(parentWidth, -textWidth);
-            bannerAnimator.setDuration(BANNER_CYCLE_MS);
-            bannerAnimator.setInterpolator(new LinearInterpolator());
-            bannerAnimator.setRepeatCount(0);
-
-            bannerAnimator.addUpdateListener(animation -> bannerTextView.setTranslationX((float) animation.getAnimatedValue()));
-            bannerAnimator.start();
-        });
-    }
-
     private void startBannerRotation() {
         if (bannerTextView == null || bannerMessages.isEmpty()) return;
 
         bannerHandler.removeCallbacksAndMessages(null);
         currentBannerIndex = 0;
 
+        // primer mensaje inmediato
+        bannerTextView.setText(bannerMessages.get(0));
+        bannerTextView.setAlpha(1f);
+
         Runnable rotationRunnable = new Runnable() {
             @Override
             public void run() {
                 if (bannerMessages.isEmpty() || bannerTextView == null) return;
 
-                String msg = bannerMessages.get(currentBannerIndex);
                 currentBannerIndex = (currentBannerIndex + 1) % bannerMessages.size();
+                String msg = bannerMessages.get(currentBannerIndex);
 
-                bannerTextView.setText(msg);
-                startBannerAnimationSingleCycle();
+                bannerTextView.animate()
+                        .alpha(0f)
+                        .setDuration(180)
+                        .withEndAction(() -> {
+                            bannerTextView.setText(msg);
+                            bannerTextView.animate()
+                                    .alpha(1f)
+                                    .setDuration(220)
+                                    .start();
+                        })
+                        .start();
 
                 bannerHandler.postDelayed(this, BANNER_CYCLE_MS);
             }
         };
 
-        bannerHandler.post(rotationRunnable);
+        bannerHandler.postDelayed(rotationRunnable, BANNER_CYCLE_MS);
     }
 
     private void updateBannerMessage(int totalWines, double totalCellarValue) {
         bannerMessages.clear();
 
-        if (totalWines >= 2) {
-            bannerMessages.add("Tu bodega tiene " + totalWines + " botellas registradas • Valor estimado: " + formatCurrency(totalCellarValue) + ".");
-        } else if (totalWines == 1) {
-            bannerMessages.add("Tu bodega tiene " + totalWines + " botella registrada • Valor estimado: " + formatCurrency(totalCellarValue) + ".");
+        // Mensaje principal (estado)
+        if (totalWines > 0) {
+            bannerMessages.add("Tu bodega tiene " + totalWines + " botella(s) • Valor estimado " + formatCurrency(totalCellarValue));
         } else {
-            bannerMessages.add("WineTrack • Comienza registrando tus primeras botellas y organiza tu bodega digital.");
+            bannerMessages.add("Comienza escaneando tu primera botella 🍷");
         }
 
-        // (mantuve tus mensajes SAG tal cual)
-        bannerMessages.add("Dato SAG 2025: la producción total de vinos fue de 838,6 millones de litros, cerca de un 10% menos que el 2024.");
-        bannerMessages.add("En 2025, el 82,5% del vino producido en Chile fue con denominación de origen, según SAG.");
-        bannerMessages.add("Solo el 1,2% del vino producido en Chile el 2025 provino de uvas de mesa, de acuerdo al SAG.");
-        bannerMessages.add("Maule concentra cerca del 47,4% de todo el vino producido en Chile en 2025, liderando a nivel nacional.");
-        bannerMessages.add("Las regiones de Maule, O’Higgins y Coquimbo suman el 88,5% de la producción de vino chileno 2025.");
-        bannerMessages.add("En 2025, el Cabernet Sauvignon representó alrededor del 28% de los vinos con denominación de origen en Chile.");
-        bannerMessages.add("Sauvignon Blanc y Chardonnay suman más de un 27% de los vinos con D.O. producidos en Chile el 2025.");
-        bannerMessages.add("Entre 2024 y 2025, los vinos con D.O. bajaron un 14%, pero los vinos sin D.O. crecieron un 17,1%, según el SAG.");
-        bannerMessages.add("La producción de vinos para pisco creció cerca de un 18% en 2025 respecto de 2024, de acuerdo al SAG.");
-        bannerMessages.add("Desde 2012 a 2025, la producción de vino en Chile ha mostrado ciclos de alzas y bajas, pero se mantiene en niveles altos.");
+        // Mensajes secundarios (más cortos y “mobile friendly”)
+        bannerMessages.add("Tip: guarda tus vinos lejos de la luz y con temperatura estable.");
+        bannerMessages.add("Tip: los tintos jóvenes suelen ir mejor entre 14–16°C.");
+        bannerMessages.add("Dato Chile: Maule lidera la producción nacional de vino (SAG).");
 
         startBannerRotation();
     }
