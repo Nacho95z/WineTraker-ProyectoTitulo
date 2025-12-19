@@ -38,7 +38,7 @@
                 tools:ignore="ContentDescription" />
         </androidx.cardview.widget.CardView>
 
-        <!-- CONTENIDO TEXTO + ICONO CONSUMO ÓPTIMO -->
+        <!-- CONTENIDO -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/contentLayout"
             android:layout_width="0dp"
@@ -48,7 +48,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Nombre del vino -->
             <TextView
                 android:id="@+id/itemName"
                 android:layout_width="0dp"
@@ -57,27 +56,22 @@
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="#212121"
-                android:layout_marginBottom="4dp"
                 android:maxLines="1"
                 android:ellipsize="end"
-                app:layout_constrainedWidth="true"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/iconOptimal"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- ICONO COPA: consumo óptimo -->
             <ImageView
                 android:id="@+id/iconOptimal"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/is_wine_optimal"
-                android:contentDescription="@string/consumo_optimo"
                 android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/itemName"
                 app:layout_constraintBottom_toBottomOf="@id/itemName" />
 
-            <!-- Resto de textos -->
             <TextView
                 android:id="@+id/itemVariety"
                 android:layout_width="0dp"
@@ -85,9 +79,9 @@
                 android:text="Variedad: Cabernet"
                 android:textSize="14sp"
                 android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/itemName"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemName" />
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <TextView
                 android:id="@+id/itemVintage"
@@ -96,9 +90,9 @@
                 android:text="Año: 2018"
                 android:textSize="14sp"
                 android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/itemVariety"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemVariety" />
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <TextView
                 android:id="@+id/itemOrigin"
@@ -107,9 +101,9 @@
                 android:text="Origen: Valle del Maipo"
                 android:textSize="14sp"
                 android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/itemVintage"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemVintage" />
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <TextView
                 android:id="@+id/itemPercentage"
@@ -118,49 +112,46 @@
                 android:text="Alcohol: 13.5%"
                 android:textSize="14sp"
                 android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/itemOrigin"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemOrigin" />
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <TextView
                 android:id="@+id/itemCategory"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Categoría: -"
-                android:textColor="#757575"
                 android:textSize="14sp"
-                android:layout_marginTop="2dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemPercentage" />
+                android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/itemPercentage"
+                app:layout_constraintStart_toStartOf="parent" />
 
             <TextView
                 android:id="@+id/itemPrice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Precio: -"
-                android:textColor="#757575"
                 android:textSize="14sp"
-                android:layout_marginTop="2dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemCategory" />
+                android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/itemCategory"
+                app:layout_constraintStart_toStartOf="parent" />
 
             <TextView
                 android:id="@+id/itemComment"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Comentario IA: -"
-                android:textColor="#757575"
                 android:textSize="13sp"
+                android:textColor="#757575"
                 android:maxLines="3"
                 android:ellipsize="end"
+                app:layout_constraintTop_toBottomOf="@id/itemPrice"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/itemPrice" />
+                app:layout_constraintEnd_toEndOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- Botones Editar / Eliminar -->
+        <!-- ACCIONES -->
         <LinearLayout
             android:id="@+id/actionsLayout"
             android:layout_width="0dp"
@@ -175,26 +166,57 @@
             <Button
                 android:id="@+id/buttonEdit"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:text="Editar"
                 android:textSize="12sp"
                 android:backgroundTint="#B00020"
                 android:textColor="#FFFFFF"
-                android:layout_marginEnd="6dp"
-                android:minHeight="48dp" />
+                android:layout_marginEnd="6dp" />
 
-            <Button
-                android:id="@+id/buttonDelete"
+            <!-- BOTÓN PARTIDO: ELIMINAR + ARCHIVAR -->
+            <LinearLayout
+                android:id="@+id/deleteArchiveGroup"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
-                android:text="Eliminar"
-                android:textSize="12sp"
-                android:backgroundTint="#B00020"
-                android:textColor="#FFFFFF"
                 android:layout_marginStart="6dp"
-                android:minHeight="48dp" />
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonDelete"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Eliminar"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="12dp"
+                    android:background="@drawable/bg_split_left_red"
+                    app:backgroundTint="@null"/>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#FFFFFF"
+                    android:alpha="0.25" />
+
+                <ImageButton
+                    android:id="@+id/btnArchivar"
+                    android:layout_width="52dp"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_archive"
+                    android:contentDescription="Archivar vino"
+                    android:padding="14dp"
+                    android:scaleType="centerInside"
+                    android:background="@drawable/bg_split_right_red"
+                    app:tint="#FFFFFF" />
+            </LinearLayout>
+
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
