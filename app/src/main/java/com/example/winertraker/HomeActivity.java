@@ -486,12 +486,19 @@ public class HomeActivity extends AppCompatActivity {
     // Logout
     // -------------------------------------------------------------
 
+
     private void performLogout() {
+
+        // 🔔 Reset del estado de notificación (para la próxima apertura)
+        App app = (App) getApplication();
+        app.resetOptimalNotification();
+
         FirebaseAuth.getInstance().signOut();
         getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
                 .edit()
                 .putBoolean("remember_session", false)
                 .apply();
+
         Intent intent = new Intent(HomeActivity.this, AuthActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
@@ -617,7 +624,13 @@ public class HomeActivity extends AppCompatActivity {
                 boolean hasOptimal = !optimalWineNames.isEmpty();
                 updateGrapeGifState(hasOptimal, optimalCount);
 
-                if (hasOptimal) sendOptimalConsumptionNotification(optimalWineNames);
+//                if (hasOptimal) sendOptimalConsumptionNotification(optimalWineNames);
+
+                App app = (App) getApplication();
+                if (hasOptimal && !app.isOptimalNotificationSent()) {
+                    sendOptimalConsumptionNotification(optimalWineNames);
+                    app.setOptimalNotificationSent(true);
+                }
 
             } else {
                 txtTotalWines.setText("-");

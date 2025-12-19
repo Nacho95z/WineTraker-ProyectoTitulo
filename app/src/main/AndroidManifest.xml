@@ -27,7 +27,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.WinerTraker"
-        tools:targetApi="tiramisu">
+        tools:targetApi="tiramisu"
+        >
 
         <!-- SOLO ESTA ACTIVIDAD TIENE CATEGORY LAUNCHER (Un solo ícono) -->
         <activity
@@ -69,6 +70,8 @@
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
+
+
 
         <activity
             android:name=".RegisterActivity"

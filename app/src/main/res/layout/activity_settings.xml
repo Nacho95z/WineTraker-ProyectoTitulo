@@ -1,348 +1,424 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA">
+    android:background="#FAFAFA"
+    tools:context=".SettingsActivity">
 
-    <LinearLayout
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="match_parent"
+        android:background="#FAFAFA">
 
-        <!-- SECCIÓN: PERFIL DE USUARIO -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
+        <!-- Header superior (mismo estilo Home: blanco, paddingTop 32dp, ícono menú) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/topBar"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            android:background="#FFFFFF"
+            android:paddingStart="16dp"
+            android:paddingTop="32dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp"
+            android:elevation="4dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <!-- Ícono menú (IGUAL QUE HOME: id menuIcon) -->
+            <ImageView
+                android:id="@+id/menuIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_menu"
+                app:tint="#B22034"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+
+            <!-- Título -->
+            <TextView
+                android:id="@+id/headerTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Configuración"
+                android:textColor="#B22034"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_marginStart="16dp"
+                app:layout_constraintStart_toEndOf="@id/menuIcon"
+                app:layout_constraintTop_toTopOf="@id/menuIcon"
+                app:layout_constraintBottom_toBottomOf="@id/menuIcon"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- ================= TU SETTINGS ORIGINAL (INTACTO) ================= -->
+        <ScrollView
+            android:id="@+id/settingsScroll"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="#FAFAFA"
+            android:fillViewport="true"
+            app:layout_constraintTop_toBottomOf="@id/topBar"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Perfil de usuario"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#B22034" />
-
-                <TextView
-                    android:id="@+id/txtProfileName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Nombre"
-                    android:textSize="14sp"
-                    android:layout_marginTop="8dp" />
-
-                <TextView
-                    android:id="@+id/txtProfileEmail"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="correo@ejemplo.cl"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/txtProfileUid"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="UID: ..."
-                    android:textSize="12sp"
-                    android:textColor="#777777"
-                    android:layout_marginTop="4dp" />
-
-                <LinearLayout
+                <!-- SECCIÓN: PERFIL DE USUARIO -->
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
 
-                    <Button
-                        android:id="@+id/btnEditName"
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Cambiar nombre" />
+                        android:padding="16dp"
+                        android:orientation="vertical">
 
-                    <Space
-                        android:layout_width="8dp"
-                        android:layout_height="wrap_content" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Perfil de usuario"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#B22034" />
 
-                    <Button
-                        android:id="@+id/btnEditEmail"
-                        android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/txtProfileName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Nombre"
+                            android:textSize="14sp"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:id="@+id/txtProfileEmail"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="correo@ejemplo.cl"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/txtProfileUid"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="UID: ..."
+                            android:textSize="12sp"
+                            android:textColor="#777777"
+                            android:layout_marginTop="4dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="12dp">
+
+                            <Button
+                                android:id="@+id/btnEditName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Cambiar nombre" />
+
+                            <Space
+                                android:layout_width="8dp"
+                                android:layout_height="wrap_content" />
+
+                            <Button
+                                android:id="@+id/btnEditEmail"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Cambiar correo" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- SECCIÓN: SEGURIDAD -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Cambiar correo" />
-                </LinearLayout>
+                        android:padding="16dp"
+                        android:orientation="vertical">
 
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Seguridad"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#B22034" />
 
+                        <Button
+                            android:id="@+id/btnChangePassword"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Cambiar contraseña"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
 
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- SECCIÓN: SEGURIDAD -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Seguridad"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#B22034" />
-
-                <Button
-                    android:id="@+id/btnChangePassword"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Cambiar contraseña"
-                    android:layout_marginTop="8dp" />
-
-
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- SECCIÓN: SESIÓN -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sesión"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#B22034" />
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switchRememberSession"
+                <!-- SECCIÓN: SESIÓN -->
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Mantener sesión iniciada"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
 
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switchBiometricGate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Pedir huella/PIN al abrir la app"
-                    android:layout_marginTop="8dp" />
-
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- SECCIÓN: NOTIFICACIONES -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Notificaciones"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#B22034" />
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switchNotifOptimal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Vinos en punto óptimo"
-                    android:layout_marginTop="8dp" />
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switchNotifExpiry"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Vencimientos de guarda" />
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switchNotifNews"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Novedades y actualizaciones" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- SECCIÓN: TEMA -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Tema de la aplicación"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#B22034" />
-
-                <RadioGroup
-                    android:id="@+id/rgTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="8dp">
-
-                    <RadioButton
-                        android:id="@+id/rbThemeLight"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Modo claro" />
+                        android:padding="16dp"
+                        android:orientation="vertical">
 
-                    <RadioButton
-                        android:id="@+id/rbThemeDark"
-                        android:layout_width="wrap_content"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Sesión"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#B22034" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchRememberSession"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Mantener sesión iniciada"
+                            android:layout_marginTop="8dp" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchBiometricGate"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Pedir huella/PIN al abrir la app"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- SECCIÓN: NOTIFICACIONES -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Modo oscuro" />
+                        android:padding="16dp"
+                        android:orientation="vertical">
 
-                    <RadioButton
-                        android:id="@+id/rbThemeSystem"
-                        android:layout_width="wrap_content"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Notificaciones"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#B22034" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchNotifOptimal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Vinos en punto óptimo"
+                            android:layout_marginTop="8dp" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchNotifExpiry"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Vencimientos de guarda" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchNotifNews"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Novedades y actualizaciones" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- (resto de tus secciones: Tema, Respaldo, Acerca de...)
+                     PÉGALAS AQUÍ tal cual las tenías -->
+                <!-- SECCIÓN: TEMA -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Automático (según sistema)" />
-                </RadioGroup>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+                        android:padding="16dp"
+                        android:orientation="vertical">
 
-        <!-- SECCIÓN: SINCRONIZACIÓN / RESPALDO -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tema de la aplicación"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#B22034" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
+                        <RadioGroup
+                            android:id="@+id/rgTheme"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginTop="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sincronización y respaldo"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:textColor="#B22034" />
+                            <RadioButton
+                                android:id="@+id/rbThemeLight"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Modo claro" />
 
-                <Button
-                    android:id="@+id/btnBackup"
+                            <RadioButton
+                                android:id="@+id/rbThemeDark"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Modo oscuro" />
+
+                            <RadioButton
+                                android:id="@+id/rbThemeSystem"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Automático (según sistema)" />
+                        </RadioGroup>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- SECCIÓN: SINCRONIZACIÓN / RESPALDO -->
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Hacer backup en Firestore"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
 
-                <Button
-                    android:id="@+id/btnRestore"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Sincronización y respaldo"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:textColor="#B22034" />
+
+                        <Button
+                            android:id="@+id/btnBackup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Hacer backup en Firestore"
+                            android:layout_marginTop="8dp" />
+
+                        <Button
+                            android:id="@+id/btnRestore"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Restaurar backup"
+                            android:layout_marginTop="8dp" />
+
+                        <Button
+                            android:id="@+id/btnExport"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Exportar colección a CSV/PDF"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- SECCIÓN: ACERCA DE -->
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Restaurar backup"
-                    android:layout_marginTop="8dp" />
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
 
-                <Button
-                    android:id="@+id/btnExport"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Exportar colección a CSV/PDF"
-                    android:layout_marginTop="8dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/txtAboutVersion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Versión 1.0.0"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WineTrack está construida con Android y Firebase."
+                            android:textSize="14sp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/txtPrivacyPolicy"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Política de privacidad"
+                            android:textColor="#B22034"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:id="@+id/txtTerms"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Términos de uso"
+                            android:textColor="#B22034"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </ScrollView>
 
-        <!-- SECCIÓN: ACERCA DE -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:orientation="vertical">
+    <!-- ================= BARRA LATERAL (IGUAL QUE HOME) ================= -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navigationView"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        app:menu="@menu/drawer_menu"
+        app:headerLayout="@layout/drawer_header"/>
 
-                <TextView
-                    android:id="@+id/txtAboutVersion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Versión 1.0.0"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="WineTrack está construida con Android y Firebase."
-                    android:textSize="14sp"
-                    android:layout_marginTop="4dp" />
-
-                <TextView
-                    android:id="@+id/txtPrivacyPolicy"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Política de privacidad"
-                    android:textColor="#B22034"
-                    android:textStyle="bold"
-                    android:layout_marginTop="8dp" />
-
-                <TextView
-                    android:id="@+id/txtTerms"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Términos de uso"
-                    android:textColor="#B22034"
-                    android:textStyle="bold"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-    </LinearLayout>
-</ScrollView>
+</androidx.drawerlayout.widget.DrawerLayout>

@@ -11,6 +11,7 @@ import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -22,7 +23,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -48,6 +51,14 @@ public class SettingsActivity extends AppCompatActivity {
 
     private FirebaseUser user;
     private SharedPreferences prefs;
+
+    // Drawer
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ImageView menuIcon;
+
+    // Header drawer (si usas nav_header)
+    private TextView headerTitle, headerEmail;
 
     // Perfil
     private TextView txtProfileName, txtProfileEmail, txtProfileUid;
@@ -88,12 +99,18 @@ public class SettingsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        applyThemeFromPrefs();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
         user = FirebaseAuth.getInstance().getCurrentUser();
         prefs = getSharedPreferences("wtrack_prefs", MODE_PRIVATE);
         db = FirebaseFirestore.getInstance();
+
+        // ✅ Drawer (misma lógica que Home)
+        initializeDrawerViews();
+        setupDrawerUserInfo();
+        setupDrawerActions();
 
         // CSV launcher
         createCsvLauncher = registerForActivityResult(
@@ -119,6 +136,92 @@ public class SettingsActivity extends AppCompatActivity {
         setupListeners();
     }
 
+    // =========================================================
+// DRAWER (igual que Home)
+// =========================================================
+    private void initializeDrawerViews() {
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        menuIcon = findViewById(R.id.menuIcon);
+
+        if (navigationView != null) {
+            android.view.View headerView = navigationView.getHeaderView(0);
+            headerTitle = headerView.findViewById(R.id.headerTitle);
+            headerEmail = headerView.findViewById(R.id.headerEmail);
+        }
+    }
+
+    private void setupDrawerUserInfo() {
+        if (user != null && headerTitle != null && headerEmail != null) {
+            String displayName = user.getDisplayName();
+            if (displayName == null || displayName.isEmpty()) displayName = "Amante del vino";
+            headerTitle.setText(displayName);
+            headerEmail.setText(user.getEmail());
+        }
+    }
+
+    private void setupDrawerActions() {
+        if (menuIcon != null && drawerLayout != null) {
+            menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(androidx.core.view.GravityCompat.START));
+        }
+
+        if (navigationView != null && drawerLayout != null) {
+            navigationView.setNavigationItemSelectedListener(item -> {
+                int id = item.getItemId();
+
+                if (id == R.id.nav_home) {
+                    redirectToActivity(HomeActivity.class);
+
+                } else if (id == R.id.nav_my_cellar) {
+                    redirectToActivity(ViewCollectionActivity.class);
+
+                } else if (id == R.id.nav_settings) {
+                    // ya estás aquí
+                    drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
+                    return true;
+
+                } else if (id == R.id.nav_logout) {
+                    performLogout();
+                }
+
+                drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
+                return true;
+            });
+        }
+    }
+
+    private void redirectToActivity(Class<?> cls) {
+        Intent intent = new Intent(SettingsActivity.this, cls);
+        startActivity(intent);
+    }
+
+    private void performLogout() {
+        FirebaseAuth.getInstance().signOut();
+        getSharedPreferences("wtrack_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("remember_session", false)
+                .apply();
+
+        Intent intent = new Intent(SettingsActivity.this, AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) {
+            drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    private void applyThemeFromPrefs() {
+        SharedPreferences p = getSharedPreferences("wtrack_prefs", MODE_PRIVATE);
+        int mode = p.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        AppCompatDelegate.setDefaultNightMode(mode);
+    }
     // =========================================================
     // EXPORT CSV
     // =========================================================
@@ -688,6 +791,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             prefs.edit().putInt("theme_mode", mode).apply();
             AppCompatDelegate.setDefaultNightMode(mode);
+            recreate();
         });
 
         txtPrivacyPolicy.setOnClickListener(v -> openUrl("https://tusitio.cl/politica-privacidad"));
