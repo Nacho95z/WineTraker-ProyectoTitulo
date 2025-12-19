@@ -8,14 +8,17 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.google.firebase.Timestamp;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -41,9 +44,6 @@ import android.widget.AdapterView;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.bumptech.glide.Glide;
 
-
-
-
 // Filtros dinámicos
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -63,7 +63,7 @@ import android.widget.ArrayAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ViewCollectionActivity extends AppCompatActivity {
+public class ConsumedWinesActivity extends AppCompatActivity {
 
     // Drawer
     private DrawerLayout drawerLayoutCollection;
@@ -101,6 +101,14 @@ public class ViewCollectionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_collection);
+
+        // Cambiar título del header
+        TextView title = findViewById(R.id.titleText);
+        title.setText("Consumidos");
+
+        // Ocultar "Botellas en su Apogeo" (texto + switch)
+        View optimalRow = findViewById(R.id.optimalToggleRow);
+        optimalRow.setVisibility(View.GONE);
 
         // Ocultar ActionBar para usar nuestro header custom
         if (getSupportActionBar() != null) {
@@ -160,18 +168,23 @@ public class ViewCollectionActivity extends AppCompatActivity {
             int id = item.getItemId();
 
             if (id == R.id.nav_home) {
-                Intent intent = new Intent(ViewCollectionActivity.this, HomeActivity.class);
+                Intent intent = new Intent(ConsumedWinesActivity.this, HomeActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
 
             } else if (id == R.id.nav_my_cellar) {
-                drawerLayoutCollection.closeDrawer(GravityCompat.START);
+                // ✅ Volver a la bodega
+                Intent intent = new Intent(ConsumedWinesActivity.this, ViewCollectionActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
 
             } else if (id == R.id.nav_consumed) {
-                startActivity(new Intent(ViewCollectionActivity.this, ConsumedWinesActivity.class));
+                // ✅ Ya estás en Consumidos: solo cerrar el drawer (no abrir otra instancia)
+                drawerLayoutCollection.closeDrawer(GravityCompat.START);
+                return true;
 
             } else if (id == R.id.nav_settings) {
-                startActivity(new Intent(ViewCollectionActivity.this, SettingsActivity.class));
+                startActivity(new Intent(ConsumedWinesActivity.this, SettingsActivity.class));
 
             } else if (id == R.id.nav_logout) {
                 FirebaseAuth.getInstance().signOut();
@@ -180,7 +193,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
                         .putBoolean("remember_session", false)
                         .apply();
 
-                Intent intent = new Intent(ViewCollectionActivity.this, AuthActivity.class);
+                Intent intent = new Intent(ConsumedWinesActivity.this, AuthActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 finish();
@@ -213,6 +226,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
         if (fullscreenImage != null) {
             fullscreenImage.setOnViewTapListener((view, x, y) -> closeFullImage());
         }
+
 
         // 🔎 Barra de filtros
 
@@ -282,6 +296,23 @@ public class ViewCollectionActivity extends AppCompatActivity {
         }
     }
 
+    private void setHeaderTitleIfExists(String newTitle) {
+        // intenta varios nombres comunes de id (ajusta si sabes el real)
+        String[] possibleIds = {"textViewTitle", "tvTitle", "titleTextView", "txtTitle", "title"};
+
+        for (String name : possibleIds) {
+            int id = getResources().getIdentifier(name, "id", getPackageName());
+            if (id != 0) {
+                android.view.View v = findViewById(id);
+                if (v instanceof android.widget.TextView) {
+                    ((android.widget.TextView) v).setText(newTitle);
+                    return;
+                }
+            }
+        }
+    }
+
+
     private void loadCollection() {
         ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Cargando colección...");
@@ -299,35 +330,42 @@ public class ViewCollectionActivity extends AppCompatActivity {
         userCollection.get()
                 .addOnCompleteListener(task -> {
                     progressDialog.dismiss();
+
                     if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
 
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             String documentId = document.getId();
 
-                            // ✅ Si está archivado (consumido), NO lo mostramos en la bodega
+                            // ✅ SOLO mostrar vinos archivados (consumidos)
                             Boolean archived = document.getBoolean("archived");
-                            if (archived != null && archived) {
+                            if (archived == null || !archived) {
                                 continue;
                             }
 
-
                             // 👇 Usamos getData SOLO para filtros (allFields)
                             Map<String, Object> data = document.getData();
-                            if (data == null) {
-                                data = new HashMap<>();
+                            if (data == null) data = new HashMap<>();
+
+                            // ✅ Fecha de archivado (para mostrar arriba)
+                            com.google.firebase.Timestamp archivedTs = document.getTimestamp("archivedAt");
+                            String archivedAtText = "Consumido: Sin fecha";
+                            if (archivedTs != null) {
+                                java.text.SimpleDateFormat sdf =
+                                        new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault());
+                                archivedAtText = "Consumido: " + sdf.format(archivedTs.toDate());
                             }
+                            data.put("archivedAtText", archivedAtText);
 
+                            // Image URL (fallback a data si viene raro)
                             String imageUrl = document.getString("imageUrl");
-
                             if (imageUrl == null || imageUrl.isEmpty()) {
                                 Object rawUrl = data.get("imageUrl");
-                                if (rawUrl != null) {
-                                    imageUrl = rawUrl.toString();
-                                }
+                                if (rawUrl != null) imageUrl = rawUrl.toString();
                             }
 
-                            android.util.Log.d("ViewCollection", "Doc " + documentId + " imageUrl = " + imageUrl);
+                            android.util.Log.d("ConsumedWines", "Doc " + documentId + " imageUrl = " + imageUrl);
 
+                            // Campos principales
                             String name       = document.getString("wineName");
                             String variety    = document.getString("variety");
                             String vintage    = document.getString("vintage");
@@ -339,11 +377,10 @@ public class ViewCollectionActivity extends AppCompatActivity {
                             // PRICE: puede ser número o texto
                             String price = null;
                             Object rawPrice = document.get("price");
-                            if (rawPrice != null) {
-                                price = rawPrice.toString();
-                            }
+                            if (rawPrice != null) price = rawPrice.toString();
 
-                            boolean isOptimal = isOptimalForConsumption(variety, vintage);
+                            // En Consumidos no tiene sentido "óptimo"
+                            boolean isOptimal = false;
 
                             CollectionItem item = new CollectionItem(
                                     documentId, imageUrl, name, variety, vintage,
@@ -351,8 +388,6 @@ public class ViewCollectionActivity extends AppCompatActivity {
                                     isOptimal, data
                             );
 
-                            // 👇 OJO: en modo óptimos, fullCollectionList también solo tendrá esos,
-                            //        así los filtros trabajan solo sobre la lista filtrada.
                             fullCollectionList.add(item);
                             collectionList.add(item);
 
@@ -364,25 +399,22 @@ public class ViewCollectionActivity extends AppCompatActivity {
                             }
                         }
 
-
-
-
                         // ⬅️ IMPORTANTE: llenar el Spinner una vez detectados los campos
                         setupFilterSpinner();
 
-                        // Aplicar el filtro actual (texto + toggle óptimo)
+                        // Aplicar filtro actual (texto)
                         String currentText = editFilterValue.getText() != null
                                 ? editFilterValue.getText().toString().trim()
                                 : "";
                         applyFilter(currentText);
 
                     } else {
-                        Toast.makeText(this, "No se encontraron vinos en la colección", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "No se encontraron vinos consumidos", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> {
                     progressDialog.dismiss();
-                    Toast.makeText(this, "Error al cargar la colección", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al cargar consumidos", Toast.LENGTH_SHORT).show();
                 });
 
     }
@@ -736,6 +768,11 @@ public class ViewCollectionActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             CollectionItem item = collectionList.get(position);
 
+            // ✅ En Consumidos: ocultar acciones que no corresponden
+            holder.btnArchivar.setVisibility(View.GONE);
+            holder.editButton.setVisibility(View.GONE); // opcional recomendado
+            // holder.deleteButton queda visible (historial) o lo ocultas si quieres
+
             // Siempre reseteamos la imagen con un placeholder básico
             holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
 
@@ -795,6 +832,38 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 holder.commentTextView.setVisibility(View.VISIBLE);
             }
 
+        // 1) Ocultar Archivar
+            holder.btnArchivar.setVisibility(View.GONE);
+
+        // 2) Hacer que "Eliminar" ocupe todo el espacio del grupo y quede centrado
+        // Si deleteButton está dentro de un LinearLayout con weight, lo forzamos:
+            LinearLayout.LayoutParams delParams =
+                    (LinearLayout.LayoutParams) holder.deleteButton.getLayoutParams();
+
+            delParams.width = 0;
+            delParams.weight = 1f;
+            delParams.height = (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 48,
+                    holder.itemView.getResources().getDisplayMetrics()
+            );
+
+            holder.deleteButton.setLayoutParams(delParams);
+
+        // 3) Fondo redondeado completo (no split)
+            holder.deleteButton.setBackgroundResource(R.drawable.bg_full_red);
+            holder.deleteButton.setText("Eliminar");
+            holder.deleteButton.setTextColor(Color.WHITE);
+            holder.deleteButton.setAllCaps(false);
+            holder.deleteButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+
+        // 4) Quitar “insets” material si aplica
+            try {
+                com.google.android.material.button.MaterialButton mb =
+                        (com.google.android.material.button.MaterialButton) holder.deleteButton;
+                mb.setInsetTop(0);
+                mb.setInsetBottom(0);
+            } catch (Exception ignored) {}
+
 
             // --- Eliminar ---
             holder.deleteButton.setOnClickListener(v -> {
@@ -841,6 +910,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
             holder.editButton.setOnClickListener(v ->
                     showEditDialog(holder.itemView.getContext(), item, position)
             );
+
 
             // --- Archivar (Consumido) ---
             holder.btnArchivar.setOnClickListener(v -> {

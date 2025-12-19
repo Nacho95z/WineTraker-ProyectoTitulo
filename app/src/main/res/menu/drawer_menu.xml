@@ -12,6 +12,11 @@
         android:icon="@drawable/ic_menu_bodega" />
 
     <item
+        android:id="@+id/nav_consumed"
+        android:icon="@drawable/ic_archive"
+        android:title="Consumidos" />
+
+    <item
         android:id="@+id/nav_settings"
         android:title="Configuración"
         android:icon="@drawable/ic_menu_manage" />

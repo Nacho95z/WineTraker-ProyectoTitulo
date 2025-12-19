@@ -71,7 +71,7 @@
             android:name=".HomeActivity"
             android:exported="false" />
 
-
+        <activity android:name=".ConsumedWinesActivity" />
 
         <activity
             android:name=".RegisterActivity"

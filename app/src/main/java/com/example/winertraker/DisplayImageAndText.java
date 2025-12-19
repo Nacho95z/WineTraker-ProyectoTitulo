@@ -135,6 +135,9 @@ public class DisplayImageAndText extends AppCompatActivity {
                 redirectToActivity(HomeActivity.class);
             } else if (id == R.id.nav_my_cellar) {
                 redirectToActivity(ViewCollectionActivity.class);
+            } else if (id == R.id.nav_consumed) {
+                Toast.makeText(this, "Entrando a Consumidos", Toast.LENGTH_SHORT).show();
+                redirectToActivity(ConsumedWinesActivity.class);
             } else if (id == R.id.nav_settings) {
                 redirectToActivity(SettingsActivity.class);
             } else if (id == R.id.nav_logout) {

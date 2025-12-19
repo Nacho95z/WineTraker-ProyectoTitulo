@@ -162,7 +162,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void setupDrawerActions() {
         if (menuIcon != null && drawerLayout != null) {
-            menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(androidx.core.view.GravityCompat.START));
+            menuIcon.setOnClickListener(v ->
+                    drawerLayout.openDrawer(androidx.core.view.GravityCompat.START)
+            );
         }
 
         if (navigationView != null && drawerLayout != null) {
@@ -175,13 +177,18 @@ public class SettingsActivity extends AppCompatActivity {
                 } else if (id == R.id.nav_my_cellar) {
                     redirectToActivity(ViewCollectionActivity.class);
 
+                } else if (id == R.id.nav_consumed) {
+                    redirectToActivity(ConsumedWinesActivity.class);
+
                 } else if (id == R.id.nav_settings) {
-                    // ya estás aquí
+                    // ✅ ya estás aquí
                     drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
                     return true;
 
                 } else if (id == R.id.nav_logout) {
                     performLogout();
+                    drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
+                    return true;
                 }
 
                 drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
