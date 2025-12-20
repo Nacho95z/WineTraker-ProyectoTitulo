@@ -26,6 +26,11 @@ import androidx.exifinterface.media.ExifInterface;   // <-- NUEVO
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import androidx.exifinterface.media.ExifInterface;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import java.io.FileOutputStream;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
@@ -54,8 +59,12 @@ public class CaptureIMG extends AppCompatActivity {
     private boolean isCapturing = false;
     private View loadingOverlay;
 
+    // ✅ FLASH (ICONO)
+    private ImageView flashIcon;
+    private boolean flashEnabled = false;
 
-
+    // ✅ TORCH / CAMERA
+    private androidx.camera.core.Camera camera;
 
     // Drawer
     private DrawerLayout drawerLayoutCapture;
@@ -125,6 +134,13 @@ public class CaptureIMG extends AppCompatActivity {
         captureButton = findViewById(R.id.image_capture_button);
         loadingOverlay = findViewById(R.id.loadingOverlay);
 
+        // ✅ FLASH ICON
+        flashIcon = findViewById(R.id.flashIcon);
+        if (flashIcon != null) {
+            flashIcon.setOnClickListener(v -> toggleFlash());
+            // por si el overlay aún molestara
+            flashIcon.bringToFront();
+        }
 
         previewView.post(this::startCamera);
 
@@ -139,7 +155,6 @@ public class CaptureIMG extends AppCompatActivity {
                     @Override
                     public void handleOnBackPressed() {
 
-                        // 🔒 Bloqueo mientras se captura / procesa
                         if (isCapturing) {
                             Toast.makeText(
                                     CaptureIMG.this,
@@ -149,19 +164,40 @@ public class CaptureIMG extends AppCompatActivity {
                             return;
                         }
 
-                        // 📂 Si el drawer está abierto, cerrarlo primero
                         if (drawerLayoutCapture != null &&
                                 drawerLayoutCapture.isDrawerOpen(GravityCompat.START)) {
                             drawerLayoutCapture.closeDrawer(GravityCompat.START);
                             return;
                         }
 
-                        // ⬅️ Back normal
                         setEnabled(false);
                         CaptureIMG.super.onBackPressed();
                     }
                 });
+    }
 
+    // ✅ FLASH TOGGLE -> TORCH REAL
+    private void toggleFlash() {
+        if (camera == null) return;
+
+        if (!camera.getCameraInfo().hasFlashUnit()) {
+            Toast.makeText(this, "Este dispositivo no tiene flash", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        flashEnabled = !flashEnabled;
+
+        // ✅ Enciende/apaga linterna
+        camera.getCameraControl().enableTorch(flashEnabled);
+
+        // feedback visual simple (sin drawables personalizados)
+        if (flashIcon != null) {
+            flashIcon.setImageResource(
+                    flashEnabled
+                            ? R.drawable.flash_on
+                            : R.drawable.ic_flash_off
+            );
+        }
     }
 
     private void startCamera() {
@@ -192,7 +228,15 @@ public class CaptureIMG extends AppCompatActivity {
 
         try {
             cameraProvider.unbindAll();
-            cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+
+            // ✅ guardar referencia a cámara para TORCH
+            camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+
+            // ✅ aplicar estado al iniciar
+            if (camera.getCameraInfo().hasFlashUnit()) {
+                camera.getCameraControl().enableTorch(flashEnabled);
+            }
+
         } catch (Exception e) {
             Toast.makeText(this, "Fallo al vincular cámara", Toast.LENGTH_SHORT).show();
             unlockCaptureButton();
@@ -225,7 +269,7 @@ public class CaptureIMG extends AppCompatActivity {
                         showLoading();
                         processImageForText(fileUri);
 
-                        // ✅ NO desbloqueamos aquí: si todo va bien, pasamos a la otra Activity.
+                        // ✅ no desbloquear acá
                     }
 
                     @Override
@@ -238,15 +282,14 @@ public class CaptureIMG extends AppCompatActivity {
         );
     }
 
-
     /**
-     * Lee el EXIF del archivo y rota la imagen si es necesario,
-     * sobrescribiendo el mismo JPG.
+     * Rota la imagen según EXIF y sobrescribe el mismo JPG.
      */
     private void fixImageOrientation(File photoFile) {
         try {
             String path = photoFile.getAbsolutePath();
             ExifInterface exif = new ExifInterface(path);
+
             int orientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION,
                     ExifInterface.ORIENTATION_NORMAL
@@ -267,30 +310,33 @@ public class CaptureIMG extends AppCompatActivity {
                     rotationDegrees = 0;
             }
 
-            if (rotationDegrees == 0) {
-                return; // ya está bien orientada
-            }
+            if (rotationDegrees == 0) return;
 
             Bitmap bitmap = BitmapFactory.decodeFile(path);
             if (bitmap == null) return;
 
             Matrix matrix = new Matrix();
             matrix.postRotate(rotationDegrees);
+
             Bitmap rotated = Bitmap.createBitmap(
-                    bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true
+                    bitmap, 0, 0,
+                    bitmap.getWidth(),
+                    bitmap.getHeight(),
+                    matrix, true
             );
+
             bitmap.recycle();
 
-            // sobrescribimos el archivo
             FileOutputStream out = new FileOutputStream(photoFile);
             rotated.compress(Bitmap.CompressFormat.JPEG, 90, out);
             out.flush();
             out.close();
             rotated.recycle();
 
-            // dejamos la orientación en normal
-            exif.setAttribute(ExifInterface.TAG_ORIENTATION,
-                    String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+            exif.setAttribute(
+                    ExifInterface.TAG_ORIENTATION,
+                    String.valueOf(ExifInterface.ORIENTATION_NORMAL)
+            );
             exif.saveAttributes();
 
         } catch (Exception e) {
@@ -298,6 +344,7 @@ public class CaptureIMG extends AppCompatActivity {
         }
     }
 
+    // ✅ OCR ML Kit
     private void processImageForText(Uri uri) {
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
@@ -315,6 +362,7 @@ public class CaptureIMG extends AppCompatActivity {
                         unlockCaptureButton();
                         Toast.makeText(this, "Error al procesar texto", Toast.LENGTH_SHORT).show();
                     });
+
         } catch (IOException e) {
             e.printStackTrace();
             hideLoading();
@@ -322,15 +370,12 @@ public class CaptureIMG extends AppCompatActivity {
         }
     }
 
-
     private void showImageAndText(Uri imageUri, String recognizedText) {
         Intent intent = new Intent(this, DisplayImageAndText.class);
         intent.putExtra("imageUri", imageUri);
         intent.putExtra("recognizedText", recognizedText);
         startActivity(intent);
     }
-
-
 
     private void lockCaptureButton() {
         isCapturing = true;
@@ -341,7 +386,6 @@ public class CaptureIMG extends AppCompatActivity {
         if (drawerLayoutCapture != null) {
             drawerLayoutCapture.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         }
-
     }
 
     private void unlockCaptureButton() {
@@ -353,14 +397,13 @@ public class CaptureIMG extends AppCompatActivity {
         if (drawerLayoutCapture != null) {
             drawerLayoutCapture.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         }
-
     }
+
     private void showLoading() {
         if (loadingOverlay != null) {
             loadingOverlay.setVisibility(View.VISIBLE);
         }
     }
-
 
     @Override
     protected void onResume() {
@@ -369,13 +412,24 @@ public class CaptureIMG extends AppCompatActivity {
         unlockCaptureButton();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // ✅ apaga linterna al salir
+        if (camera != null && camera.getCameraInfo().hasFlashUnit()) {
+            camera.getCameraControl().enableTorch(false);
+        }
+        flashEnabled = false;
+
+        if (flashIcon != null) {
+            flashIcon.setImageResource(R.drawable.ic_flash_off);
+        }
+    }
 
     private void hideLoading() {
         if (loadingOverlay != null) {
             loadingOverlay.setVisibility(View.GONE);
         }
     }
-
-
-
 }

@@ -91,7 +91,6 @@
                     android:focusable="true"
                     android:focusableInTouchMode="true">
 
-
                     <ProgressBar
                         android:id="@+id/loadingProgress"
                         style="?android:attr/progressBarStyleLarge"
@@ -99,7 +98,6 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"/>
                 </FrameLayout>
-
 
                 <!-- Overlay guía -->
                 <androidx.constraintlayout.widget.ConstraintLayout
@@ -139,6 +137,21 @@
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- ✅ ICONO FLASH (MOVIDO AL FINAL PARA QUEDAR ENCIMA Y RECIBIR CLICK) -->
+                <ImageView
+                    android:id="@+id/flashIcon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="12dp"
+                    android:padding="10dp"
+                    android:background="@drawable/bg_flash_circle"
+                    android:src="@drawable/ic_flash_off"
+                    android:tint="@android:color/white"
+                    android:contentDescription="Flash"
+                    android:clickable="true"
+                    android:focusable="true" />
 
             </FrameLayout>
 
