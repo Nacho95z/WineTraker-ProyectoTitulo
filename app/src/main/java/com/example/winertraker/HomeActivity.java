@@ -541,6 +541,14 @@ public class HomeActivity extends AppCompatActivity {
                 double totalCellarValue = 0.0;
 
                 for (QueryDocumentSnapshot document : task.getResult()) {
+
+                    // ✅ SOLO BODEGA: excluir archivados (consumidos)
+                    Boolean archived = document.getBoolean("archived");
+                    if (archived != null && archived) {
+                        continue; // es consumido → NO entra en los gráficos
+                    }
+
+                    // ✅ recién aquí cuenta como vino de bodega
                     totalWines++;
 
                     String docId = document.getId();
@@ -628,8 +636,6 @@ public class HomeActivity extends AppCompatActivity {
 
                 boolean hasOptimal = !optimalWineNames.isEmpty();
                 updateGrapeGifState(hasOptimal, optimalCount);
-
-//                if (hasOptimal) sendOptimalConsumptionNotification(optimalWineNames);
 
                 App app = (App) getApplication();
                 if (hasOptimal && !app.isOptimalNotificationSent()) {
