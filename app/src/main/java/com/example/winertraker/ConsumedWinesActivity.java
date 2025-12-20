@@ -550,6 +550,14 @@ public class ConsumedWinesActivity extends AppCompatActivity {
             } catch (IllegalArgumentException ignored) { }
         }
 
+        private static int dpToPx(View v, int dp) {
+            return (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    dp,
+                    v.getResources().getDisplayMetrics()
+            );
+        }
+
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             ConsumedItem item = list.get(position);
@@ -591,6 +599,34 @@ public class ConsumedWinesActivity extends AppCompatActivity {
 
             holder.categoryTextView.setVisibility("No disponible".equals(item.category) ? View.GONE : View.VISIBLE);
             holder.commentTextView.setVisibility("Sin comentario del asistente".equals(item.comment) ? View.GONE : View.VISIBLE);
+
+            // =========================================================
+            // ✅ FECHA DE ARCHIVADO (Consumido) JUSTO ANTES DE ELIMINAR
+            // (Este TextView lo creaste e insertaste en el ViewHolder)
+            // =========================================================
+            String archivedAtText = "Consumido: Sin fecha";
+
+            // Opción 1: viene desde allFields (si lo estás usando)
+            if (item.allFields != null) {
+                Object raw = item.allFields.get("archivedAtText");
+                if (raw != null) archivedAtText = raw.toString();
+            }
+
+            // Opción 2 (recomendado si tienes Timestamp en el item): archivedAt
+            // Descomenta si tu ConsumedItem tiene com.google.firebase.Timestamp archivedAt;
+    /*
+    if (item.archivedAt != null) {
+        java.text.SimpleDateFormat sdf =
+                new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault());
+        archivedAtText = "Consumido: " + sdf.format(item.archivedAt.toDate());
+    }
+    */
+
+            if (holder.archivedAtTextView != null) {
+                holder.archivedAtTextView.setText(archivedAtText);
+                holder.archivedAtTextView.setVisibility(View.VISIBLE);
+            }
+            // =========================================================
 
             // Botón eliminar full width (como lo querías)
             LinearLayout.LayoutParams delParams =
@@ -664,6 +700,7 @@ public class ConsumedWinesActivity extends AppCompatActivity {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             ImageView imageView, iconOptimal;
+            TextView archivedAtTextView;
             TextView nameTextView, varietyTextView, vintageTextView,
                     originTextView, percentageTextView,
                     categoryTextView, commentTextView, priceTextView;
@@ -688,6 +725,58 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                 deleteButton = itemView.findViewById(R.id.buttonDelete);
                 editButton = itemView.findViewById(R.id.buttonEdit);
                 btnArchivar = itemView.findViewById(R.id.btnArchivar);
+
+                // ===============================
+                // ✅ FECHA "Consumido" SOLO POR JAVA (alineada con los textos)
+                // ===============================
+                archivedAtTextView = new TextView(itemView.getContext());
+                archivedAtTextView.setId(View.generateViewId()); // ✅ importante en ConstraintLayout
+                archivedAtTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                archivedAtTextView.setTextColor(Color.parseColor("#888888"));
+                archivedAtTextView.setText("Consumido: Sin fecha");
+
+                // 👉 Parent del bloque de textos (donde están Precio/Comentario/etc.)
+                ViewGroup textParent = (ViewGroup) priceTextView.getParent();
+
+                // Evitar duplicados
+                if (archivedAtTextView.getParent() != null) {
+                    ((ViewGroup) archivedAtTextView.getParent()).removeView(archivedAtTextView);
+                }
+
+                // ✅ Si es ConstraintLayout, hay que poner constraints sí o sí
+                if (textParent instanceof androidx.constraintlayout.widget.ConstraintLayout) {
+
+                    androidx.constraintlayout.widget.ConstraintLayout.LayoutParams clp =
+                            new androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT
+                            );
+
+                    // ⬇️ Bajo el comentario (si comentario está GONE, igual quedará bien)
+                    clp.topToBottom = commentTextView.getId();
+
+                    // ⬅️ Alineado al inicio del bloque de textos (mismo start que comment/price)
+                    clp.startToStart = commentTextView.getId();
+
+                    clp.topMargin = dpToPx(itemView, 6);
+                    clp.bottomMargin = dpToPx(itemView, 6);
+
+                    archivedAtTextView.setLayoutParams(clp);
+                    textParent.addView(archivedAtTextView);
+
+                } else {
+                    // ✅ Si fuera LinearLayout u otro, funciona normal
+                    ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+                    lp.topMargin = dpToPx(itemView, 6);
+                    lp.bottomMargin = dpToPx(itemView, 6);
+                    archivedAtTextView.setLayoutParams(lp);
+
+                    // Lo agregamos al final del bloque de textos
+                    textParent.addView(archivedAtTextView);
+                }
             }
         }
     }
