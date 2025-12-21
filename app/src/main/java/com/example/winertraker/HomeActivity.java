@@ -24,6 +24,7 @@ import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -109,6 +110,19 @@ public class HomeActivity extends AppCompatActivity {
     // Banner
     private TextView bannerTextView;
     private ValueAnimator bannerAnimator;
+    // Banner timing
+    private ProgressBar bannerProgress;
+    private ValueAnimator bannerProgressAnimator;
+    private Runnable bannerRotationRunnable;
+
+
+    private boolean bannerPaused = false;
+    private long bannerCycleStartMs = 0L;     // cuando empezó el ciclo actual
+    private long bannerRemainingMs = BANNER_CYCLE_MS; // lo que queda cuando pausas
+
+    private CardView infoBannerCard;
+
+
 
     private final List<String> bannerMessages = new ArrayList<>();
     private int currentBannerIndex = 0;
@@ -134,6 +148,8 @@ public class HomeActivity extends AppCompatActivity {
     private final Map<String, Integer> cachedVarietyCounts = new HashMap<>();
     private int[] cachedMonthCounts = new int[12];
     private double[] cachedMonthValues = new double[12];
+    private TextView txtWelcomeUser;
+
 
     private static final String[] MONTHS_FULL = {
             "Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -190,6 +206,7 @@ public class HomeActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         bannerHandler.removeCallbacksAndMessages(null);
+        stopBannerProgress();
     }
 
     // -------------------------------------------------------------
@@ -255,6 +272,9 @@ public class HomeActivity extends AppCompatActivity {
 
         // Si tu layout lo tiene, perfecto. Si no existe, quedará null y no rompe.
         //try { txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue); } catch (Exception ignored) {}
+        bannerProgress = findViewById(R.id.bannerProgress);
+        infoBannerCard = findViewById(R.id.infoBannerCard);
+
 
         cardScanBottle = findViewById(R.id.cardScanBottle);
         cardMyCellar = findViewById(R.id.cardMyCellar);
@@ -269,6 +289,8 @@ public class HomeActivity extends AppCompatActivity {
         chartsPager = findViewById(R.id.chartsPager);
         chartsDots = findViewById(R.id.chartsDots);
         txtChartInsight = findViewById(R.id.txtChartInsight);
+
+
 
         // Articulos
         rvArticles = findViewById(R.id.rvArticles);
@@ -316,11 +338,12 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setupUserInfo() {
-        if (user != null) {
-            String displayName = user.getDisplayName();
-            if (displayName == null || displayName.isEmpty()) displayName = "Amante del vino";
-            headerTitle.setText(displayName);
-            headerEmail.setText(user.getEmail());
+        if (user != null && txtWelcomeUser != null) {
+            String name = user.getDisplayName();
+            if (name == null || name.trim().isEmpty()) {
+                name = "de vuelta";
+            }
+            txtWelcomeUser.setText("Qué bueno verte de vuelta, " + name);
         }
     }
 
@@ -385,20 +408,35 @@ public class HomeActivity extends AppCompatActivity {
     private void startBannerRotation() {
         if (bannerTextView == null || bannerMessages.isEmpty()) return;
 
+        // ✅ No resetees siempre el índice si ya hay mensaje mostrado
+        if (bannerTextView.getText() == null || bannerTextView.getText().toString().trim().isEmpty()) {
+            currentBannerIndex = 0;
+            bannerTextView.setText(bannerMessages.get(0));
+            bannerTextView.setAlpha(1f);
+        }
+
         bannerHandler.removeCallbacksAndMessages(null);
-        currentBannerIndex = 0;
+        bannerPaused = false;
 
-        // primer mensaje inmediato
-        bannerTextView.setText(bannerMessages.get(0));
-        bannerTextView.setAlpha(1f);
+        // inicia ciclo desde "ahora"
+        bannerCycleStartMs = android.os.SystemClock.elapsedRealtime();
+        bannerRemainingMs = BANNER_CYCLE_MS;
 
-        Runnable rotationRunnable = new Runnable() {
+        startBannerProgressWithDuration(BANNER_CYCLE_MS);
+
+        bannerRotationRunnable = new Runnable() {
             @Override
             public void run() {
+                if (bannerPaused) return;
                 if (bannerMessages.isEmpty() || bannerTextView == null) return;
 
                 currentBannerIndex = (currentBannerIndex + 1) % bannerMessages.size();
                 String msg = bannerMessages.get(currentBannerIndex);
+
+                // reinicia ciclo
+                bannerCycleStartMs = android.os.SystemClock.elapsedRealtime();
+                bannerRemainingMs = BANNER_CYCLE_MS;
+                startBannerProgressWithDuration(BANNER_CYCLE_MS);
 
                 bannerTextView.animate()
                         .alpha(0f)
@@ -416,8 +454,92 @@ public class HomeActivity extends AppCompatActivity {
             }
         };
 
-        bannerHandler.postDelayed(rotationRunnable, BANNER_CYCLE_MS);
+        bannerHandler.postDelayed(bannerRotationRunnable, BANNER_CYCLE_MS);
+
+        // ✅ Listener 1 vez
+        setupBannerPauseTouch();
     }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupBannerPauseTouch() {
+        if (infoBannerCard == null) return;
+
+        infoBannerCard.setOnTouchListener((v, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    pauseBanner();
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    resumeBanner();
+                    v.performClick(); // ✅ quita warning y mejora accesibilidad
+                    return true;
+            }
+            return false;
+        });
+    }
+
+    private void resumeBanner() {
+        if (!bannerPaused) return;
+        bannerPaused = false;
+
+        // reinicia el "start" considerando lo que queda
+        bannerCycleStartMs = android.os.SystemClock.elapsedRealtime() - (BANNER_CYCLE_MS - bannerRemainingMs);
+
+        // reanuda progress
+        if (bannerProgressAnimator != null) {
+            bannerProgressAnimator.resume();
+        } else {
+            startBannerProgressWithDuration(bannerRemainingMs);
+        }
+
+        // reprograma el cambio SOLO con lo restante
+        if (bannerRotationRunnable != null) {
+            bannerHandler.postDelayed(bannerRotationRunnable, bannerRemainingMs);
+        }
+    }
+
+    private void pauseBanner() {
+        if (bannerPaused) return;
+        bannerPaused = true;
+
+        // calcula restante
+        long now = android.os.SystemClock.elapsedRealtime();
+        long elapsed = now - bannerCycleStartMs;
+        bannerRemainingMs = Math.max(0L, BANNER_CYCLE_MS - elapsed);
+
+        // stop runnable (sin reset)
+        if (bannerRotationRunnable != null) {
+            bannerHandler.removeCallbacks(bannerRotationRunnable);
+        }
+
+        // pausar progress (API 19+)
+        if (bannerProgressAnimator != null) {
+            bannerProgressAnimator.pause();
+        }
+    }
+
+    private void startBannerProgressWithDuration(long durationMs) {
+        if (bannerProgress == null) return;
+
+        stopBannerProgress();
+        bannerProgress.setMax(1000);
+        bannerProgress.setProgress(1000); // 👈 parte lleno a la derecha (visual)
+
+        bannerProgressAnimator = ValueAnimator.ofInt(0, 1000);
+        bannerProgressAnimator.setDuration(Math.max(1, durationMs));
+        bannerProgressAnimator.setInterpolator(new LinearInterpolator());
+        bannerProgressAnimator.addUpdateListener(anim -> {
+            if (bannerProgress != null) {
+                int v = (int) anim.getAnimatedValue(); // 0..1000
+                bannerProgress.setProgress(1000 - v);   // 👈 rellena derecha→izquierda
+            }
+        });
+        bannerProgressAnimator.start();
+    }
+
+
 
     private void updateBannerMessage(int totalWines, double totalCellarValue) {
         bannerMessages.clear();
@@ -668,6 +790,32 @@ public class HomeActivity extends AppCompatActivity {
             updateGrapeGifState(false, 0);
             if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
         });
+    }
+    private void startBannerProgress() {
+        if (bannerProgress == null) return;
+
+        stopBannerProgress();
+
+        bannerProgress.setMax(1000);
+        bannerProgress.setProgress(0);
+
+        bannerProgressAnimator = ValueAnimator.ofInt(0, 1000);
+        bannerProgressAnimator.setDuration(BANNER_CYCLE_MS);
+        bannerProgressAnimator.setInterpolator(new LinearInterpolator());
+        bannerProgressAnimator.addUpdateListener(anim -> {
+            if (bannerProgress != null) {
+                bannerProgress.setProgress((int) anim.getAnimatedValue());
+            }
+        });
+        bannerProgressAnimator.start();
+    }
+
+    private void stopBannerProgress() {
+        if (bannerProgressAnimator != null) {
+            bannerProgressAnimator.cancel();
+            bannerProgressAnimator = null;
+        }
+        if (bannerProgress != null) bannerProgress.setProgress(0);
     }
 
     // -------------------------------------------------------------
