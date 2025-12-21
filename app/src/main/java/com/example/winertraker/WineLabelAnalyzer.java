@@ -129,13 +129,32 @@ public class WineLabelAnalyzer {
     // ---------- Helpers privados ----------
 
     private static String imageUriToDataUrl(Context context, Uri uri) throws IOException {
+
         InputStream inputStream = context.getContentResolver().openInputStream(uri);
         if (inputStream == null) throw new IOException("No se pudo abrir InputStream");
 
-        byte[] bytes = readAllBytes(inputStream);
-        String base64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
-        return "data:image/jpeg;base64," + base64; // asumimos JPG
+        // 1️⃣ Decodificar imagen a Bitmap
+        android.graphics.Bitmap original =
+                android.graphics.BitmapFactory.decodeStream(inputStream);
+
+        if (original == null) {
+            throw new IOException("No se pudo decodificar la imagen");
+        }
+
+        // 2️⃣ Redimensionar manteniendo proporción
+        android.graphics.Bitmap resized = resizeKeepingAspectRatio(original, 1280);
+
+        // 3️⃣ Comprimir a JPEG optimizado
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, baos);
+
+        byte[] optimizedBytes = baos.toByteArray();
+
+        String base64 = Base64.encodeToString(optimizedBytes, Base64.NO_WRAP);
+        Log.d(TAG, "Image size sent to OpenAI = " + optimizedBytes.length + " bytes");
+        return "data:image/jpeg;base64," + base64;
     }
+
 
     private static byte[] readAllBytes(InputStream inputStream) throws IOException {
         java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
@@ -165,4 +184,37 @@ public class WineLabelAnalyzer {
             callback.onResult(null, null, e);
         }
     }
+
+    private static android.graphics.Bitmap resizeKeepingAspectRatio(
+            android.graphics.Bitmap bitmap,
+            int maxSize
+    ) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        if (width <= maxSize && height <= maxSize) {
+            return bitmap; // no necesita resize
+        }
+
+        float ratio = (float) width / height;
+
+        int newWidth;
+        int newHeight;
+
+        if (ratio > 1) {
+            newWidth = maxSize;
+            newHeight = Math.round(maxSize / ratio);
+        } else {
+            newHeight = maxSize;
+            newWidth = Math.round(maxSize * ratio);
+        }
+
+        return android.graphics.Bitmap.createScaledBitmap(
+                bitmap,
+                newWidth,
+                newHeight,
+                true
+        );
+    }
+
 }
