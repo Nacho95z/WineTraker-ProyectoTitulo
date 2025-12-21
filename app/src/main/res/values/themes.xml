@@ -8,6 +8,8 @@
         <item name="android:statusBarColor">@color/white</item>
         <!-- Iconos oscuros sobre barra clara -->
         <item name="android:windowLightStatusBar">true</item>
+        <item name="colorControlActivated">#B22034</item>
+        <item name="colorSecondary">#B22034</item>
 
     </style>
 
