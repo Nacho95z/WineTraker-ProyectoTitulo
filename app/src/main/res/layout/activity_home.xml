@@ -169,7 +169,7 @@
                                     android:id="@+id/bannerIcon"
                                     android:layout_width="18dp"
                                     android:layout_height="18dp"
-                                    android:src="@drawable/ic_wine"
+                                    android:src="@drawable/ic_bottle"
                                     android:layout_marginEnd="10dp"
                                     android:contentDescription="Info"
                                     app:tint="#B22034"/>
@@ -236,7 +236,7 @@
 
                         <!-- Mi Bodega (CLICKABLE) -->
                         <androidx.cardview.widget.CardView
-                            android:id="@+id/cardMyCellar"
+                            android:id="@+id/cardConsumed"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -252,27 +252,59 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="20dp"
-                                android:gravity="center">
+                                android:padding="18dp">
 
-                                <TextView
-                                    android:layout_width="wrap_content"
+                                <LinearLayout
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="Mi Bodega"
-                                    android:textSize="14sp"
-                                    android:textColor="#757575"/>
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
 
-                                <!-- Ícono copa/botella -->
-                                <ImageView
-                                    android:id="@+id/imgMyCellarIcon"
-                                    android:layout_width="28dp"
-                                    android:layout_height="28dp"
-                                    android:layout_marginTop="10dp"
-                                    android:src="@drawable/ic_wine"
-                                    app:tint="#B22034"
-                                    android:contentDescription="Mi Bodega"/>
+                                    <!-- Icono circular -->
+                                    <FrameLayout
+                                        android:layout_width="44dp"
+                                        android:layout_height="44dp"
+                                        android:background="@color/white"
+                                        android:padding="10dp">
 
-                                <!-- Dejamos el contador, pero oculto para no romper tu Java actual -->
+                                        <ImageView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:src="@drawable/ic_bottle_check"
+                                            app:tint="#B22034"
+                                            android:contentDescription="Consumidos"/>
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:layout_marginStart="12dp"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Consumidos"
+                                            android:textSize="14sp"
+                                            android:textColor="@color/my_dark_primary"
+                                            android:textStyle="bold"/>
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text=" Ver historial"
+                                            android:textSize="12sp"
+                                            android:textColor="#757575"
+                                            android:layout_marginTop="2dp"/>
+                                    </LinearLayout>
+
+
+                                </LinearLayout>
+
+
+
+                                <!-- contador oculto para no romper tu Java -->
                                 <TextView
                                     android:id="@+id/txtTotalWines"
                                     android:layout_width="wrap_content"
@@ -280,11 +312,12 @@
                                     android:visibility="gone"
                                     android:text="0"/>
                             </LinearLayout>
+
                         </androidx.cardview.widget.CardView>
 
                         <!-- Listos para beber (CLICKABLE) -->
                         <androidx.cardview.widget.CardView
-                            android:id="@+id/cardReadyToDrink"
+                            android:id="@+id/cardMyCellar"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -300,26 +333,56 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="20dp"
-                                android:gravity="center">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
+                                android:padding="18dp">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="Listos para beber"
-                                    android:gravity="center"
-                                    android:textSize="14sp"
-                                    android:textColor="#757575"/>
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
 
-                                <TextView
-                                    android:id="@+id/txtOptimalWines"
-                                    android:layout_width="28dp"
-                                    android:layout_height="38dp"
-                                    android:text="0"
-                                    android:textSize="32sp"
-                                    android:textStyle="bold"
-                                    android:textColor="#4CAF50"/>
+                                    <!-- Icono circular -->
+                                    <FrameLayout
+                                        android:layout_width="44dp"
+                                        android:layout_height="44dp"
+                                        android:background="@color/white"
+                                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                                        android:padding="10dp">
+
+                                        <ImageView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:src="@drawable/ic_bottle"
+                                            app:tint="#B22034"
+                                            android:contentDescription="Mi Bodega"/>
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:layout_marginStart="12dp"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Mi Bodega"
+                                            android:textSize="14sp"
+                                            android:textColor="@color/my_dark_primary"
+                                            android:textStyle="bold"/>
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Ver inventario"
+                                            android:textSize="12sp"
+                                            android:textColor="#757575"
+                                            android:layout_marginTop="2dp"/>
+                                    </LinearLayout>
+                                </LinearLayout>
+
                             </LinearLayout>
+
                         </androidx.cardview.widget.CardView>
 
                     </LinearLayout>

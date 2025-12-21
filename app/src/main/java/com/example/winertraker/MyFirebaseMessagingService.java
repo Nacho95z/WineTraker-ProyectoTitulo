@@ -76,7 +76,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_wine)   // usa el mismo icono que ya tienes
+                .setSmallIcon(R.drawable.ic_bottle)   // usa el mismo icono que ya tienes
                 .setContentTitle(title)
                 .setContentText(body)
                 .setAutoCancel(true)

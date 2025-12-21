@@ -41,7 +41,7 @@ public class ArticlesAdapter extends RecyclerView.Adapter<ArticlesAdapter.VH> {
         if (a.imageResId != 0) {
             h.imgThumb.setImageResource(a.imageResId);
         } else {
-            h.imgThumb.setImageResource(R.drawable.ic_wine);
+            h.imgThumb.setImageResource(R.drawable.ic_bottle);
         }
 
         h.itemView.setOnClickListener(v -> {

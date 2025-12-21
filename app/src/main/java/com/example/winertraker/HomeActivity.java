@@ -1,3 +1,4 @@
+// HomeActivity.java
 package com.example.winertraker;
 
 import android.Manifest;
@@ -15,7 +16,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -28,7 +28,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
@@ -37,6 +36,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewpager2.widget.ViewPager2;
@@ -81,10 +81,6 @@ import java.util.Map;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-
 public class HomeActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 112;
@@ -93,73 +89,66 @@ public class HomeActivity extends AppCompatActivity {
     private FirebaseFirestore firestore;
     private String userId;
 
-    // UI
+    // UI base
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private ImageView menuIcon;
 
-    private TextView headerTitle, headerEmail, txtChartInsight;
-
-    private TextView txtTotalWines, txtOptimalWines, txtTotalCellarValue;
-
-    private CardView cardScanBottle;
-    private CardView cardMyCellar;
-    private CardView cardReadyToDrink;
-    private SwipeRefreshLayout swipeRefreshLayout;
-
     // Banner
+    private CardView infoBannerCard;
     private TextView bannerTextView;
-    private ValueAnimator bannerAnimator;
-    // Banner timing
     private ProgressBar bannerProgress;
     private ValueAnimator bannerProgressAnimator;
     private Runnable bannerRotationRunnable;
 
-
     private boolean bannerPaused = false;
-    private long bannerCycleStartMs = 0L;     // cuando empezó el ciclo actual
-    private long bannerRemainingMs = BANNER_CYCLE_MS; // lo que queda cuando pausas
-
-    private CardView infoBannerCard;
-
-
+    private long bannerCycleStartMs = 0L;
+    private long bannerRemainingMs = BANNER_CYCLE_MS;
 
     private final List<String> bannerMessages = new ArrayList<>();
     private int currentBannerIndex = 0;
     private static final long BANNER_CYCLE_MS = 8000;
     private final android.os.Handler bannerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
-    // 🍇 GIF uva + badge
+    // Accesos rápidos
+    private CardView cardScanBottle;
+    private CardView cardMyCellar;
+    private CardView cardConsumed;
+    private SwipeRefreshLayout swipeRefreshLayout;
+
+    private TextView txtTotalWines;
+    private TextView txtConsumedCount;
+
+    // (se usa internamente, puede ir oculto en XML)
+    private TextView txtOptimalWines;
+
+    // GIF uva + badge
     private GifImageView headerGif;
     private TextView tvOptimalBadge;
-
     private boolean hasOptimalWines = false;
 
-    // Lista actual de vinos en consumo óptimo
     private final List<String> currentOptimalWineNames = new ArrayList<>();
     private final List<String> currentOptimalWineIds = new ArrayList<>();
 
-    // ===== Carrusel Charts =====
+    // Charts
     private ViewPager2 chartsPager;
     private TabLayout chartsDots;
     private ChartsPagerAdapter chartsAdapter;
+    private TextView txtChartInsight;
 
-    // Cache datos para que el adapter pinte cuando corresponda
     private final Map<String, Integer> cachedVarietyCounts = new HashMap<>();
     private int[] cachedMonthCounts = new int[12];
     private double[] cachedMonthValues = new double[12];
-    private TextView txtWelcomeUser;
 
+    // Artículos
+    private RecyclerView rvArticles;
+    private ArticlesAdapter articlesAdapter;
+    private final List<Article> articles = new ArrayList<>();
 
     private static final String[] MONTHS_FULL = {
             "Enero","Febrero","Marzo","Abril","Mayo","Junio",
             "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
     };
-
-    private RecyclerView rvArticles;
-    private ArticlesAdapter articlesAdapter;
-    private final List<Article> articles = new ArrayList<>();
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,19 +165,19 @@ public class HomeActivity extends AppCompatActivity {
             finish();
             return;
         }
-
         userId = user.getUid();
 
         initializeViews();
         setupChartsPager();
         fixPagerSwipeConflicts();
-        setupUserInfo();
         setupActions();
         setupArticlesSection();
         createNotificationChannel();
 
-        swipeRefreshLayout.setColorSchemeColors(Color.parseColor("#B22034"));
-        swipeRefreshLayout.setOnRefreshListener(this::loadCollectionStats);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setColorSchemeColors(Color.parseColor("#B22034"));
+            swipeRefreshLayout.setOnRefreshListener(this::loadCollectionStats);
+        }
 
         loadCollectionStats();
         checkTermsAndConditions();
@@ -197,9 +186,7 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (userId != null) {
-            loadCollectionStats();
-        }
+        if (userId != null) loadCollectionStats();
     }
 
     @Override
@@ -263,134 +250,80 @@ public class HomeActivity extends AppCompatActivity {
         navigationView = findViewById(R.id.navigationView);
         menuIcon = findViewById(R.id.menuIcon);
 
-        View headerView = navigationView.getHeaderView(0);
-        headerTitle = headerView.findViewById(R.id.headerTitle);
-        headerEmail = headerView.findViewById(R.id.headerEmail);
-
-        txtTotalWines = findViewById(R.id.txtTotalWines);
-        txtOptimalWines = findViewById(R.id.txtOptimalWines);
-
-        // Si tu layout lo tiene, perfecto. Si no existe, quedará null y no rompe.
-        //try { txtTotalCellarValue = findViewById(R.id.txtTotalCellarValue); } catch (Exception ignored) {}
-        bannerProgress = findViewById(R.id.bannerProgress);
+        // Banner
         infoBannerCard = findViewById(R.id.infoBannerCard);
+        bannerTextView = findViewById(R.id.bannerTextView);
+        bannerProgress = findViewById(R.id.bannerProgress);
 
-
+        // Cards
         cardScanBottle = findViewById(R.id.cardScanBottle);
         cardMyCellar = findViewById(R.id.cardMyCellar);
-        cardReadyToDrink = findViewById(R.id.cardReadyToDrink);
+        cardConsumed = findViewById(R.id.cardConsumed);
 
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-        bannerTextView = findViewById(R.id.bannerTextView);
 
+        // Contadores
+        txtTotalWines = findViewById(R.id.txtTotalWines);
+        //txtConsumedCount = findViewById(R.id.txtConsumedCount);
+
+        // oculto/soporte
+        //txtOptimalWines = findViewById(R.id.txtOptimalWines);
+
+        // GIF + badge
         headerGif = findViewById(R.id.headerGifLarge);
         tvOptimalBadge = findViewById(R.id.tvOptimalBadge);
 
+        // Charts
         chartsPager = findViewById(R.id.chartsPager);
         chartsDots = findViewById(R.id.chartsDots);
         txtChartInsight = findViewById(R.id.txtChartInsight);
 
-
-
-        // Articulos
+        // Artículos
         rvArticles = findViewById(R.id.rvArticles);
-
-
-    }
-
-    private void setupChartsPager() {
-        if (chartsPager == null) return;
-
-        chartsAdapter = new ChartsPagerAdapter(new ChartsPagerAdapter.Binder() {
-            @Override public void bindPie(PieChart chart) { updatePieChart(chart, cachedVarietyCounts); }
-            @Override public void bindBar(BarChart chart) { updateBarChart(chart, cachedMonthCounts); }
-            @Override public void bindLine(LineChart chart) { updateValueLineChart(chart, cachedMonthValues); }
-        });
-
-        chartsPager.setAdapter(chartsAdapter);
-        chartsPager.setOffscreenPageLimit(2);
-
-        chartsPager.setClipToPadding(false);
-        chartsPager.setClipChildren(false);
-
-        View child = chartsPager.getChildAt(0);
-        if (child instanceof RecyclerView) {
-            ((RecyclerView) child).setClipToPadding(false);
-        }
-
-        chartsPager.setPageTransformer((page, position) -> {
-            float absPos = Math.abs(position);
-            page.setScaleY(0.95f + (1 - absPos) * 0.05f);
-            page.setAlpha(0.7f + (1 - absPos) * 0.3f);
-        });
-
-        chartsPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                updateInsightForPage(position);
-            }
-        });
-
-        new TabLayoutMediator(chartsDots, chartsPager, (tab, position) -> tab.setIcon(R.drawable.dot_selector)).attach();
-
-        updateInsightForPage(chartsPager.getCurrentItem()); // inicializa insight
-    }
-
-    private void setupUserInfo() {
-        if (user != null && txtWelcomeUser != null) {
-            String name = user.getDisplayName();
-            if (name == null || name.trim().isEmpty()) {
-                name = "de vuelta";
-            }
-            txtWelcomeUser.setText("Qué bueno verte de vuelta, " + name);
-        }
     }
 
     private void setupActions() {
-        menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
-
-        navigationView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_home) {
-                Toast.makeText(HomeActivity.this, "Inicio", Toast.LENGTH_SHORT).show();
-            } else if (id == R.id.nav_my_cellar) {
-                redirectToActivity(ViewCollectionActivity.class);
-
-            } else if (id == R.id.nav_consumed) {
-                Toast.makeText(this, "Entrando a Consumidos", Toast.LENGTH_SHORT).show();
-                redirectToActivity(ConsumedWinesActivity.class);
-
-            } else if (id == R.id.nav_settings) {
-                redirectToActivity(SettingsActivity.class);
-            } else if (id == R.id.nav_logout) {
-                performLogout();
-            }
-            drawerLayout.closeDrawer(GravityCompat.START);
-            return true;
-        });
-
-        // BOTÓN PRINCIPAL → ESCANEAR BOTELLA
-        if (cardScanBottle != null) {
-            cardScanBottle.setOnClickListener(v ->
-                    redirectToActivity(CaptureIMG.class)
-            );
-        }
-
-        // CARD → MI BODEGA
-        if (cardMyCellar != null) {
-            cardMyCellar.setOnClickListener(v ->
-                    redirectToActivity(ViewCollectionActivity.class)
-            );
-        }
-
-        // CARD → LISTOS PARA BEBER (filtro óptimos)
-        if (cardReadyToDrink != null) {
-            cardReadyToDrink.setOnClickListener(v -> {
-                Intent intent = new Intent(HomeActivity.this, ViewCollectionActivity.class);
-                intent.putExtra("filterMode", "optimal");
-                startActivity(intent);
+        if (menuIcon != null) {
+            menuIcon.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
             });
+        }
+
+        if (navigationView != null) {
+            navigationView.setNavigationItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_home) {
+                    Toast.makeText(HomeActivity.this, "Inicio", Toast.LENGTH_SHORT).show();
+
+                } else if (id == R.id.nav_my_cellar) {
+                    redirectToActivity(ViewCollectionActivity.class);
+
+                } else if (id == R.id.nav_consumed) {
+                    Toast.makeText(this, "Entrando a Consumidos", Toast.LENGTH_SHORT).show();
+                    redirectToActivity(ConsumedWinesActivity.class);
+
+                } else if (id == R.id.nav_settings) {
+                    redirectToActivity(SettingsActivity.class);
+
+                } else if (id == R.id.nav_logout) {
+                    performLogout();
+                }
+
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                return true;
+            });
+        }
+
+        if (cardScanBottle != null) {
+            cardScanBottle.setOnClickListener(v -> redirectToActivity(CaptureIMG.class));
+        }
+
+        if (cardMyCellar != null) {
+            cardMyCellar.setOnClickListener(v -> redirectToActivity(ViewCollectionActivity.class));
+        }
+
+        if (cardConsumed != null) {
+            cardConsumed.setOnClickListener(v -> redirectToActivity(ConsumedWinesActivity.class));
         }
 
         if (headerGif != null) {
@@ -402,13 +335,12 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     // -------------------------------------------------------------
-    // Banner
+    // Banner (rotación + pausa sin reiniciar)
     // -------------------------------------------------------------
 
     private void startBannerRotation() {
         if (bannerTextView == null || bannerMessages.isEmpty()) return;
 
-        // ✅ No resetees siempre el índice si ya hay mensaje mostrado
         if (bannerTextView.getText() == null || bannerTextView.getText().toString().trim().isEmpty()) {
             currentBannerIndex = 0;
             bannerTextView.setText(bannerMessages.get(0));
@@ -418,7 +350,6 @@ public class HomeActivity extends AppCompatActivity {
         bannerHandler.removeCallbacksAndMessages(null);
         bannerPaused = false;
 
-        // inicia ciclo desde "ahora"
         bannerCycleStartMs = android.os.SystemClock.elapsedRealtime();
         bannerRemainingMs = BANNER_CYCLE_MS;
 
@@ -433,7 +364,6 @@ public class HomeActivity extends AppCompatActivity {
                 currentBannerIndex = (currentBannerIndex + 1) % bannerMessages.size();
                 String msg = bannerMessages.get(currentBannerIndex);
 
-                // reinicia ciclo
                 bannerCycleStartMs = android.os.SystemClock.elapsedRealtime();
                 bannerRemainingMs = BANNER_CYCLE_MS;
                 startBannerProgressWithDuration(BANNER_CYCLE_MS);
@@ -443,10 +373,7 @@ public class HomeActivity extends AppCompatActivity {
                         .setDuration(180)
                         .withEndAction(() -> {
                             bannerTextView.setText(msg);
-                            bannerTextView.animate()
-                                    .alpha(1f)
-                                    .setDuration(220)
-                                    .start();
+                            bannerTextView.animate().alpha(1f).setDuration(220).start();
                         })
                         .start();
 
@@ -456,7 +383,6 @@ public class HomeActivity extends AppCompatActivity {
 
         bannerHandler.postDelayed(bannerRotationRunnable, BANNER_CYCLE_MS);
 
-        // ✅ Listener 1 vez
         setupBannerPauseTouch();
     }
 
@@ -473,7 +399,7 @@ public class HomeActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     resumeBanner();
-                    v.performClick(); // ✅ quita warning y mejora accesibilidad
+                    v.performClick();
                     return true;
             }
             return false;
@@ -484,40 +410,25 @@ public class HomeActivity extends AppCompatActivity {
         if (!bannerPaused) return;
         bannerPaused = false;
 
-        // reinicia el "start" considerando lo que queda
         bannerCycleStartMs = android.os.SystemClock.elapsedRealtime() - (BANNER_CYCLE_MS - bannerRemainingMs);
 
-        // reanuda progress
-        if (bannerProgressAnimator != null) {
-            bannerProgressAnimator.resume();
-        } else {
-            startBannerProgressWithDuration(bannerRemainingMs);
-        }
+        if (bannerProgressAnimator != null) bannerProgressAnimator.resume();
+        else startBannerProgressWithDuration(bannerRemainingMs);
 
-        // reprograma el cambio SOLO con lo restante
-        if (bannerRotationRunnable != null) {
-            bannerHandler.postDelayed(bannerRotationRunnable, bannerRemainingMs);
-        }
+        if (bannerRotationRunnable != null) bannerHandler.postDelayed(bannerRotationRunnable, bannerRemainingMs);
     }
 
     private void pauseBanner() {
         if (bannerPaused) return;
         bannerPaused = true;
 
-        // calcula restante
         long now = android.os.SystemClock.elapsedRealtime();
         long elapsed = now - bannerCycleStartMs;
         bannerRemainingMs = Math.max(0L, BANNER_CYCLE_MS - elapsed);
 
-        // stop runnable (sin reset)
-        if (bannerRotationRunnable != null) {
-            bannerHandler.removeCallbacks(bannerRotationRunnable);
-        }
+        if (bannerRotationRunnable != null) bannerHandler.removeCallbacks(bannerRotationRunnable);
 
-        // pausar progress (API 19+)
-        if (bannerProgressAnimator != null) {
-            bannerProgressAnimator.pause();
-        }
+        if (bannerProgressAnimator != null) bannerProgressAnimator.pause();
     }
 
     private void startBannerProgressWithDuration(long durationMs) {
@@ -525,33 +436,37 @@ public class HomeActivity extends AppCompatActivity {
 
         stopBannerProgress();
         bannerProgress.setMax(1000);
-        bannerProgress.setProgress(1000); // 👈 parte lleno a la derecha (visual)
+        bannerProgress.setProgress(1000); // lleno
 
         bannerProgressAnimator = ValueAnimator.ofInt(0, 1000);
         bannerProgressAnimator.setDuration(Math.max(1, durationMs));
         bannerProgressAnimator.setInterpolator(new LinearInterpolator());
         bannerProgressAnimator.addUpdateListener(anim -> {
             if (bannerProgress != null) {
-                int v = (int) anim.getAnimatedValue(); // 0..1000
-                bannerProgress.setProgress(1000 - v);   // 👈 rellena derecha→izquierda
+                int v = (int) anim.getAnimatedValue();
+                bannerProgress.setProgress(1000 - v); // derecha→izquierda
             }
         });
         bannerProgressAnimator.start();
     }
 
-
+    private void stopBannerProgress() {
+        if (bannerProgressAnimator != null) {
+            bannerProgressAnimator.cancel();
+            bannerProgressAnimator = null;
+        }
+        if (bannerProgress != null) bannerProgress.setProgress(0);
+    }
 
     private void updateBannerMessage(int totalWines, double totalCellarValue) {
         bannerMessages.clear();
 
-        // Mensaje principal (estado)
         if (totalWines > 0) {
             bannerMessages.add("Tu bodega tiene " + totalWines + " botella(s) • Valor estimado " + formatCurrency(totalCellarValue));
         } else {
             bannerMessages.add("Comienza escaneando tu primera botella 🍷");
         }
 
-        // Mensajes secundarios (más cortos y “mobile friendly”)
         bannerMessages.add("Tip: guarda tus vinos lejos de la luz y con temperatura estable.");
         bannerMessages.add("Tip: los tintos jóvenes suelen ir mejor entre 14–16°C.");
         bannerMessages.add("Dato Chile: Maule lidera la producción nacional de vino (SAG).");
@@ -588,7 +503,7 @@ public class HomeActivity extends AppCompatActivity {
         Button btnOpenCellar = dialog.findViewById(R.id.btnOpenCellar);
 
         title.setText("Botellas en su punto óptimo de consumo 🍷");
-        description.setVisibility(View.GONE);
+        if (description != null) description.setVisibility(View.GONE);
 
         StringBuilder builder = new StringBuilder();
         for (String displayText : currentOptimalWineNames) {
@@ -613,10 +528,7 @@ public class HomeActivity extends AppCompatActivity {
     // Logout
     // -------------------------------------------------------------
 
-
     private void performLogout() {
-
-        // 🔔 Reset del estado de notificación (para la próxima apertura)
         App app = (App) getApplication();
         app.resetOptimalNotification();
 
@@ -638,7 +550,7 @@ public class HomeActivity extends AppCompatActivity {
 
     private void loadCollectionStats() {
         if (userId == null) {
-            swipeRefreshLayout.setRefreshing(false);
+            if (swipeRefreshLayout != null) swipeRefreshLayout.setRefreshing(false);
             return;
         }
 
@@ -647,12 +559,13 @@ public class HomeActivity extends AppCompatActivity {
                 .collection("wineDescriptions");
 
         collectionRef.get().addOnCompleteListener(task -> {
-            swipeRefreshLayout.setRefreshing(false);
+            if (swipeRefreshLayout != null) swipeRefreshLayout.setRefreshing(false);
 
             if (task.isSuccessful() && task.getResult() != null) {
 
                 int totalWines = 0;
                 int optimalCount = 0;
+                int consumedCount = 0;
 
                 Map<String, Integer> wineVarietyCounts = new HashMap<>();
                 List<String> optimalWineNames = new ArrayList<>();
@@ -664,13 +577,12 @@ public class HomeActivity extends AppCompatActivity {
 
                 for (QueryDocumentSnapshot document : task.getResult()) {
 
-                    // ✅ SOLO BODEGA: excluir archivados (consumidos)
                     Boolean archived = document.getBoolean("archived");
                     if (archived != null && archived) {
-                        continue; // es consumido → NO entra en los gráficos
+                        consumedCount++;
+                        continue;
                     }
 
-                    // ✅ recién aquí cuenta como vino de bodega
                     totalWines++;
 
                     String docId = document.getId();
@@ -695,7 +607,7 @@ public class HomeActivity extends AppCompatActivity {
                                         if (category != null && !category.trim().isEmpty()) {
                                             display.append(" - ").append(category.trim());
                                         }
-                                        if (vintageStr != null && !vintageStr.trim().isEmpty()) {
+                                        if (!vintageStr.trim().isEmpty()) {
                                             display.append(" - ").append(vintageStr.trim());
                                         }
 
@@ -703,9 +615,7 @@ public class HomeActivity extends AppCompatActivity {
                                         optimalWineIdsTemp.add(docId);
                                     }
                                 }
-                            } catch (NumberFormatException e) {
-                                e.printStackTrace();
-                            }
+                            } catch (NumberFormatException ignored) {}
                         }
                     }
 
@@ -723,9 +633,7 @@ public class HomeActivity extends AppCompatActivity {
                     if (priceObj instanceof Number) {
                         price = ((Number) priceObj).doubleValue();
                     } else if (priceObj instanceof String) {
-                        try {
-                            price = Double.parseDouble((String) priceObj);
-                        } catch (NumberFormatException ignored) {}
+                        try { price = Double.parseDouble((String) priceObj); } catch (NumberFormatException ignored) {}
                     }
 
                     if (price != null) {
@@ -736,8 +644,9 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
 
-                txtTotalWines.setText(String.valueOf(totalWines));
-                txtOptimalWines.setText(String.valueOf(optimalCount));
+                if (txtTotalWines != null) txtTotalWines.setText(String.valueOf(totalWines));
+                if (txtConsumedCount != null) txtConsumedCount.setText(String.valueOf(consumedCount));
+                if (txtOptimalWines != null) txtOptimalWines.setText(String.valueOf(optimalCount)); // soporte
 
                 cachedVarietyCounts.clear();
                 cachedVarietyCounts.putAll(wineVarietyCounts);
@@ -747,7 +656,6 @@ public class HomeActivity extends AppCompatActivity {
                 if (chartsAdapter != null) chartsAdapter.notifyDataSetChanged();
                 if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
 
-                updateTotalCellarValue(totalCellarValue);
                 updateBannerMessage(totalWines, totalCellarValue);
 
                 currentOptimalWineNames.clear();
@@ -766,8 +674,9 @@ public class HomeActivity extends AppCompatActivity {
                 }
 
             } else {
-                txtTotalWines.setText("-");
-                txtOptimalWines.setText("-");
+                if (txtTotalWines != null) txtTotalWines.setText("-");
+                if (txtConsumedCount != null) txtConsumedCount.setText("-");
+                if (txtOptimalWines != null) txtOptimalWines.setText("-");
 
                 cachedVarietyCounts.clear();
                 cachedMonthCounts = new int[12];
@@ -778,8 +687,9 @@ public class HomeActivity extends AppCompatActivity {
                 updateBannerMessage(0, 0);
                 if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
             }
+
         }).addOnFailureListener(e -> {
-            swipeRefreshLayout.setRefreshing(false);
+            if (swipeRefreshLayout != null) swipeRefreshLayout.setRefreshing(false);
             Toast.makeText(this, "Error cargando datos", Toast.LENGTH_SHORT).show();
 
             cachedVarietyCounts.clear();
@@ -791,36 +701,50 @@ public class HomeActivity extends AppCompatActivity {
             if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
         });
     }
-    private void startBannerProgress() {
-        if (bannerProgress == null) return;
-
-        stopBannerProgress();
-
-        bannerProgress.setMax(1000);
-        bannerProgress.setProgress(0);
-
-        bannerProgressAnimator = ValueAnimator.ofInt(0, 1000);
-        bannerProgressAnimator.setDuration(BANNER_CYCLE_MS);
-        bannerProgressAnimator.setInterpolator(new LinearInterpolator());
-        bannerProgressAnimator.addUpdateListener(anim -> {
-            if (bannerProgress != null) {
-                bannerProgress.setProgress((int) anim.getAnimatedValue());
-            }
-        });
-        bannerProgressAnimator.start();
-    }
-
-    private void stopBannerProgress() {
-        if (bannerProgressAnimator != null) {
-            bannerProgressAnimator.cancel();
-            bannerProgressAnimator = null;
-        }
-        if (bannerProgress != null) bannerProgress.setProgress(0);
-    }
 
     // -------------------------------------------------------------
     // Charts
     // -------------------------------------------------------------
+
+    private void setupChartsPager() {
+        if (chartsPager == null) return;
+
+        chartsAdapter = new ChartsPagerAdapter(new ChartsPagerAdapter.Binder() {
+            @Override public void bindPie(PieChart chart) { updatePieChart(chart, cachedVarietyCounts); }
+            @Override public void bindBar(BarChart chart) { updateBarChart(chart, cachedMonthCounts); }
+            @Override public void bindLine(LineChart chart) { updateValueLineChart(chart, cachedMonthValues); }
+        });
+
+        chartsPager.setAdapter(chartsAdapter);
+        chartsPager.setOffscreenPageLimit(2);
+
+        chartsPager.setClipToPadding(false);
+        chartsPager.setClipChildren(false);
+
+        View child = chartsPager.getChildAt(0);
+        if (child instanceof RecyclerView) {
+            ((RecyclerView) child).setClipToPadding(false);
+        }
+
+        chartsPager.setPageTransformer((page, position) -> {
+            float absPos = Math.abs(position);
+            page.setScaleY(0.95f + (1 - absPos) * 0.05f);
+            page.setAlpha(0.7f + (1 - absPos) * 0.3f);
+        });
+
+        chartsPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                updateInsightForPage(position);
+            }
+        });
+
+        if (chartsDots != null) {
+            new TabLayoutMediator(chartsDots, chartsPager, (tab, position) -> tab.setIcon(R.drawable.dot_selector)).attach();
+        }
+
+        updateInsightForPage(chartsPager.getCurrentItem());
+    }
 
     private void updatePieChart(PieChart chart, Map<String, Integer> wineVarietyCounts) {
         if (chart == null) return;
@@ -843,24 +767,16 @@ public class HomeActivity extends AppCompatActivity {
 
         PieData data = new PieData(dataSet);
         data.setValueFormatter(new ValueFormatter() {
-            @Override
-            public String getFormattedValue(float value) {
-                return String.valueOf((int) value);
-            }
+            @Override public String getFormattedValue(float value) { return String.valueOf((int) value); }
         });
 
         chart.setData(data);
         chart.setUsePercentValues(false);
-
         chart.setDrawHoleEnabled(true);
         chart.setHoleColor(Color.TRANSPARENT);
 
         chart.setEntryLabelColor(Color.BLACK);
         chart.setEntryLabelTextSize(10f);
-
-        chart.setCenterText("");
-        chart.setCenterTextSize(16f);
-        chart.setCenterTextColor(Color.DKGRAY);
 
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(false);
@@ -957,50 +873,36 @@ public class HomeActivity extends AppCompatActivity {
         LineDataSet dataSet = new LineDataSet(entries, "");
         dataSet.setLineWidth(2.5f);
         dataSet.setCircleRadius(4f);
-        dataSet.setValueTextSize(10f);
-        dataSet.setDrawValues(false); // ✅ no muestra $ arriba de cada punto
+        dataSet.setDrawValues(false);
         dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
         dataSet.setCubicIntensity(0.2f);
 
         int lineColor = Color.parseColor("#1E88E5");
         dataSet.setColor(lineColor);
         dataSet.setCircleColor(lineColor);
-
         dataSet.setCircleHoleColor(Color.WHITE);
         dataSet.setDrawCircleHole(true);
 
-//        dataSet.setValueFormatter(new ValueFormatter() {
-//            @Override public String getPointLabel(Entry entry) { return formatCurrency(entry.getY()); }
-//        });
-
         dataSet.setDrawFilled(true);
         dataSet.setFillDrawable(ContextCompat.getDrawable(this, R.drawable.area_gradient));
-
         dataSet.setDrawHorizontalHighlightIndicator(false);
         dataSet.setDrawVerticalHighlightIndicator(false);
 
-        LineData lineData = new LineData(dataSet);
-        chart.setData(lineData);
-
-
+        chart.setData(new LineData(dataSet));
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
         xAxis.setValueFormatter(new IndexAxisValueFormatter(MONTHS_FULL));
         xAxis.setDrawGridLines(false);
-
         xAxis.setLabelRotationAngle(-35f);
         xAxis.setTextSize(10f);
         chart.getXAxis().setDrawAxisLine(false);
         xAxis.setAvoidFirstLastClipping(true);
 
-        // ✅ Aire real a los bordes (para que NO se corte el valor del último mes)
         float minX = entries.get(0).getX();
         float maxX = entries.get(entries.size() - 1).getX();
-        // ✅ Que el gráfico empiece EXACTO en el primer punto (sin espacio blanco)
         xAxis.setAxisMinimum(minX);
-        // ✅ Mantén aire SOLO a la derecha para que no se corte el último valor
         xAxis.setAxisMaximum(maxX + 0f);
 
         YAxis leftAxis = chart.getAxisLeft();
@@ -1017,33 +919,22 @@ public class HomeActivity extends AppCompatActivity {
         chart.setBackgroundColor(Color.WHITE);
         chart.getDescription().setEnabled(false);
         chart.getLegend().setEnabled(false);
+
         chart.setTouchEnabled(true);
         chart.setDragEnabled(true);
         chart.setScaleEnabled(false);
         chart.setPinchZoom(false);
-
         chart.setHighlightPerTapEnabled(true);
         chart.setHighlightPerDragEnabled(true);
-        dataSet.setDrawHorizontalHighlightIndicator(false);
-        dataSet.setDrawVerticalHighlightIndicator(false);
 
-
-        chart.setExtraOffsets(0f, 0f, 0f, 16f); // 👈 más margen derecho
+        chart.setExtraOffsets(0f, 0f, 0f, 16f);
         chart.animateX(900, Easing.EaseInOutSine);
-        dataSet.setDrawValues(false); // ✅ oculta valores
-
-        chart.setTouchEnabled(true);
-        chart.setDragEnabled(true);
-        chart.setScaleEnabled(false);
-        chart.setPinchZoom(false);
-        chart.setHighlightPerTapEnabled(true);
-        chart.setHighlightPerDragEnabled(true);
 
         ValueMarkerView marker = new ValueMarkerView(
                 this,
                 R.layout.marker_value,
                 MONTHS_FULL,
-                value -> formatCurrency(value)
+                this::formatCurrency
         );
         chart.setMarker(marker);
 
@@ -1051,22 +942,176 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     // -------------------------------------------------------------
-    // Valor total
+    // Insights
     // -------------------------------------------------------------
 
-    private String formatCurrency(double value) {
-        if (value <= 0) return "$0";
-        DecimalFormat df = new DecimalFormat("$###,###");
-        return df.format(value);
+    private void updateInsightForPage(int position) {
+        if (txtChartInsight == null) return;
+
+        if (position == 0) {
+            VarietyInsight vi = getTopVarietyInsight(cachedVarietyCounts);
+            if (vi.total <= 0) {
+                txtChartInsight.setText("Aún no hay datos de variedad. Escanea tu primera botella 🍷");
+            } else {
+                int pct = (int) Math.round((vi.count * 100.0) / vi.total);
+                txtChartInsight.setText(vi.name + " representa el " + pct + "% de tu bodega (" + vi.count + " de " + vi.total + ").");
+            }
+
+        } else if (position == 1) {
+            RecentMonthCountInsight mi = getMostRecentMonthWithCount(cachedMonthCounts);
+            if (mi.count <= 0) {
+                txtChartInsight.setText("Aún no hay registros mensuales suficientes.");
+            } else {
+                txtChartInsight.setText("Tu último mes con registros fue " + mi.monthName + " con " + mi.count + " botella(s) registrada(s).");
+            }
+
+        } else {
+            RecentMonthValueInsight vi = getMostRecentMonthWithValue(cachedMonthValues);
+            if (vi.value <= 0) {
+                txtChartInsight.setText("Aún no hay historial de valor para mostrar.");
+            } else {
+                txtChartInsight.setText("Tu último mes con valor registrado fue " + vi.monthName + ": " + formatCurrency(vi.value) + ".");
+            }
+        }
     }
 
-    private void updateTotalCellarValue(double totalCellarValue) {
-        if (txtTotalCellarValue == null) return;
-        txtTotalCellarValue.setText("Valor total de la bodega: " + formatCurrency(totalCellarValue));
+    private static class VarietyInsight { String name; int count; int total; }
+
+    private VarietyInsight getTopVarietyInsight(Map<String, Integer> map) {
+        VarietyInsight out = new VarietyInsight();
+        out.name = "—";
+        out.count = 0;
+        out.total = 0;
+
+        if (map == null || map.isEmpty()) return out;
+
+        for (Map.Entry<String, Integer> e : map.entrySet()) {
+            int v = (e.getValue() == null) ? 0 : e.getValue();
+            out.total += v;
+            if (v > out.count) {
+                out.count = v;
+                out.name = e.getKey();
+            }
+        }
+        return out;
+    }
+
+    private static class RecentMonthCountInsight { String monthName; int count; }
+
+    private RecentMonthCountInsight getMostRecentMonthWithCount(int[] monthCounts) {
+        RecentMonthCountInsight out = new RecentMonthCountInsight();
+        out.monthName = "—";
+        out.count = 0;
+
+        if (monthCounts == null || monthCounts.length < 12) return out;
+
+        for (int i = 11; i >= 0; i--) {
+            if (monthCounts[i] > 0) {
+                out.count = monthCounts[i];
+                out.monthName = MONTHS_FULL[i];
+                break;
+            }
+        }
+        return out;
+    }
+
+    private static class RecentMonthValueInsight { String monthName; double value; }
+
+    private RecentMonthValueInsight getMostRecentMonthWithValue(double[] monthValues) {
+        RecentMonthValueInsight out = new RecentMonthValueInsight();
+        out.monthName = "—";
+        out.value = 0.0;
+
+        if (monthValues == null || monthValues.length < 12) return out;
+
+        for (int i = 11; i >= 0; i--) {
+            if (monthValues[i] > 0) {
+                out.value = monthValues[i];
+                out.monthName = MONTHS_FULL[i];
+                break;
+            }
+        }
+        return out;
     }
 
     // -------------------------------------------------------------
-    // Lógica negocio
+    // Artículos
+    // -------------------------------------------------------------
+
+    private void setupArticlesSection() {
+        if (rvArticles == null) return;
+
+        rvArticles.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvArticles.setNestedScrollingEnabled(false);
+        rvArticles.setPadding(8, 0, 8, 0);
+        rvArticles.setClipToPadding(false);
+
+        articles.clear();
+
+        articles.add(new Article(
+                "a1",
+                "Cómo leer una etiqueta de vino chileno (Denominación de Origen)",
+                "Una guía para entender denominación de origen, valle, cepa y año sin enredos.",
+                "Wines of Chile / Guía enológica",
+                "2 min",
+                "La etiqueta de un vino chileno entrega información clave sobre su origen, estilo y potencial de guarda. Saber interpretarla permite tomar mejores decisiones de compra y consumo.\n\n" +
+                        "• Denominación de Origen (D.O.): indica el origen geográfico declarado del vino.\n\n" +
+                        "• Valle o Región: aporta pistas sobre el estilo del vino.\n\n" +
+                        "• Cepa: señala la variedad de uva utilizada.\n\n" +
+                        "• Añada (año): corresponde al año de cosecha y afecta potencial de envejecimiento.\n",
+                "",
+                R.drawable.wine_article_1
+        ));
+
+        articles.add(new Article(
+                "a2",
+                "Maridaje: El arte de combinar vino y gastronomía",
+                "Principios simples para equilibrar sabores entre vino y comida.",
+                "Decanter · Guía de maridaje",
+                "3 min",
+                "• Intensidad: ligero con ligero, intenso con intenso.\n\n" +
+                        "• Acidez: ayuda con comidas grasas o cremosas.\n\n" +
+                        "• Taninos: se suavizan con proteínas.\n\n" +
+                        "• Dulzor: el vino debe ser igual o más dulce que el plato.\n",
+                "",
+                R.drawable.wine_article_2
+        ));
+
+        articles.add(new Article(
+                "a3",
+                "Guarda y envejecimiento: cuándo esperar y cuándo abrir un vino",
+                "Cómo distinguir vinos de consumo temprano vs. potencial de guarda.",
+                "Wine Enthusiast · Guía de guarda",
+                "3 min",
+                "• No todos los vinos están hechos para guardarse.\n\n" +
+                        "• Vinos con potencial de guarda: estructura, acidez y taninos.\n\n" +
+                        "• Condiciones de guarda: 12–15 °C, sin luz directa.\n",
+                "",
+                R.drawable.wine_article_3
+        ));
+
+        articles.add(new Article(
+                "a4",
+                "Temperatura de servicio: el detalle que cambia completamente un vino",
+                "A qué temperatura servir cada tipo de vino.",
+                "Wine Spectator · Guía de servicio",
+                "3 min",
+                "• Espumantes: 6–8 °C\n" +
+                        "• Blancos ligeros: 8–10 °C\n" +
+                        "• Blancos con cuerpo: 10–12 °C\n" +
+                        "• Tintos jóvenes: 14–16 °C\n" +
+                        "• Tintos con guarda: 16–18 °C\n",
+                "",
+                R.drawable.wine_article_4
+        ));
+
+        articlesAdapter = new ArticlesAdapter(articles);
+        rvArticles.setAdapter(articlesAdapter);
+        articlesAdapter.notifyDataSetChanged();
+    }
+
+    // -------------------------------------------------------------
+    // Helpers negocio + UI
     // -------------------------------------------------------------
 
     private boolean isOptimalForConsumption(String variety, int vintageYear) {
@@ -1077,26 +1122,27 @@ public class HomeActivity extends AppCompatActivity {
             case "pinot noir":
             case "gamay":
                 return wineAge >= 2 && wineAge <= 5;
+
             case "merlot":
             case "tempranillo":
                 return wineAge >= 5 && wineAge <= 10;
+
             case "cabernet sauvignon":
             case "syrah":
                 return wineAge >= 10 && wineAge <= 20;
+
             case "sauvignon blanc":
             case "riesling":
                 return wineAge >= 1 && wineAge <= 3;
+
             case "chardonnay":
             case "viognier":
                 return wineAge >= 5 && wineAge <= 8;
+
             default:
                 return false;
         }
     }
-
-    // -------------------------------------------------------------
-    // Permisos + notificaciones
-    // -------------------------------------------------------------
 
     private void checkAndRequestPermissions() {
         List<String> listPermissionsNeeded = new ArrayList<>();
@@ -1134,14 +1180,14 @@ public class HomeActivity extends AppCompatActivity {
                 return;
             }
         }
-        if (wineNames.isEmpty()) return;
+        if (wineNames == null || wineNames.isEmpty()) return;
 
         Intent intent = new Intent(this, ViewCollectionActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "wine_optimal_channel")
-                .setSmallIcon(R.drawable.ic_wine)
+                .setSmallIcon(R.drawable.ic_bottle)
                 .setContentTitle("¡Tienes vinos listos!")
                 .setContentText("Tienes " + wineNames.size() + " botellas en su punto óptimo.")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -1150,10 +1196,6 @@ public class HomeActivity extends AppCompatActivity {
 
         NotificationManagerCompat.from(this).notify(1, builder.build());
     }
-
-    // -------------------------------------------------------------
-    // Helpers UI
-    // -------------------------------------------------------------
 
     private void redirectToActivity(Class<?> activityClass) {
         startActivity(new Intent(HomeActivity.this, activityClass));
@@ -1164,13 +1206,10 @@ public class HomeActivity extends AppCompatActivity {
         return text.substring(0, 1).toUpperCase() + text.substring(1).toLowerCase();
     }
 
-    @Override
-    public void onBackPressed() {
-        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
+    private String formatCurrency(double value) {
+        if (value <= 0) return "$0";
+        DecimalFormat df = new DecimalFormat("$###,###");
+        return df.format(value);
     }
 
     private void updateGrapeGifState(boolean hasOptimal, int optimalCount) {
@@ -1180,7 +1219,6 @@ public class HomeActivity extends AppCompatActivity {
             Drawable drawable = headerGif.getDrawable();
             if (drawable instanceof GifDrawable) {
                 GifDrawable gifDrawable = (GifDrawable) drawable;
-
                 if (hasOptimal) gifDrawable.start();
                 else {
                     gifDrawable.stop();
@@ -1202,7 +1240,6 @@ public class HomeActivity extends AppCompatActivity {
 
     private String getShortWineName(String fullName) {
         if (fullName == null) return "";
-
         String lower = fullName.toLowerCase();
 
         String[] corteEn = {
@@ -1244,10 +1281,7 @@ public class HomeActivity extends AppCompatActivity {
                         float dx = Math.abs(e.getX() - startX);
                         float dy = Math.abs(e.getY() - startY);
 
-                        if (!isHorizontal && dx > dy && dx > 12) {
-                            isHorizontal = true;
-                        }
-
+                        if (!isHorizontal && dx > dy && dx > 12) isHorizontal = true;
                         v.getParent().requestDisallowInterceptTouchEvent(isHorizontal);
                         return false;
 
@@ -1261,223 +1295,12 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    // -------------------------------------------------------------
-    // INSIGHTS (cambiados a “MES MÁS RECIENTE con registros” en Bar/Line)
-    // -------------------------------------------------------------
-
-    private void updateInsightForPage(int position) {
-        if (txtChartInsight == null) return;
-
-        if (position == 0) {
-            VarietyInsight vi = getTopVarietyInsight(cachedVarietyCounts);
-            if (vi.total <= 0) {
-                txtChartInsight.setText("Aún no hay datos de variedad. Escanea tu primera botella 🍷");
-            } else {
-                int pct = (int) Math.round((vi.count * 100.0) / vi.total);
-                txtChartInsight.setText(vi.name + " representa el " + pct + "% de tu bodega (" + vi.count + " de " + vi.total + ").");
-            }
-
-        } else if (position == 1) {
-            // ✅ BAR: mes más reciente con registros
-            RecentMonthCountInsight mi = getMostRecentMonthWithCount(cachedMonthCounts);
-            if (mi.count <= 0) {
-                txtChartInsight.setText("Aún no hay registros mensuales suficientes.");
-            } else {
-                txtChartInsight.setText("Tu último mes con registros fue " + mi.monthName + " con " + mi.count + " botella(s) registrada(s).");
-            }
-
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
         } else {
-            // ✅ LINE: mes más reciente con valor (no peak)
-            RecentMonthValueInsight vi = getMostRecentMonthWithValue(cachedMonthValues);
-            if (vi.value <= 0) {
-                txtChartInsight.setText("Aún no hay historial de valor para mostrar.");
-            } else {
-                txtChartInsight.setText("Tu último mes con valor registrado fue " + vi.monthName + ": " + formatCurrency(vi.value) + ".");
-            }
+            super.onBackPressed();
         }
     }
-
-    private static class VarietyInsight {
-        String name;
-        int count;
-        int total;
-    }
-
-    private VarietyInsight getTopVarietyInsight(Map<String, Integer> map) {
-        VarietyInsight out = new VarietyInsight();
-        out.name = "—";
-        out.count = 0;
-        out.total = 0;
-
-        if (map == null || map.isEmpty()) return out;
-
-        for (Map.Entry<String, Integer> e : map.entrySet()) {
-            int v = (e.getValue() == null) ? 0 : e.getValue();
-            out.total += v;
-            if (v > out.count) {
-                out.count = v;
-                out.name = e.getKey();
-            }
-        }
-        return out;
-    }
-
-    private static class RecentMonthCountInsight {
-        String monthName;
-        int count;
-    }
-
-    private RecentMonthCountInsight getMostRecentMonthWithCount(int[] monthCounts) {
-        RecentMonthCountInsight out = new RecentMonthCountInsight();
-        out.monthName = "—";
-        out.count = 0;
-
-        if (monthCounts == null || monthCounts.length < 12) return out;
-
-        for (int i = 11; i >= 0; i--) {
-            if (monthCounts[i] > 0) {
-                out.count = monthCounts[i];
-                out.monthName = MONTHS_FULL[i];
-                break;
-            }
-        }
-        return out;
-    }
-
-    private static class RecentMonthValueInsight {
-        String monthName;
-        double value;
-    }
-
-    private RecentMonthValueInsight getMostRecentMonthWithValue(double[] monthValues) {
-        RecentMonthValueInsight out = new RecentMonthValueInsight();
-        out.monthName = "—";
-        out.value = 0.0;
-
-        if (monthValues == null || monthValues.length < 12) return out;
-
-        for (int i = 11; i >= 0; i--) {
-            if (monthValues[i] > 0) {
-                out.value = monthValues[i];
-                out.monthName = MONTHS_FULL[i];
-                break;
-            }
-        }
-        return out;
-    }
-
-    private void setupArticlesSection() {
-        if (rvArticles == null) return;
-
-        rvArticles.setLayoutManager(
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        );
-        rvArticles.setNestedScrollingEnabled(false);
-
-        // opcional: padding para que se vea “carrusel”
-        rvArticles.setPadding(8, 0, 8, 0);
-        rvArticles.setClipToPadding(false);
-
-
-
-        articles.clear();
-
-        articles.add(new Article(
-                "a1",
-                "Cómo leer una etiqueta de vino chileno (Denominación de Origen)",
-                "Una guía para entender denominación de origen, valle, cepa y año sin enredos.",
-                "Wines of Chile / Guía enológica",
-                "2 min",
-                "La etiqueta de un vino chileno entrega información clave sobre su origen, estilo y potencial de guarda. Saber interpretarla permite tomar mejores decisiones de compra y consumo.\n" +
-                        "\n" +
-                        "• Denominación de Origen (D.O.): indica el origen geográfico declarado del vino, como Valle del Maipo, Colchagua o Casablanca. Está regulada y refleja condiciones climáticas y de suelo.\n" +
-                        "\n" +
-                        "• Valle o Región: aporta pistas sobre el estilo del vino. Zonas costeras suelen producir vinos más frescos; zonas interiores, vinos más estructurados.\n" +
-                        "\n" +
-                        "• Cepa: señala la variedad de uva utilizada, como Cabernet Sauvignon, Carmenere o Sauvignon Blanc, cada una con perfiles aromáticos y de guarda distintos.\n" +
-                        "\n" +
-                        "• Añada (año): corresponde al año de cosecha y está influida por las condiciones climáticas de esa temporada, afectando calidad y potencial de envejecimiento.\n" +
-                        "\n" +
-                        "Comprender estos elementos permite organizar mejor una bodega personal y detectar botellas que se encuentran en su momento óptimo de consumo.\n",
-                "", R.drawable.wine_article_1 // opcional
-        ));
-
-        articles.add(new Article(
-                "a2",
-                "Maridaje: El arte de combinar vino y gastronomía",
-                "convierte la cata en una experiencia educativa y multisensorial donde el maridaje se vive y se aprende en tiempo real.",
-                "Decanter · Guía de maridaje",
-                "3 min",
-                "El maridaje busca equilibrar sabores entre el vino y la comida, potenciando ambos sin que uno opaque al otro. No existen reglas absolutas, pero sí principios simples que ayudan a acertar.\n" +
-                        "\n" +
-                        "• Intensidad: platos ligeros combinan mejor con vinos ligeros, mientras que preparaciones intensas requieren vinos con más cuerpo.\n" +
-                        "\n" +
-                        "• Acidez: vinos con buena acidez funcionan muy bien con comidas grasas o cremosas, ya que limpian el paladar.\n" +
-                        "\n" +
-                        "• Taninos: los vinos tintos con taninos se suavizan al acompañarse de proteínas, como carnes rojas o preparaciones a la parrilla.\n" +
-                        "\n" +
-                        "• Dulzor: un vino debe ser igual o más dulce que el plato. Por eso los vinos dulces se recomiendan con postres o quesos azules.\n" +
-                        "\n" +
-                        "• Origen común: vinos y comidas de una misma región suelen maridar naturalmente, ya que comparten tradición y equilibrio cultural.\n" +
-                        "\n" +
-                        "Entender estos principios permite disfrutar mejor cada botella y elegir el momento adecuado para abrirla.\n",
-                "", R.drawable.wine_article_2 // opcional // opcional
-        ));
-
-        articles.add(new Article(
-                "a3",
-                "Guarda y envejecimiento: cuándo esperar y cuándo abrir un vino",
-                "Descubre qué convierte a un vino para ser apto para la guarda, cuáles son sus características clave y por qué el paso del tiempo puede transformarlo en una experiencia inolvidable.",
-                "Wine Enthusiast · Guía de guarda",
-                "3 min",
-                "No todos los vinos están hechos para guardarse. De hecho, la mayoría de los vinos se disfruta mejor dentro de los primeros años desde su cosecha. Saber identificar cuáles pueden mejorar con el tiempo evita decepciones y pérdidas.\n" +
-                        "\n" +
-                        "• Vinos para consumo temprano: la mayoría de blancos frescos, rosados y tintos ligeros están pensados para beberse jóvenes, priorizando frescura y fruta.\n" +
-                        "\n" +
-                        "• Vinos con potencial de guarda: tintos estructurados, con buena acidez y taninos (como Cabernet Sauvignon o Syrah), y algunos blancos con crianza, pueden evolucionar positivamente durante varios años.\n" +
-                        "\n" +
-                        "• Añada y estructura: el año de cosecha y el equilibrio entre alcohol, acidez y taninos influyen directamente en la capacidad de envejecimiento.\n" +
-                        "\n" +
-                        "• Condiciones de guarda: temperatura estable (idealmente 12–15 °C), ausencia de luz directa y posición horizontal ayudan a conservar el vino correctamente.\n" +
-                        "\n" +
-                        "Guardar un vino más allá de su punto óptimo no siempre lo mejora. En muchos casos, abrirlo a tiempo es la mejor decisión.\n",
-                "",R.drawable.wine_article_3 // opcional // opcional  // sin URL si no quieres botón
-        ));
-
-        articles.add(new Article(
-                "a3",
-                "Temperatura de servicio: el detalle que cambia completamente un vino.",
-                "Conoce a qué temperatura debes servir cada tipo de vino para disfrutar al máximo su aroma y sabor.",
-                "Wine Spectator · Guía de servicio",
-                "3 min",
-                "La temperatura de servicio influye directamente en los aromas, el equilibrio y la percepción del alcohol en un vino. Servirlo muy frío o muy cálido puede ocultar sus virtudes o exagerar defectos.\n" +
-                        "\n" +
-                        "• Espumantes: 6–8 °C  \n" +
-                        "Realzan frescura y burbuja. Temperaturas más altas apagan la sensación de viveza.\n" +
-                        "\n" +
-                        "• Vinos blancos ligeros: 8–10 °C  \n" +
-                        "Resaltan acidez y aromas frescos sin perder expresión.\n" +
-                        "\n" +
-                        "• Blancos con cuerpo: 10–12 °C  \n" +
-                        "Permiten apreciar textura y complejidad aromática.\n" +
-                        "\n" +
-                        "• Tintos jóvenes: 14–16 °C  \n" +
-                        "Evitan que el alcohol destaque en exceso y mantienen fruta y frescura.\n" +
-                        "\n" +
-                        "• Tintos con guarda: 16–18 °C  \n" +
-                        "Favorecen la expresión aromática y suavizan taninos.\n" +
-                        "\n" +
-                        "Un error común es servir los tintos “a temperatura ambiente”. En climas cálidos, esto suele ser demasiado alto. Un breve enfriado previo puede mejorar notablemente la experiencia.\n",
-                "",R.drawable.wine_article_4 // opcional // opcional  // sin URL si no quieres botón
-        ));
-
-        // Mostrar solo 2 o 3 (tú decides)
-        // Si quieres solo 2, comenta uno de arriba.
-        articlesAdapter = new ArticlesAdapter(articles);
-        rvArticles.setAdapter(articlesAdapter);
-        articlesAdapter.notifyDataSetChanged();
-
-
-    }
-
 }
