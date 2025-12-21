@@ -49,7 +49,9 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.widget.EditText;
 
+import java.text.NumberFormat;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -780,7 +782,8 @@ public class ViewCollectionActivity extends AppCompatActivity {
             // ✅ nuevos
             holder.categoryTextView.setText("Categoría: " + item.category);
             holder.commentTextView.setText("Comentario IA: " + item.comment);
-            holder.priceTextView.setText("Precio: " + item.price);
+            holder.priceTextView.setText("Precio: " + formatCLP(item.price));
+
 
             // Si prefieres ocultar cuando no haya info:
             if ("No disponible".equals(item.category)) {
@@ -912,7 +915,7 @@ public class ViewCollectionActivity extends AppCompatActivity {
             editPercentage.setText(item.percentage);
 
             editCategory.setText(item.category);
-            editPrice.setText(item.price);
+            editPrice.setText(priceForEdit(item.price)); // ✅ ya no aparece 10000.0
             editComment.setText(item.comment);
 
             AlertDialog dialog = new AlertDialog.Builder(context)
@@ -1005,8 +1008,51 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 btnArchivar = itemView.findViewById(R.id.btnArchivar);
             }
         }
-
-
-
     }
+
+    private static String formatCLP(String rawPrice) {
+        if (rawPrice == null) return "No disponible";
+
+        // Limpia cosas típicas: $ , puntos, espacios, y deja dígitos y separador decimal
+        String clean = rawPrice.trim()
+                .replace("$", "")
+                .replace("CLP", "")
+                .replace(" ", "")
+                .replace(".", "")      // miles a la chilena
+                .replace(",", ".");    // por si viene con coma decimal
+
+        try {
+            double value = Double.parseDouble(clean);
+
+            NumberFormat nf = NumberFormat.getInstance(new Locale("es", "CL"));
+            nf.setMaximumFractionDigits(0);
+            nf.setMinimumFractionDigits(0);
+
+            return "$" + nf.format(Math.round(value)); // $10.000
+        } catch (Exception e) {
+            return "No disponible";
+        }
+    }
+
+    private static String priceForEdit(String rawPrice) {
+        if (rawPrice == null) return "";
+
+        // quitamos símbolos y normalizamos separadores
+        String clean = rawPrice.trim()
+                .replace("$", "")
+                .replace("CLP", "")
+                .replace(" ", "")
+                .replace(".", "")      // miles
+                .replace(",", ".");    // decimal
+
+        try {
+            double value = Double.parseDouble(clean);
+            // como CLP no usa decimales: dejamos solo entero
+            return String.valueOf((long) Math.round(value)); // "10000"
+        } catch (Exception e) {
+            // si no se puede parsear, devolvemos lo que venga (pero sin $ y espacios)
+            return rawPrice.replace("$", "").replace("CLP", "").trim();
+        }
+    }
+
 }

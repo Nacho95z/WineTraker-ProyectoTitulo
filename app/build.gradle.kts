@@ -70,9 +70,6 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(libs.transport.api)
-    implementation(libs.transport.api)
-    implementation(libs.transport.api)
-    implementation(libs.transport.api)
 
     //Pinch-to-zoom
     implementation ("com.github.chrisbanes:PhotoView:2.3.0")
