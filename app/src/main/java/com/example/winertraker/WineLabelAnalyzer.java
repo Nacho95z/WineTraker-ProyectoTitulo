@@ -27,10 +27,12 @@ import retrofit2.Response;
 public class WineLabelAnalyzer {
 
     public interface CallbackResult {
+        void onProgress(String stage);
         void onResult(@Nullable WineLabelInfo info,
                       @Nullable String rawOcrText,
                       @Nullable Exception error);
     }
+
 
     private static final String TAG = "WineLabelAnalyzer";
 
@@ -55,6 +57,7 @@ public class WineLabelAnalyzer {
         // Convertir imagen a data URL base64
         String dataUrl;
         try {
+            callback.onProgress("Preparando imagen…");
             dataUrl = imageUriToDataUrl(context, imageUri);
         } catch (IOException e) {
             Log.e(TAG, "Error convirtiendo imagen a base64, usando OCR local", e);
@@ -64,12 +67,13 @@ public class WineLabelAnalyzer {
         }
 
         // Avisamos que estamos usando OpenAI
-        Toast.makeText(context, "Analizando con OpenAI...", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(context, "Analizando con OpenAI...", Toast.LENGTH_SHORT).show();
 
         Map<String, Object> body = OpenAiClient.buildVisionRequestBody(dataUrl);
         OpenAiApiService service = OpenAiClient.getApiService();
+        callback.onProgress("Enviando imagen a OpenAI…");
         Call<OpenAiChatResponse> call = service.createChatCompletion(body);
-
+        callback.onProgress("Analizando etiqueta…");
         call.enqueue(new Callback<OpenAiChatResponse>() {
             @Override
             public void onResponse(Call<OpenAiChatResponse> call, Response<OpenAiChatResponse> response) {
@@ -109,6 +113,7 @@ public class WineLabelAnalyzer {
                 Log.d(TAG, "OpenAI raw content: " + contentText);
 
                 try {
+                    callback.onProgress("Interpretando resultados…");
                     WineLabelInfo info = JsonUtils.fromJson(contentText, WineLabelInfo.class);
                     info.normalizeFields(); // 👈 VALIDACIÓN DEFENSIVA
                     callback.onResult(info, null, null);
@@ -130,30 +135,37 @@ public class WineLabelAnalyzer {
 
     private static String imageUriToDataUrl(Context context, Uri uri) throws IOException {
 
-        InputStream inputStream = context.getContentResolver().openInputStream(uri);
-        if (inputStream == null) throw new IOException("No se pudo abrir InputStream");
-
-        // 1️⃣ Decodificar imagen a Bitmap
-        android.graphics.Bitmap original =
-                android.graphics.BitmapFactory.decodeStream(inputStream);
+        android.graphics.Bitmap original;
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
+            if (inputStream == null) throw new IOException("No se pudo abrir InputStream");
+            original = android.graphics.BitmapFactory.decodeStream(inputStream);
+        }
 
         if (original == null) {
             throw new IOException("No se pudo decodificar la imagen");
         }
 
-        // 2️⃣ Redimensionar manteniendo proporción
-        android.graphics.Bitmap resized = resizeKeepingAspectRatio(original, 1280);
+        android.graphics.Bitmap resized = null;
 
-        // 3️⃣ Comprimir a JPEG optimizado
-        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-        resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, baos);
+        try {
+            resized = resizeKeepingAspectRatio(original, 1280);
 
-        byte[] optimizedBytes = baos.toByteArray();
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, baos);
 
-        String base64 = Base64.encodeToString(optimizedBytes, Base64.NO_WRAP);
-        Log.d(TAG, "Image size sent to OpenAI = " + optimizedBytes.length + " bytes");
-        return "data:image/jpeg;base64," + base64;
+            byte[] optimizedBytes = baos.toByteArray();
+            String base64 = Base64.encodeToString(optimizedBytes, Base64.NO_WRAP);
+
+            Log.d(TAG, "Image size sent to OpenAI = " + optimizedBytes.length + " bytes");
+            return "data:image/jpeg;base64," + base64;
+
+        } finally {
+            // liberar memoria
+            if (resized != null && resized != original) resized.recycle();
+            original.recycle();
+        }
     }
+
 
 
     private static byte[] readAllBytes(InputStream inputStream) throws IOException {
@@ -168,6 +180,7 @@ public class WineLabelAnalyzer {
 
     // Fallback OCR local
     private static void runLocalOcr(Context context, Uri imageUri, CallbackResult callback) {
+        callback.onProgress("Usando OCR local…");
         Toast.makeText(context, "OpenAI no respondió. Usando OCR local.", Toast.LENGTH_SHORT).show();
         try {
             InputImage image = InputImage.fromFilePath(context, imageUri);
@@ -216,5 +229,6 @@ public class WineLabelAnalyzer {
                 true
         );
     }
+
 
 }
