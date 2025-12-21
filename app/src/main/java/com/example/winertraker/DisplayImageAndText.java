@@ -195,10 +195,7 @@ public class DisplayImageAndText extends AppCompatActivity {
         // Cerrar tocando la imagen (un tap, sin romper el zoom)
         fullScreenImageView.setOnViewTapListener((view, x, y) -> closeImageOverlay());
 
-        aiOverlay.setVisibility(View.VISIBLE);
-        progressText.setText("Preparando imagen…");
-        progressText.setVisibility(View.VISIBLE);
-
+        showAiOverlay("Preparando imagen…");
 
 
         WineLabelAnalyzer.analyzeImage(
@@ -209,12 +206,7 @@ public class DisplayImageAndText extends AppCompatActivity {
                     @Override
                     public void onProgress(String stage) {
                         runOnUiThread(() -> {
-                            aiOverlay.setVisibility(View.VISIBLE);
-                            if (progressText != null) {
-                                progressText.setText(stage != null ? stage : "Analizando imagen…");
-                                progressText.setVisibility(View.VISIBLE);
-                            }
-
+                            showAiOverlay(stage);
                         });
                     }
 
@@ -280,8 +272,7 @@ public class DisplayImageAndText extends AppCompatActivity {
                                         "No se pudo analizar la imagen.",
                                         Toast.LENGTH_SHORT).show();
                             }
-                            aiOverlay.setVisibility(View.GONE);
-                            if (progressText != null) progressText.setVisibility(View.GONE);
+                            hideAiOverlay();
                         });
                     }
                 }
@@ -352,6 +343,52 @@ public class DisplayImageAndText extends AppCompatActivity {
 
 
     }
+
+    private void showAiOverlay(String text) {
+        if (aiOverlay == null) return;
+
+        // Cancela animaciones previas para evitar glitches
+        aiOverlay.animate().cancel();
+
+        if (progressText != null) {
+            progressText.setText(text != null ? text : "Analizando imagen…");
+            progressText.setVisibility(View.VISIBLE);
+        }
+
+        if (aiOverlay.getVisibility() == View.VISIBLE && aiOverlay.getAlpha() > 0.9f) {
+            return; // ya visible
+        }
+
+        aiOverlay.setAlpha(0f);
+        aiOverlay.setVisibility(View.VISIBLE);
+        aiOverlay.animate()
+                .alpha(1f)
+                .setDuration(180)
+                .start();
+    }
+
+    private void hideAiOverlay() {
+        if (aiOverlay == null) return;
+
+        // Cancela animaciones previas para evitar glitches
+        aiOverlay.animate().cancel();
+
+        if (aiOverlay.getVisibility() != View.VISIBLE) {
+            if (progressText != null) progressText.setVisibility(View.GONE);
+            return;
+        }
+
+        aiOverlay.animate()
+                .alpha(0f)
+                .setDuration(180)
+                .withEndAction(() -> {
+                    aiOverlay.setVisibility(View.GONE);
+                    aiOverlay.setAlpha(0f);
+                    if (progressText != null) progressText.setVisibility(View.GONE);
+                })
+                .start();
+    }
+
 
     private void closeImageOverlay() {
         imagePreviewOverlay.animate()
