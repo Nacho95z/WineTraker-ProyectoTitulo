@@ -84,4 +84,45 @@ public class WineLabelInfo {
     public void setPrice(String price) {
         this.price = price;
     }
+
+    public void normalizeFields() {
+        if (wineName == null) return;
+
+        String name = wineName.trim();
+        String cat  = category != null ? category.trim() : "";
+
+        // Palabras típicas de categoría
+        String[] knownCategories = {
+                "gran reserva",
+                "reserva",
+                "selección",
+                "estate",
+                "limited edition",
+                "special reserve"
+        };
+
+        for (String k : knownCategories) {
+            String pattern = "\\b" + k + "\\b";
+            if (name.toLowerCase().matches(".*" + pattern + ".*")) {
+
+                // Si la categoría está vacía o duplicada
+                if (cat.isEmpty() || !cat.toLowerCase().contains(k)) {
+                    category = capitalize(k);
+                }
+
+                // Limpiar el nombre
+                wineName = name.replaceAll("(?i)" + k, "")
+                        .replaceAll("\\s{2,}", " ")
+                        .trim();
+                break;
+            }
+        }
+    }
+
+    private String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return s.substring(0,1).toUpperCase() + s.substring(1).toLowerCase();
+    }
+
 }
+

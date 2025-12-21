@@ -110,6 +110,7 @@ public class WineLabelAnalyzer {
 
                 try {
                     WineLabelInfo info = JsonUtils.fromJson(contentText, WineLabelInfo.class);
+                    info.normalizeFields(); // 👈 VALIDACIÓN DEFENSIVA
                     callback.onResult(info, null, null);
                 } catch (Exception ex) {
                     Log.e(TAG, "Error parseando JSON devuelto por OpenAI, usando OCR local", ex);

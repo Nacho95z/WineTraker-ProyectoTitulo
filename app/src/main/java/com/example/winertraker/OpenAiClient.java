@@ -69,14 +69,21 @@ public class OpenAiClient {
         body.put("model", "gpt-4o-mini");
 
         // -------- MENSAJE DE SISTEMA --------
+        // ✅ Importante: el system define el "contrato" de salida.
         Map<String, Object> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
         systemMessage.put("content",
-                "Eres un asistente experto en etiquetas de vino. " +
-                        "Debes devolver EXCLUSIVAMENTE un JSON válido con las claves: " +
-                        "wineName, variety, vintage, origin, percentage, category, rawText. " +
-                        "Sin texto adicional antes ni después del JSON."
+                "Eres un asistente experto en etiquetas de vino chileno. " +
+                        "Debes devolver EXCLUSIVAMENTE un JSON válido con EXACTAMENTE estas claves:\n" +
+                        "wineName, variety, vintage, origin, percentage, category, rawText, comment.\n\n" +
+
+                        "Reglas estrictas:\n" +
+                        "- El JSON debe ser válido y no contener texto fuera de él.\n" +
+                        "- Todas las claves deben existir siempre.\n" +
+                        "- Si un dato no está presente en la etiqueta, devuelve \"\".\n"
         );
+
+
 
         // -------- MENSAJE DE USUARIO (texto + imagen) --------
         Map<String, Object> userMessage = new HashMap<>();
@@ -89,37 +96,49 @@ public class OpenAiClient {
         textBlock.put("type", "text");
         textBlock.put(
                 "text",
-                "Analiza esta imagen de una etiqueta de vino chileno y devuelve EXCLUSIVAMENTE un JSON con las siguientes claves:\n" +
-                        "- wineName\n" +
-                        "- variety\n" +
-                        "- vintage\n" +
-                        "- origin\n" +
-                        "- percentage\n" +
-                        "- category\n" +
-                        "- rawText\n" +
-                        "- comment\n\n" +
+                "Analiza esta imagen de una etiqueta de vino chileno y devuelve EXCLUSIVAMENTE un JSON.\n\n" +
 
-                        "Instrucciones para 'comment':\n" +
-                        "Genera un comentario breve, redactado con el tono de un enólogo profesional, usando lenguaje técnico y objetivo. " +
-                        "Describe únicamente características propias del vino: estilo, estructura, expresión típica de la cepa, características esperadas del valle o zona de origen, y perfil general de la cosecha.\n\n" +
+                        "Definiciones OBLIGATORIAS de campos:\n" +
+                        "- wineName: SOLO el nombre comercial principal del vino o marca. " +
+                        "NO debe incluir términos como Reserva, Gran Reserva, Selección, Estate, Línea, Serie ni Denominación.\n" +
+                        "- category: La línea, clasificación o gama del vino (ej: Reserva, Gran Reserva, Gran Reserva de los Andes, Estate Bottled, Limited Edition).\n" +
+                        "- variety: Cepa o mezcla de cepas.\n" +
+                        "- vintage: Año de cosecha (YYYY).\n" +
+                        "- origin: Valle, región o denominación de origen (ej: Valle del Maipo).\n" +
+                        "- percentage: Grado alcohólico si aparece.\n" +
+                        "- rawText: Texto literal reconocido en la etiqueta.\n\n" +
+
+                        "Reglas estrictas:\n" +
+                        "- NO mezclar wineName con category.\n" +
+                        "- Si el nombre contiene palabras como Reserva o Gran Reserva, esas palabras DEBEN ir en category, NO en wineName.\n" +
+                        "- wineName debe ser lo más corto y limpio posible.\n\n" +
+
+                        "Instrucciones OBLIGATORIAS para 'comment':\n" +
+                        "Genera un comentario breve, redactado con el tono de un enólogo profesional, técnico y objetivo.\n" +
+                        "Describe únicamente características propias del vino:\n" +
+                        "- estilo general\n" +
+                        "- estructura\n" +
+                        "- expresión típica de la cepa\n" +
+                        "- características esperadas del valle o zona de origen\n" +
+                        "- perfil general de la cosecha\n\n" +
 
                         "Restricciones estrictas para 'comment':\n" +
                         "- NO recomendar consumo, momentos de consumo ni cantidades.\n" +
                         "- NO sugerir maridajes.\n" +
                         "- NO mencionar precios, promociones ni ventas.\n" +
                         "- NO indicar beneficios, efectos ni incentivos a beber.\n" +
-                        "- NO usar lenguaje imperativo ni persuasivo. Solo análisis técnico.\n\n" +
+                        "- NO usar lenguaje imperativo ni persuasivo.\n" +
+                        "- Usar solo lenguaje descriptivo, técnico y neutral.\n\n" +
 
-                        "El comentario debe sonar como una descripción enológica profesional, breve, concisa y completamente neutral.\n\n" +
 
-                        "Devuelve SIEMPRE un JSON válido con EXACTAMENTE estas claves: " +
-                        "{ \"wineName\": \"...\", \"variety\": \"...\", \"vintage\": \"...\", \"origin\": \"...\", " +
-                        "\"percentage\": \"...\", \"category\": \"...\", \"rawText\": \"...\", \"comment\": \"...\" }. " +
-                        "Si algún dato no aparece, devuélvelo como cadena vacía \"\"."
+                "Devuelve SIEMPRE un JSON válido con EXACTAMENTE estas claves:\n" +
+                        "{ \"wineName\": \"\", \"category\": \"\", \"variety\": \"\", \"vintage\": \"\", \"origin\": \"\", \"percentage\": \"\", \"rawText\": \"\", \"comment\": \"\" }.\n\n" +
+
+                        "Si un dato no aparece claramente, devuélvelo como cadena vacía."
         );
 
-        contentList.add(textBlock);
 
+        contentList.add(textBlock);
 
         // Bloque de imagen
         Map<String, Object> imageBlock = new HashMap<>();
@@ -147,6 +166,4 @@ public class OpenAiClient {
 
         return body;
     }
-
-
 }
