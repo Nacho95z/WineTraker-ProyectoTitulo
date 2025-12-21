@@ -82,7 +82,7 @@ public class ConsumedWinesActivity extends AppCompatActivity {
 
         // Título header
         TextView title = findViewById(R.id.titleText);
-        title.setText("Consumidos");
+        if (title != null) title.setText("Consumidos");
 
         // Ocultar fila "apogeo" (texto + switch)
         View optimalRow = findViewById(R.id.optimalToggleRow);
@@ -161,6 +161,7 @@ public class ConsumedWinesActivity extends AppCompatActivity {
             });
         }
 
+
         // RecyclerView
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -201,11 +202,18 @@ public class ConsumedWinesActivity extends AppCompatActivity {
 
         if (editFilterValue != null) {
             editFilterValue.addTextChangedListener(new android.text.TextWatcher() {
-                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
                     applyFilter(s.toString().trim());
                 }
-                @Override public void afterTextChanged(android.text.Editable s) { }
+
+                @Override
+                public void afterTextChanged(android.text.Editable s) {
+                }
             });
         }
 
@@ -265,13 +273,13 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                             }
 
                             // Campos principales
-                            String name       = document.getString("wineName");
-                            String variety    = document.getString("variety");
-                            String vintage    = document.getString("vintage");
-                            String origin     = document.getString("origin");
+                            String name = document.getString("wineName");
+                            String variety = document.getString("variety");
+                            String vintage = document.getString("vintage");
+                            String origin = document.getString("origin");
                             String percentage = document.getString("percentage");
-                            String category   = document.getString("category");
-                            String comment    = document.getString("comment");
+                            String category = document.getString("category");
+                            String comment = document.getString("comment");
 
                             // price puede venir num o string
                             String price = null;
@@ -356,14 +364,22 @@ public class ConsumedWinesActivity extends AppCompatActivity {
     private String getDisplayNameForField(String key) {
         if (key == null) return "";
         switch (key) {
-            case "wineName": return "Nombre";
-            case "variety": return "Variedad";
-            case "vintage": return "Cosecha";
-            case "origin": return "Origen / Región";
-            case "percentage": return "Grado alcohólico";
-            case "category": return "Categoría";
-            case "price": return "Precio";
-            case "archivedAtText": return "Fecha consumido";
+            case "wineName":
+                return "Nombre";
+            case "variety":
+                return "Variedad";
+            case "vintage":
+                return "Cosecha";
+            case "origin":
+                return "Origen / Región";
+            case "percentage":
+                return "Grado alcohólico";
+            case "category":
+                return "Categoría";
+            case "price":
+                return "Precio";
+            case "archivedAtText":
+                return "Fecha consumido";
             default:
                 return key.substring(0, 1).toUpperCase() + key.substring(1);
         }
@@ -511,8 +527,8 @@ public class ConsumedWinesActivity extends AppCompatActivity {
             this.origin = (origin != null) ? origin : "No disponible";
             this.percentage = (percentage != null) ? percentage : "No disponible";
             this.category = (category != null) ? category : "No disponible";
-            this.comment  = (comment  != null) ? comment  : "Sin comentario del asistente";
-            this.price    = (price    != null) ? price    : "No disponible";
+            this.comment = (comment != null) ? comment : "Sin comentario del asistente";
+            this.price = (price != null) ? price : "No disponible";
             this.allFields = (allFields != null) ? allFields : new HashMap<>();
         }
     }
@@ -547,7 +563,8 @@ public class ConsumedWinesActivity extends AppCompatActivity {
             try {
                 StorageReference photoRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl);
                 photoRef.delete();
-            } catch (IllegalArgumentException ignored) { }
+            } catch (IllegalArgumentException ignored) {
+            }
         }
 
         private static int dpToPx(View v, int dp) {
@@ -565,7 +582,8 @@ public class ConsumedWinesActivity extends AppCompatActivity {
             // Consumidos: ocultar acciones que no corresponden
             if (holder.btnArchivar != null) holder.btnArchivar.setVisibility(View.GONE);
             if (holder.editButton != null) holder.editButton.setVisibility(View.GONE);
-            if (holder.iconOptimal != null) holder.iconOptimal.setVisibility(View.GONE); // no aplica
+            if (holder.iconOptimal != null)
+                holder.iconOptimal.setVisibility(View.GONE); // no aplica
 
             // Imagen
             holder.imageView.setImageResource(android.R.drawable.ic_menu_gallery);
@@ -595,14 +613,17 @@ public class ConsumedWinesActivity extends AppCompatActivity {
 
             holder.categoryTextView.setText("Categoría: " + item.category);
             holder.commentTextView.setText("Comentario IA: " + item.comment);
-            holder.priceTextView.setText("Precio: " + item.price);
+
+            // ===============================================
+            // ✅ CORRECCIÓN: Usar la función formatCLP
+            // ===============================================
+            holder.priceTextView.setText("Precio: " + ConsumedWinesActivity.formatCLP(item.price));
 
             holder.categoryTextView.setVisibility("No disponible".equals(item.category) ? View.GONE : View.VISIBLE);
             holder.commentTextView.setVisibility("Sin comentario del asistente".equals(item.comment) ? View.GONE : View.VISIBLE);
 
             // =========================================================
             // ✅ FECHA DE ARCHIVADO (Consumido) JUSTO ANTES DE ELIMINAR
-            // (Este TextView lo creaste e insertaste en el ViewHolder)
             // =========================================================
             String archivedAtText = "Consumido: Sin fecha";
 
@@ -611,16 +632,6 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                 Object raw = item.allFields.get("archivedAtText");
                 if (raw != null) archivedAtText = raw.toString();
             }
-
-            // Opción 2 (recomendado si tienes Timestamp en el item): archivedAt
-            // Descomenta si tu ConsumedItem tiene com.google.firebase.Timestamp archivedAt;
-    /*
-    if (item.archivedAt != null) {
-        java.text.SimpleDateFormat sdf =
-                new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault());
-        archivedAtText = "Consumido: " + sdf.format(item.archivedAt.toDate());
-    }
-    */
 
             if (holder.archivedAtTextView != null) {
                 holder.archivedAtTextView.setText(archivedAtText);
@@ -651,7 +662,8 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                         (com.google.android.material.button.MaterialButton) holder.deleteButton;
                 mb.setInsetTop(0);
                 mb.setInsetBottom(0);
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
 
             // Eliminar
             holder.deleteButton.setOnClickListener(v -> {
@@ -727,7 +739,7 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                 btnArchivar = itemView.findViewById(R.id.btnArchivar);
 
                 // ===============================
-                // ✅ FECHA "Consumido" SOLO POR JAVA (alineada con los textos)
+                // ✅ FECHA "Consumido"
                 // ===============================
                 archivedAtTextView = new TextView(itemView.getContext());
                 archivedAtTextView.setId(View.generateViewId()); // ✅ importante en ConstraintLayout
@@ -778,6 +790,48 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                     textParent.addView(archivedAtTextView);
                 }
             }
+        }
+    }
+
+    public static String formatCLP(String rawPrice) {
+        if (rawPrice == null || rawPrice.isEmpty() || rawPrice.equals("No disponible")) {
+            return "No disponible";
+        }
+
+        try {
+            // 1. Convertimos a String y quitamos espacios en blanco extremos
+            String str = String.valueOf(rawPrice).trim();
+
+            // 2. DETECCIÓN Y CORTE MANUAL DEL DECIMAL .0
+            // Buscamos el último punto. Si lo que sigue es un 0, cortamos la cadena ahí.
+            int lastDot = str.lastIndexOf('.');
+            if (lastDot != -1) {
+                // Verificamos si es un decimal .0 o .00 (y no un punto de mil como 1.500)
+                String decimals = str.substring(lastDot);
+                if (decimals.equals(".0") || decimals.equals(".00")) {
+                    str = str.substring(0, lastDot); // Cortamos: "300.0" pasa a ser "300"
+                }
+            }
+
+            // 3. Limpieza de símbolos (Dejamos solo números)
+            // Esto convierte "$ 1.500" -> "1500" o "300" -> "300"
+            String digitsOnly = str.replaceAll("[^0-9]", "");
+
+            if (digitsOnly.isEmpty()) return rawPrice;
+
+            // 4. Convertimos a número entero (Long)
+            long val = Long.parseLong(digitsOnly);
+
+            // 5. Formateamos a Peso Chileno
+            java.text.NumberFormat nf = java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("es", "CL"));
+            nf.setMaximumFractionDigits(0); // Forzamos CERO decimales
+
+            return nf.format(val);
+
+        } catch (Exception e) {
+            // RED DE SEGURIDAD EXTREMA:
+            // Si todo falla, devolvemos el texto original pero borramos el .0 manualmente
+            return rawPrice.replace(".0", "").replace(".00", "");
         }
     }
 }
