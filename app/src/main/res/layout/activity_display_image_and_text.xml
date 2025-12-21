@@ -381,7 +381,12 @@
                     android:layout_marginStart="8dp" />
             </LinearLayout>
 
-            <!-- ProgressBar centrado -->
+
+
+
+
+            <!-- (OPCIONAL) Si quieres conservar el ProgressBar anterior por compatibilidad,
+                 lo dejamos pero oculto para que no se vea. -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
@@ -389,14 +394,51 @@
                 android:layout_centerInParent="true"
                 android:visibility="gone" />
 
-            <!-- GIF de IA analizando, centrado -->
-            <ImageView
-                android:id="@+id/aiProgressGif"
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:layout_centerInParent="true"
-                android:visibility="gone" />
+
+
         </RelativeLayout>
+
+        <!-- OVERLAY IA (sin oscurecer pantalla) -->
+        <FrameLayout
+            android:id="@+id/aiOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#33000000"
+            android:visibility="gone"
+            android:alpha="0"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:id="@+id/aiLoaderCard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_ai_loader"
+                android:elevation="10dp">
+
+                <!-- GIF animado (debe ser GifImageView) -->
+                <pl.droidsonroids.gif.GifImageView
+                    android:id="@+id/aiProgressGif"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:src="@drawable/ai_scan"
+                    android:contentDescription="Analizando etiqueta" />
+
+                <TextView
+                    android:id="@+id/progressText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Analizando…"
+                    android:textColor="#1976D2"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+        </FrameLayout>
 
         <!-- OVERLAY DE PREVISUALIZACIÓN A PANTALLA COMPLETA -->
         <FrameLayout

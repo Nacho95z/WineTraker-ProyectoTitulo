@@ -3,6 +3,7 @@ package com.example.winertraker;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import androidx.annotation.Nullable;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -54,14 +55,15 @@ public class DisplayImageAndText extends AppCompatActivity {
     private ImageView menuIcon;
 
     private PhotoView fullScreenImageView;
-    private View imagePreviewOverlay;
+    private View imagePreviewOverlay, aiOverlay;
 
     // UI
-    private ImageView capturedImageView, aiProgressGif;
+    private ImageView capturedImageView;
+    private GifImageView aiProgressGif;
     private GifImageView commentAiGif;
     private EditText nameEditText, vintageEditText, originEditText,
             percentageEditText, wineNameEditText, categoryEditText, priceEditText;
-    private TextView commentEditText;
+    private TextView commentEditText, progressText;
     private ProgressBar progressBar;
     private LinearLayout commentHeaderLayout;
     private CardView imageCard;
@@ -123,6 +125,11 @@ public class DisplayImageAndText extends AppCompatActivity {
         commentHeaderLayout.setVisibility(View.GONE);
         commentEditText.setVisibility(View.GONE);
         commentAiGif.setVisibility(View.GONE);
+        progressText = findViewById(R.id.progressText);
+        progressText.setVisibility(View.GONE);
+        aiOverlay = findViewById(R.id.aiOverlay);
+
+
 
         // Abrir menú lateral
         menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
@@ -188,60 +195,89 @@ public class DisplayImageAndText extends AppCompatActivity {
         // Cerrar tocando la imagen (un tap, sin romper el zoom)
         fullScreenImageView.setOnViewTapListener((view, x, y) -> closeImageOverlay());
 
-        // Mostrar progreso mientras analizamos
-        progressBar.setVisibility(View.VISIBLE);
+        showAiOverlay("Preparando imagen…");
 
-        // OpenAI primero, OCR local como fallback
+
         WineLabelAnalyzer.analyzeImage(
                 this,
                 imageUri,
-                (info, rawOcrText, error) -> runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
+                new WineLabelAnalyzer.CallbackResult() {
 
-                    if (info != null) {
-                        // Resultado desde OpenAI
-                        wineNameEditText.setText(info.getWineName());
-                        nameEditText.setText(info.getVariety());
-                        vintageEditText.setText(info.getVintage());
-                        originEditText.setText(info.getOrigin());
-                        percentageEditText.setText(info.getPercentage());
-
-                        String category = info.getCategory();
-                        if (category != null && !category.isEmpty()) {
-                            categoryEditText.setText(category);
-                        }
-
-                        recognizedText = info.getRawText();
-
-                        // Comentario IA descriptivo del vino
-                        String comment = info.getComment();
-                        if (comment != null && !comment.isEmpty()) {
-                            String formatted = "\"" + comment + "\"";   // «"texto"»
-                            commentEditText.setText(formatted);
-                            commentHeaderLayout.setVisibility(View.VISIBLE);
-                            commentEditText.setVisibility(View.VISIBLE);
-                            commentAiGif.setVisibility(View.VISIBLE);
-                        } else {
-                            commentHeaderLayout.setVisibility(View.GONE);
-                            commentEditText.setVisibility(View.GONE);
-                            commentAiGif.setVisibility(View.GONE);
-                        }
-
-                    } else if (rawOcrText != null) {
-                        // Fallback: OCR local
-                        recognizedText = rawOcrText;
-                        autofillFields(recognizedText);
-
-                    } else if (error != null) {
-                        Log.e("DisplayImageAndText", "Error analizando imagen", error);
-                        Toast.makeText(
-                                DisplayImageAndText.this,
-                                "No se pudo analizar la imagen.",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                    @Override
+                    public void onProgress(String stage) {
+                        runOnUiThread(() -> {
+                            showAiOverlay(stage);
+                        });
                     }
-                })
+
+
+                    @Override
+                    public void onResult(@Nullable WineLabelInfo info,
+                                         @Nullable String rawOcrText,
+                                         @Nullable Exception error) {
+
+                        runOnUiThread(() -> {
+                            progressBar.setVisibility(View.GONE);
+                            aiProgressGif.setVisibility(View.GONE);
+
+                            if (progressText != null) {
+                                progressText.setVisibility(View.GONE);
+                            }
+
+                            if (info != null) {
+                                // ✅ Resultado desde OpenAI
+                                wineNameEditText.setText(info.getWineName());
+                                nameEditText.setText(info.getVariety());
+                                vintageEditText.setText(info.getVintage());
+                                originEditText.setText(info.getOrigin());
+                                percentageEditText.setText(info.getPercentage());
+
+                                String category = info.getCategory();
+                                if (category != null && !category.isEmpty()) {
+                                    categoryEditText.setText(category);
+                                }
+
+                                recognizedText = info.getRawText();
+
+                                // ✅ Comentario IA
+                                String comment = info.getComment();
+                                if (comment != null && !comment.isEmpty()) {
+                                    String formatted = "\"" + comment + "\"";
+                                    commentEditText.setText(formatted);
+                                    commentHeaderLayout.setVisibility(View.VISIBLE);
+                                    commentEditText.setVisibility(View.VISIBLE);
+                                    commentAiGif.setVisibility(View.VISIBLE);
+                                } else {
+                                    commentHeaderLayout.setVisibility(View.GONE);
+                                    commentEditText.setVisibility(View.GONE);
+                                    commentAiGif.setVisibility(View.GONE);
+                                }
+
+                            } else if (rawOcrText != null) {
+                                // 🔁 Fallback OCR local
+                                recognizedText = rawOcrText;
+                                autofillFields(recognizedText);
+
+                                // (Opcional) si quieres ocultar comentario cuando es OCR
+                                commentHeaderLayout.setVisibility(View.GONE);
+                                commentEditText.setVisibility(View.GONE);
+                                commentAiGif.setVisibility(View.GONE);
+
+                            } else {
+                                // error o nada
+                                if (error != null) {
+                                    Log.e("DisplayImageAndText", "Error analizando imagen", error);
+                                }
+                                Toast.makeText(DisplayImageAndText.this,
+                                        "No se pudo analizar la imagen.",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                            hideAiOverlay();
+                        });
+                    }
+                }
         );
+
 
         // Guardar
         saveButton.setOnClickListener(v -> {
@@ -307,6 +343,52 @@ public class DisplayImageAndText extends AppCompatActivity {
 
 
     }
+
+    private void showAiOverlay(String text) {
+        if (aiOverlay == null) return;
+
+        // Cancela animaciones previas para evitar glitches
+        aiOverlay.animate().cancel();
+
+        if (progressText != null) {
+            progressText.setText(text != null ? text : "Analizando imagen…");
+            progressText.setVisibility(View.VISIBLE);
+        }
+
+        if (aiOverlay.getVisibility() == View.VISIBLE && aiOverlay.getAlpha() > 0.9f) {
+            return; // ya visible
+        }
+
+        aiOverlay.setAlpha(0f);
+        aiOverlay.setVisibility(View.VISIBLE);
+        aiOverlay.animate()
+                .alpha(1f)
+                .setDuration(180)
+                .start();
+    }
+
+    private void hideAiOverlay() {
+        if (aiOverlay == null) return;
+
+        // Cancela animaciones previas para evitar glitches
+        aiOverlay.animate().cancel();
+
+        if (aiOverlay.getVisibility() != View.VISIBLE) {
+            if (progressText != null) progressText.setVisibility(View.GONE);
+            return;
+        }
+
+        aiOverlay.animate()
+                .alpha(0f)
+                .setDuration(180)
+                .withEndAction(() -> {
+                    aiOverlay.setVisibility(View.GONE);
+                    aiOverlay.setAlpha(0f);
+                    if (progressText != null) progressText.setVisibility(View.GONE);
+                })
+                .start();
+    }
+
 
     private void closeImageOverlay() {
         imagePreviewOverlay.animate()
