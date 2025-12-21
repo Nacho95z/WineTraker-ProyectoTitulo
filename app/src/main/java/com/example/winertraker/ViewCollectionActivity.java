@@ -983,18 +983,21 @@ public class ViewCollectionActivity extends AppCompatActivity {
             return collectionList.size();
         }
 
+// ... dentro de ViewCollectionActivity.java ...
+
+        // 1. Aquí termina tu clase interna ViewHolder
         static class ViewHolder extends RecyclerView.ViewHolder {
-            ImageView imageView, iconOptimal;   // 👈 NUEVO
+            ImageView imageView, iconOptimal;
             TextView nameTextView, varietyTextView, vintageTextView,
                     originTextView, percentageTextView,
                     categoryTextView, commentTextView, priceTextView;
             Button deleteButton, editButton;
-            ImageButton btnArchivar;
+            ImageButton btnArchivar; // Si usas el botón de archivar
 
             ViewHolder(View itemView) {
                 super(itemView);
                 imageView     = itemView.findViewById(R.id.itemImageView);
-                iconOptimal   = itemView.findViewById(R.id.iconOptimal);   // 👈 NUEVO
+                iconOptimal   = itemView.findViewById(R.id.iconOptimal);
                 nameTextView  = itemView.findViewById(R.id.itemName);
                 varietyTextView = itemView.findViewById(R.id.itemVariety);
                 vintageTextView = itemView.findViewById(R.id.itemVintage);
@@ -1005,54 +1008,67 @@ public class ViewCollectionActivity extends AppCompatActivity {
                 priceTextView      = itemView.findViewById(R.id.itemPrice);
                 deleteButton       = itemView.findViewById(R.id.buttonDelete);
                 editButton         = itemView.findViewById(R.id.buttonEdit);
-                btnArchivar = itemView.findViewById(R.id.btnArchivar);
+                btnArchivar        = itemView.findViewById(R.id.btnArchivar);
             }
         }
-    }
+    } // 🔴 CIERRE DE LA CLASE CollectionAdapter
 
+    // ---------------------------------------------------------
+    // MÉTODOS DE AYUDA (Colocados al nivel de la Activity)
+    // ---------------------------------------------------------
+
+    /**
+     * Formatea el precio para mostrarlo en la lista (ej: "$ 10.000")
+     * Usa formatCLP en onBindViewHolder
+     */
     private static String formatCLP(String rawPrice) {
-        if (rawPrice == null) return "No disponible";
+        if (rawPrice == null || rawPrice.isEmpty()) return "No disponible";
 
-        // Limpia cosas típicas: $ , puntos, espacios, y deja dígitos y separador decimal
-        String clean = rawPrice.trim()
+        // 1. Limpieza básica
+        String str = rawPrice.trim()
                 .replace("$", "")
                 .replace("CLP", "")
-                .replace(" ", "")
-                .replace(".", "")      // miles a la chilena
-                .replace(",", ".");    // por si viene con coma decimal
+                .replace(" ", "");
+
+        // 2. Parche: Si viene "5000.0", quitar el decimal
+        if (str.endsWith(".0")) str = str.substring(0, str.length() - 2);
+        if (str.endsWith(".00")) str = str.substring(0, str.length() - 3);
+
+        // 3. Manejo de separadores
+        str = str.replace(".", "")   // Quitar puntos de miles
+                .replace(",", ".");  // Cambiar coma a punto decimal
 
         try {
-            double value = Double.parseDouble(clean);
-
-            NumberFormat nf = NumberFormat.getInstance(new Locale("es", "CL"));
+            double value = Double.parseDouble(str);
+            // 4. Formato moneda Chilena SIN decimales
+            java.text.NumberFormat nf = java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("es", "CL"));
             nf.setMaximumFractionDigits(0);
-            nf.setMinimumFractionDigits(0);
-
-            return "$" + nf.format(Math.round(value)); // $10.000
-        } catch (Exception e) {
-            return "No disponible";
+            return nf.format(Math.round(value));
+        } catch (NumberFormatException e) {
+            return rawPrice;
         }
     }
 
-    private static String priceForEdit(String rawPrice) {
-        if (rawPrice == null) return "";
+    private  static String priceForEdit(String rawPrice) {
+        if (rawPrice == null || rawPrice.isEmpty() || rawPrice.equals("No disponible")) return "";
 
-        // quitamos símbolos y normalizamos separadores
-        String clean = rawPrice.trim()
+        // 1. Limpieza básica
+        String str = rawPrice.trim()
                 .replace("$", "")
                 .replace("CLP", "")
-                .replace(" ", "")
-                .replace(".", "")      // miles
-                .replace(",", ".");    // decimal
+                .replace(" ", "");
 
+        // 2. Parche: Si viene "5000.0", quitar el decimal}
+        if (str.endsWith(".0")) str = str.substring(0, str.length() - 2);
+        if (str.endsWith(".00")) str = str.substring(0, str.length() - 3);
+        str = str.replace(".", ",")
+                .replace(".", ",");
         try {
-            double value = Double.parseDouble(clean);
-            // como CLP no usa decimales: dejamos solo entero
-            return String.valueOf((long) Math.round(value)); // "10000"
-        } catch (Exception e) {
-            // si no se puede parsear, devolvemos lo que venga (pero sin $ y espacios)
+            double value = Double.parseDouble(str);
+            // 4. Formato moneda Chilena SIN decimales
+            return String.valueOf((Long) Math.round(value));
+        } catch (NumberFormatException e) {
             return rawPrice.replace("$", "").replace("CLP", "").trim();
         }
     }
-
-}
+    }

@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         android:background="#FAFAFA">
 
-        <!-- Header superior (mismo estilo Home: blanco, paddingTop 32dp, ícono menú) -->
+        <!-- Header superior -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/topBar"
             android:layout_width="0dp"
@@ -30,7 +30,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <!-- Ícono menú (IGUAL QUE HOME: id menuIcon) -->
             <ImageView
                 android:id="@+id/menuIcon"
                 android:layout_width="32dp"
@@ -45,7 +44,6 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"/>
 
-            <!-- Título -->
             <TextView
                 android:id="@+id/headerTitleText"
                 android:layout_width="wrap_content"
@@ -61,7 +59,7 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- ================= TU SETTINGS ORIGINAL (INTACTO) ================= -->
+        <!-- ================= SETTINGS ================= -->
         <ScrollView
             android:id="@+id/settingsScroll"
             android:layout_width="0dp"
@@ -85,7 +83,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -107,14 +106,16 @@
                             android:layout_height="wrap_content"
                             android:text="Nombre"
                             android:textSize="14sp"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            android:textColor="#2B2B2B" />
 
                         <TextView
                             android:id="@+id/txtProfileEmail"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="correo@ejemplo.cl"
-                            android:textSize="14sp" />
+                            android:textSize="14sp"
+                            android:textColor="#2B2B2B" />
 
                         <TextView
                             android:id="@+id/txtProfileUid"
@@ -131,23 +132,31 @@
                             android:orientation="horizontal"
                             android:layout_marginTop="12dp">
 
-                            <Button
+                            <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnEditName"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Cambiar nombre" />
+                                android:text="Cambiar nombre"
+                                android:textColor="#FFFFFF"
+                                app:backgroundTint="#B22034"
+                                app:cornerRadius="14dp"
+                                app:rippleColor="#33FFFFFF" />
 
                             <Space
                                 android:layout_width="8dp"
                                 android:layout_height="wrap_content" />
 
-                            <Button
+                            <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnEditEmail"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Cambiar correo" />
+                                android:text="Cambiar correo"
+                                android:textColor="#FFFFFF"
+                                app:backgroundTint="#B22034"
+                                app:cornerRadius="14dp"
+                                app:rippleColor="#33FFFFFF" />
                         </LinearLayout>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -158,7 +167,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -174,12 +184,16 @@
                             android:textSize="16sp"
                             android:textColor="#B22034" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnChangePassword"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Cambiar contraseña"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            android:textColor="#FFFFFF"
+                            app:backgroundTint="#B22034"
+                            app:cornerRadius="14dp"
+                            app:rippleColor="#33FFFFFF" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -189,7 +203,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -210,14 +225,18 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Mantener sesión iniciada"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            app:thumbTint="#B22034"
+                            app:trackTint="#33B22034" />
 
                         <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/switchBiometricGate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Pedir huella/PIN al abrir la app"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            app:thumbTint="#B22034"
+                            app:trackTint="#33B22034" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -227,7 +246,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -248,31 +268,36 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Vinos en punto óptimo"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            app:thumbTint="#B22034"
+                            app:trackTint="#33B22034" />
 
                         <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/switchNotifExpiry"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Vencimientos de guarda" />
+                            android:text="Vencimientos de guarda"
+                            app:thumbTint="#B22034"
+                            app:trackTint="#33B22034" />
 
                         <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/switchNotifNews"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Novedades y actualizaciones" />
+                            android:text="Novedades y actualizaciones"
+                            app:thumbTint="#B22034"
+                            app:trackTint="#33B22034" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- (resto de tus secciones: Tema, Respaldo, Acerca de...)
-                     PÉGALAS AQUÍ tal cual las tenías -->
                 <!-- SECCIÓN: TEMA -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -299,19 +324,25 @@
                                 android:id="@+id/rbThemeLight"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Modo claro" />
+                                android:text="Modo claro"
+                                android:buttonTint="#B22034"
+                                android:textColor="#2B2B2B"/>
 
                             <RadioButton
                                 android:id="@+id/rbThemeDark"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Modo oscuro" />
+                                android:text="Modo oscuro"
+                                android:buttonTint="#B22034"
+                                android:textColor="#2B2B2B"/>
 
                             <RadioButton
                                 android:id="@+id/rbThemeSystem"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Automático (según sistema)" />
+                                android:text="Automático (según sistema)"
+                                android:buttonTint="#B22034"
+                                android:textColor="#2B2B2B"/>
                         </RadioGroup>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -322,7 +353,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -338,26 +370,38 @@
                             android:textSize="16sp"
                             android:textColor="#B22034" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnBackup"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Hacer backup en Firestore"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            android:textColor="#FFFFFF"
+                            app:backgroundTint="#B22034"
+                            app:cornerRadius="14dp"
+                            app:rippleColor="#33FFFFFF" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnRestore"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Restaurar backup"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            android:textColor="#FFFFFF"
+                            app:backgroundTint="#B22034"
+                            app:cornerRadius="14dp"
+                            app:rippleColor="#33FFFFFF" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnExport"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Exportar colección a CSV/PDF"
-                            android:layout_marginTop="8dp" />
+                            android:layout_marginTop="8dp"
+                            android:textColor="#FFFFFF"
+                            app:backgroundTint="#B22034"
+                            app:cornerRadius="14dp"
+                            app:rippleColor="#33FFFFFF" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -366,7 +410,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -379,14 +424,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Versión 1.0.0"
-                            android:textSize="14sp" />
+                            android:textSize="14sp"
+                            android:textColor="#2B2B2B" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="WineTrack está construida con Android y Firebase."
                             android:textSize="14sp"
-                            android:layout_marginTop="4dp" />
+                            android:layout_marginTop="4dp"
+                            android:textColor="#2B2B2B" />
 
                         <TextView
                             android:id="@+id/txtPrivacyPolicy"
@@ -407,12 +454,13 @@
                             android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
+
             </LinearLayout>
         </ScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- ================= BARRA LATERAL (IGUAL QUE HOME) ================= -->
+    <!-- ================= BARRA LATERAL ================= -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="wrap_content"
