@@ -53,31 +53,49 @@ public class WineLabelAnalyzer {
             return;
         }
 
+        // ==========================
+        // ⏱️ Medición de tiempos
+        // ==========================
+        final long tStartTotal = System.currentTimeMillis();
 
         // Convertir imagen a data URL base64
         String dataUrl;
+        final long tStartPrep = System.currentTimeMillis();
         try {
             callback.onProgress("Preparando imagen…");
             dataUrl = imageUriToDataUrl(context, imageUri);
         } catch (IOException e) {
-            Log.e(TAG, "Error convirtiendo imagen a base64, usando OCR local", e);
+            long prepMs = System.currentTimeMillis() - tStartPrep;
+            Log.e(TAG, "Error convirtiendo imagen a base64 (prepMs=" + prepMs + "), usando OCR local", e);
             Toast.makeText(context, "No se pudo preparar la imagen. Usando OCR local.", Toast.LENGTH_SHORT).show();
             runLocalOcr(context, imageUri, callback);
             return;
         }
+        final long prepMs = System.currentTimeMillis() - tStartPrep;
 
-        // Avisamos que estamos usando OpenAI
-//        Toast.makeText(context, "Analizando con OpenAI...", Toast.LENGTH_SHORT).show();
-
+        // Construir request OpenAI
         Map<String, Object> body = OpenAiClient.buildVisionRequestBody(dataUrl);
         OpenAiApiService service = OpenAiClient.getApiService();
+
         callback.onProgress("Enviando imagen a OpenAI…");
         Call<OpenAiChatResponse> call = service.createChatCompletion(body);
+
+        // ⏱️ Start roundtrip OpenAI (desde enqueue hasta respuesta)
+        final long tStartOpenAi = System.currentTimeMillis();
+
         callback.onProgress("Analizando etiqueta…");
         call.enqueue(new Callback<OpenAiChatResponse>() {
+
             @Override
             public void onResponse(Call<OpenAiChatResponse> call, Response<OpenAiChatResponse> response) {
-                Log.d(TAG, "OpenAI HTTP code = " + response.code());
+
+                long openAiMs = System.currentTimeMillis() - tStartOpenAi;
+                long totalSoFarMs = System.currentTimeMillis() - tStartTotal;
+
+                Log.d(TAG, "OpenAI HTTP code = " + response.code()
+                        + " | prepMs=" + prepMs
+                        + " | openAiRoundtripMs=" + openAiMs
+                        + " | totalMsSoFar=" + totalSoFarMs);
 
                 if (!response.isSuccessful() || response.body() == null) {
                     try {
@@ -93,18 +111,22 @@ public class WineLabelAnalyzer {
                         }
                     } catch (IOException ignored) {}
 
-                    Log.w(TAG, "Respuesta OpenAI no exitosa, se usa OCR local");
+                    Log.w(TAG, "Respuesta OpenAI no exitosa, se usa OCR local. " +
+                            "prepMs=" + prepMs + ", openAiRoundtripMs=" + openAiMs);
+
                     runLocalOcr(context, imageUri, callback);
                     return;
                 }
-
 
                 OpenAiChatResponse resp = response.body();
                 if (resp.choices == null
                         || resp.choices.isEmpty()
                         || resp.choices.get(0).message == null
                         || resp.choices.get(0).message.content == null) {
-                    Log.w(TAG, "OpenAI respuesta sin contenido, se usa OCR local");
+
+                    Log.w(TAG, "OpenAI respuesta sin contenido, se usa OCR local. " +
+                            "prepMs=" + prepMs + ", openAiRoundtripMs=" + openAiMs);
+
                     runLocalOcr(context, imageUri, callback);
                     return;
                 }
@@ -112,59 +134,149 @@ public class WineLabelAnalyzer {
                 String contentText = resp.choices.get(0).message.content.trim();
                 Log.d(TAG, "OpenAI raw content: " + contentText);
 
+                // ⏱️ Parse/interpretación del JSON
+                final long tStartParse = System.currentTimeMillis();
                 try {
                     callback.onProgress("Interpretando resultados…");
                     WineLabelInfo info = JsonUtils.fromJson(contentText, WineLabelInfo.class);
-                    info.normalizeFields(); // 👈 VALIDACIÓN DEFENSIVA
+                    info.normalizeFields(); // ✅ validación defensiva
+
+                    long parseMs = System.currentTimeMillis() - tStartParse;
+                    long totalMs = System.currentTimeMillis() - tStartTotal;
+
+                    Log.d(TAG, "TIMING OK -> prepMs=" + prepMs
+                            + " | openAiRoundtripMs=" + openAiMs
+                            + " | parseMs=" + parseMs
+                            + " | totalMs=" + totalMs);
+
                     callback.onResult(info, null, null);
+
                 } catch (Exception ex) {
-                    Log.e(TAG, "Error parseando JSON devuelto por OpenAI, usando OCR local", ex);
+                    long parseMs = System.currentTimeMillis() - tStartParse;
+
+                    Log.e(TAG, "Error parseando JSON devuelto por OpenAI " +
+                            "(prepMs=" + prepMs + ", openAiRoundtripMs=" + openAiMs + ", parseMs=" + parseMs + "). " +
+                            "Usando OCR local", ex);
+
                     runLocalOcr(context, imageUri, callback);
                 }
             }
 
             @Override
             public void onFailure(Call<OpenAiChatResponse> call, Throwable t) {
-                Log.e(TAG, "Error llamando a OpenAI, se usa OCR local", t);
+                long openAiMs = System.currentTimeMillis() - tStartOpenAi;
+                long totalMs = System.currentTimeMillis() - tStartTotal;
+
+                Log.e(TAG, "Error llamando a OpenAI -> prepMs=" + prepMs
+                        + " | openAiRoundtripMs=" + openAiMs
+                        + " | totalMs=" + totalMs, t);
+
                 runLocalOcr(context, imageUri, callback);
             }
         });
     }
 
+
     // ---------- Helpers privados ----------
 
     private static String imageUriToDataUrl(Context context, Uri uri) throws IOException {
 
-        android.graphics.Bitmap original;
-        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
-            if (inputStream == null) throw new IOException("No se pudo abrir InputStream");
-            original = android.graphics.BitmapFactory.decodeStream(inputStream);
+        long t0 = System.currentTimeMillis();
+
+        // 1) Leer solo dimensiones (sin cargar bitmap completo)
+        android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+        opts.inJustDecodeBounds = true;
+
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
+            if (is == null) throw new IOException("No se pudo abrir InputStream");
+            android.graphics.BitmapFactory.decodeStream(is, null, opts);
         }
 
-        if (original == null) {
-            throw new IOException("No se pudo decodificar la imagen");
+        if (opts.outWidth <= 0 || opts.outHeight <= 0) {
+            throw new IOException("No se pudieron leer dimensiones de la imagen");
         }
 
-        android.graphics.Bitmap resized = null;
+        // 2) Downsample: queremos un "long side" aprox 1024 (puedes subir a 1280 si lo necesitas)
+        final int targetLongSide = 1024;
+        opts.inSampleSize = calculateInSampleSize(opts.outWidth, opts.outHeight, targetLongSide);
+        opts.inJustDecodeBounds = false;
+        opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565; // menos memoria (más rápido)
+
+        android.graphics.Bitmap decoded;
+        try (InputStream is2 = context.getContentResolver().openInputStream(uri)) {
+            if (is2 == null) throw new IOException("No se pudo abrir InputStream (2)");
+            decoded = android.graphics.BitmapFactory.decodeStream(is2, null, opts);
+        }
+
+        if (decoded == null) throw new IOException("No se pudo decodificar imagen");
+
+        long t1 = System.currentTimeMillis();
+
+        // 3) (Opcional pero recomendado) crop central para quitar bordes/fondo
+        android.graphics.Bitmap cropped = null;
+        android.graphics.Bitmap scaled = null;
 
         try {
-            resized = resizeKeepingAspectRatio(original, 1280);
+            cropped = centerCrop(decoded, 0.92f); // 92% del centro (ajusta 0.88–0.95)
+            if (cropped != decoded) decoded.recycle();
+
+            // 4) Asegurar que el long side quede en 1024 exacto (si quieres)
+            scaled = resizeKeepingAspectRatio(cropped, 1024);
+            if (scaled != cropped) cropped.recycle();
+
+            // 5) Comprimir más agresivo (gran impacto en tiempo)
+            //    60–70 es un sweet spot para etiquetas (yo uso 65)
+            int jpegQuality = 65;
 
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, baos);
-
+            scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, jpegQuality, baos);
             byte[] optimizedBytes = baos.toByteArray();
+
+            long t2 = System.currentTimeMillis();
+
             String base64 = Base64.encodeToString(optimizedBytes, Base64.NO_WRAP);
 
-            Log.d(TAG, "Image size sent to OpenAI = " + optimizedBytes.length + " bytes");
+            Log.d(TAG, "OpenAI prep ms: decode=" + (t1 - t0) + " | compress=" + (t2 - t1)
+                    + " | bytes=" + optimizedBytes.length);
+
             return "data:image/jpeg;base64," + base64;
 
         } finally {
-            // liberar memoria
-            if (resized != null && resized != original) resized.recycle();
-            original.recycle();
+            if (scaled != null) scaled.recycle();
         }
     }
+    private static int calculateInSampleSize(int width, int height, int targetLongSide) {
+        int longSide = Math.max(width, height);
+        int inSampleSize = 1;
+
+        while (longSide / inSampleSize > targetLongSide) {
+            inSampleSize *= 2;
+        }
+        return Math.max(1, inSampleSize);
+    }
+
+    /**
+     * Recorte central por porcentaje (0.90f = deja 90% del centro).
+     */
+    private static android.graphics.Bitmap centerCrop(android.graphics.Bitmap src, float keepPercent) {
+        if (src == null) return null;
+        keepPercent = Math.max(0.5f, Math.min(1f, keepPercent));
+
+        int w = src.getWidth();
+        int h = src.getHeight();
+
+        int newW = Math.round(w * keepPercent);
+        int newH = Math.round(h * keepPercent);
+
+        int x = (w - newW) / 2;
+        int y = (h - newH) / 2;
+
+        // Si no hay cambio real, devuelve el mismo
+        if (newW == w && newH == h) return src;
+
+        return android.graphics.Bitmap.createBitmap(src, x, y, newW, newH);
+    }
+
 
 
 

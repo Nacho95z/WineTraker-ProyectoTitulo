@@ -65,17 +65,17 @@ public class OpenAiClient {
 
         Map<String, Object> body = new HashMap<>();
 
-        // ✅ Modelo que soporta visión
+        // ✅ Modelo que soporta visión (se mantiene)
         body.put("model", "gpt-4o-mini");
 
         // -------- MENSAJE DE SISTEMA --------
-        // ✅ Importante: el system define el "contrato" de salida.
         Map<String, Object> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content",
+        systemMessage.put(
+                "content",
                 "Eres un asistente experto en etiquetas de vino chileno. " +
                         "Debes devolver EXCLUSIVAMENTE un JSON válido con EXACTAMENTE estas claves:\n" +
-                        "wineName, variety, vintage, origin, percentage, category, rawText, comment.\n\n" +
+                        "wineName, variety, vintage, origin, percentage, category, comment.\n\n" +
 
                         "Reglas estrictas:\n" +
                         "- El JSON debe ser válido y no contener texto fuera de él.\n" +
@@ -83,9 +83,7 @@ public class OpenAiClient {
                         "- Si un dato no está presente en la etiqueta, devuelve \"\".\n"
         );
 
-
-
-        // -------- MENSAJE DE USUARIO (texto + imagen) --------
+        // -------- MENSAJE DE USUARIO --------
         Map<String, Object> userMessage = new HashMap<>();
         userMessage.put("role", "user");
 
@@ -105,8 +103,7 @@ public class OpenAiClient {
                         "- variety: Cepa o mezcla de cepas.\n" +
                         "- vintage: Año de cosecha (YYYY).\n" +
                         "- origin: Valle, región o denominación de origen (ej: Valle del Maipo).\n" +
-                        "- percentage: Grado alcohólico si aparece.\n" +
-                        "- rawText: Texto literal reconocido en la etiqueta.\n\n" +
+                        "- percentage: Grado alcohólico si aparece.\n\n" +
 
                         "Reglas estrictas:\n" +
                         "- NO mezclar wineName con category.\n" +
@@ -114,15 +111,18 @@ public class OpenAiClient {
                         "- wineName debe ser lo más corto y limpio posible.\n\n" +
 
                         "Instrucciones OBLIGATORIAS para 'comment':\n" +
-                        "Genera un comentario breve, redactado con el tono de un enólogo profesional, técnico y objetivo.\n" +
-                        "Describe únicamente características propias del vino:\n" +
+                        "Genera un comentario técnico y conciso de EXACTAMENTE 2 frases.\n" +
+                        "Ambas frases deben ser breves, redactadas con el tono de un enólogo profesional, objetivo y descriptivo.\n"+
+                        "Debe describir de forma concisa:\n" +
                         "- estilo general\n" +
                         "- estructura\n" +
                         "- expresión típica de la cepa\n" +
-                        "- características esperadas del valle o zona de origen\n" +
+                        "- carácter esperado del valle o zona de origen\n" +
                         "- perfil general de la cosecha\n\n" +
 
                         "Restricciones estrictas para 'comment':\n" +
+                        "- EXACTAMENTE 2 frases.\n" +
+                        "- Cada frase debe ser técnica, compacta y neutral (idealmente 12–22 palabras por frase).\n" +
                         "- NO recomendar consumo, momentos de consumo ni cantidades.\n" +
                         "- NO sugerir maridajes.\n" +
                         "- NO mencionar precios, promociones ni ventas.\n" +
@@ -131,12 +131,11 @@ public class OpenAiClient {
                         "- Usar solo lenguaje descriptivo, técnico y neutral.\n\n" +
 
 
-                "Devuelve SIEMPRE un JSON válido con EXACTAMENTE estas claves:\n" +
-                        "{ \"wineName\": \"\", \"category\": \"\", \"variety\": \"\", \"vintage\": \"\", \"origin\": \"\", \"percentage\": \"\", \"rawText\": \"\", \"comment\": \"\" }.\n\n" +
+                        "Devuelve SIEMPRE un JSON válido con EXACTAMENTE estas claves:\n" +
+                        "{ \"wineName\": \"\", \"category\": \"\", \"variety\": \"\", \"vintage\": \"\", \"origin\": \"\", \"percentage\": \"\", \"comment\": \"\" }.\n\n" +
 
                         "Si un dato no aparece claramente, devuélvelo como cadena vacía."
         );
-
 
         contentList.add(textBlock);
 
@@ -150,14 +149,14 @@ public class OpenAiClient {
 
         userMessage.put("content", contentList);
 
-        // -------- LISTA FINAL DE MENSAJES --------
+        // -------- MENSAJES --------
         java.util.List<Map<String, Object>> messages = new java.util.ArrayList<>();
         messages.add(systemMessage);
         messages.add(userMessage);
 
         body.put("messages", messages);
 
-        // Pedimos JSON estricto
+        // JSON estricto
         Map<String, Object> responseFormat = new HashMap<>();
         responseFormat.put("type", "json_object");
         body.put("response_format", responseFormat);
@@ -166,4 +165,5 @@ public class OpenAiClient {
 
         return body;
     }
+
 }
