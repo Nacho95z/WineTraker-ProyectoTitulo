@@ -698,7 +698,7 @@ public class ConsumedWinesActivity extends AppCompatActivity {
                                     })
                                     .addOnFailureListener(e ->
                                             Toast.makeText(holder.itemView.getContext(),
-                                                    "Error al eliminar", Toast.LENGTH_SHORT).show());
+                                                    "Error al eliminar vino", Toast.LENGTH_SHORT).show());
                         })
                         .setNegativeButton("No", null)
                         .show();
