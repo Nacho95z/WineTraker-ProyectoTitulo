@@ -619,7 +619,7 @@ public class HomeActivity extends AppCompatActivity {
                         if (vintageStr != null) {
                             try {
                                 int vintageYear = Integer.parseInt(vintageStr);
-                                if (isOptimalForConsumption(variety, vintageYear)) {
+                                if (isInPeakNow(variety, category, vintageYear)) {
                                     optimalCount++;
                                     if (wineName != null) {
                                         String shortName = getShortWineName(wineName);
@@ -734,6 +734,15 @@ public class HomeActivity extends AppCompatActivity {
             if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
         });
     }
+
+    private boolean isInPeakNow(String variety, String category, int vintageYear) {
+        PeakWindowCalculator.PeakWindow w =
+                PeakWindowCalculator.calculate(variety, category, vintageYear);
+
+        int now = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        return now >= w.startYear && now <= w.endYear;
+    }
+
 
 
     // -------------------------------------------------------------
@@ -1147,36 +1156,6 @@ public class HomeActivity extends AppCompatActivity {
     // -------------------------------------------------------------
     // Helpers negocio + UI
     // -------------------------------------------------------------
-
-    private boolean isOptimalForConsumption(String variety, int vintageYear) {
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        int wineAge = currentYear - vintageYear;
-
-        switch (variety.toLowerCase()) {
-            case "pinot noir":
-            case "gamay":
-                return wineAge >= 2 && wineAge <= 5;
-
-            case "merlot":
-            case "tempranillo":
-                return wineAge >= 5 && wineAge <= 10;
-
-            case "cabernet sauvignon":
-            case "syrah":
-                return wineAge >= 10 && wineAge <= 20;
-
-            case "sauvignon blanc":
-            case "riesling":
-                return wineAge >= 1 && wineAge <= 3;
-
-            case "chardonnay":
-            case "viognier":
-                return wineAge >= 5 && wineAge <= 8;
-
-            default:
-                return false;
-        }
-    }
 
     private void checkAndRequestPermissions() {
         List<String> listPermissionsNeeded = new ArrayList<>();

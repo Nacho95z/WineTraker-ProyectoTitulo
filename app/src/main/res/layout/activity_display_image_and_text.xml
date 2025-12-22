@@ -290,7 +290,7 @@
                             android:orientation="horizontal"
                             android:gravity="center_vertical"
                             android:layout_marginTop="8dp"
-                            android:layout_marginBottom="25dp">
+                            android:layout_marginBottom="18dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -312,6 +312,41 @@
                                 android:textColor="@color/my_dark_primary"
                                 android:textColorHint="#888888" />
                         </LinearLayout>
+
+                        <!-- Apogeo (arriba del comentario IA) -->
+                        <LinearLayout
+                            android:id="@+id/peakHeaderLayout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="1dp"
+                            android:gravity="center_vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:id="@+id/peakLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:text="Apogeo estimado"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                android:fontFamily="@font/dancing_script"
+                                android:textColor="#B22034" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/peakTextView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="8dp"
+                            android:textColor="@color/my_dark_primary"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="10dp"
+                            android:textStyle="italic"
+                            android:visibility="gone"
+                            android:text="—" />
 
                         <!-- Comentario IA -->
                         <LinearLayout
@@ -351,6 +386,9 @@
                             android:textSize="14sp"
                             android:textStyle="italic"
                             android:visibility="gone" />
+
+
+
                     </LinearLayout>
                 </LinearLayout>
             </ScrollView>

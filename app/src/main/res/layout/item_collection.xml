@@ -81,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:text="Variedad: Cabernet"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
                 app:layout_constraintTop_toBottomOf="@id/itemName"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
@@ -92,7 +92,7 @@
                 android:layout_height="wrap_content"
                 android:text="Año: 2018"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
                 app:layout_constraintTop_toBottomOf="@id/itemVariety"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
@@ -103,7 +103,7 @@
                 android:layout_height="wrap_content"
                 android:text="Origen: Valle del Maipo"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
                 app:layout_constraintTop_toBottomOf="@id/itemVintage"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
@@ -114,30 +114,54 @@
                 android:layout_height="wrap_content"
                 android:text="Alcohol: 13.5%"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
                 app:layout_constraintTop_toBottomOf="@id/itemOrigin"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- ✅ Mejor en 0dp para que respete constraints y no se corte -->
             <TextView
                 android:id="@+id/itemCategory"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Categoría: -"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
+                android:maxLines="1"
+                android:ellipsize="end"
                 app:layout_constraintTop_toBottomOf="@id/itemPercentage"
-                app:layout_constraintStart_toStartOf="parent" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- ✅ Igual que categoría -->
             <TextView
                 android:id="@+id/itemPrice"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Precio: -"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
+                android:maxLines="1"
+                android:ellipsize="end"
                 app:layout_constraintTop_toBottomOf="@id/itemCategory"
-                app:layout_constraintStart_toStartOf="parent" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- ✅ NUEVO: Apogeo (lo usa tu Java: R.id.itemPeak) -->
+            <TextView
+                android:id="@+id/itemPeak"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Apogeo: -"
+                android:textSize="13sp"
+                android:textColor="#B00020"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/itemPrice"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <TextView
                 android:id="@+id/itemComment"
@@ -145,10 +169,10 @@
                 android:layout_height="wrap_content"
                 android:text="Comentario IA: -"
                 android:textSize="13sp"
-                android:textColor="#757575"
+                android:textColor="@color/my_dark_primary"
                 android:maxLines="3"
                 android:ellipsize="end"
-                app:layout_constraintTop_toBottomOf="@id/itemPrice"
+                app:layout_constraintTop_toBottomOf="@id/itemPeak"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
@@ -177,7 +201,6 @@
                 android:textColor="#FFFFFF"
                 android:layout_marginEnd="6dp" />
 
-            <!-- BOTÓN PARTIDO: ELIMINAR + ARCHIVAR -->
             <LinearLayout
                 android:id="@+id/deleteArchiveGroup"
                 android:layout_width="0dp"

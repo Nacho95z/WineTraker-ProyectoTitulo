@@ -77,6 +77,8 @@ public class DisplayImageAndText extends AppCompatActivity {
     private StorageReference storageRef;
     private FirebaseFirestore firestore;
     private String userId;
+    private LinearLayout peakHeaderLayout;
+    private TextView peakTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,7 +132,17 @@ public class DisplayImageAndText extends AppCompatActivity {
         aiOverlay = findViewById(R.id.aiOverlay);
 
 
+        peakHeaderLayout = findViewById(R.id.peakHeaderLayout);
+        peakTextView = findViewById(R.id.peakTextView);
 
+        vintageEditText.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updatePeakInfoFromFields(); });
+        nameEditText.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updatePeakInfoFromFields(); });
+        categoryEditText.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updatePeakInfoFromFields(); });
+
+
+        // Ocultar apogeo al inicio
+        if (peakHeaderLayout != null) peakHeaderLayout.setVisibility(View.GONE);
+        if (peakTextView != null) peakTextView.setVisibility(View.GONE);
         // Abrir menú lateral
         menuIcon.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
@@ -253,10 +265,14 @@ public class DisplayImageAndText extends AppCompatActivity {
                                     commentAiGif.setVisibility(View.GONE);
                                 }
 
+                                updatePeakInfoFromFields();
+
                             } else if (rawOcrText != null) {
                                 // 🔁 Fallback OCR local
                                 recognizedText = rawOcrText;
                                 autofillFields(recognizedText);
+                                updatePeakInfoFromFields();
+
 
                                 // (Opcional) si quieres ocultar comentario cuando es OCR
                                 commentHeaderLayout.setVisibility(View.GONE);
@@ -746,6 +762,22 @@ public class DisplayImageAndText extends AppCompatActivity {
             imageData.put("price", price); // 👈 NUEVO
         }
 
+        try {
+            String v = normalizeVarietyCanonical(variety != null ? variety : "");
+            String c = category != null ? category.trim() : "";
+
+            if (vintage != null && vintage.matches("\\d{4}")) {
+                int y = Integer.parseInt(vintage);
+                PeakWindowCalculator.PeakWindow pw = PeakWindowCalculator.calculate(v, c, y);
+
+                imageData.put("peakStartYear", pw.startYear);
+                imageData.put("peakEndYear", pw.endYear);
+                imageData.put("peakText", pw.message);
+            }
+        } catch (Exception ignored) {}
+
+
+
         userCollection.add(imageData)
                 .addOnSuccessListener(aVoid -> {
                     progressBar.setVisibility(View.GONE);
@@ -800,5 +832,49 @@ public class DisplayImageAndText extends AppCompatActivity {
 
 
     }
+
+    private void updatePeakInfoFromFields() {
+        if (peakHeaderLayout == null || peakTextView == null) return;
+
+        String variety = nameEditText != null ? nameEditText.getText().toString().trim() : "";
+        String category = categoryEditText != null ? categoryEditText.getText().toString().trim() : "";
+        String vintageStr = vintageEditText != null ? vintageEditText.getText().toString().trim() : "";
+
+        // Si falta año válido o variedad -> ocultar
+        if (variety.isEmpty() || vintageStr.isEmpty() || !vintageStr.matches("\\d{4}")) {
+            peakHeaderLayout.setVisibility(View.GONE);
+            peakTextView.setVisibility(View.GONE);
+            peakTextView.setText("—");
+            return;
+        }
+
+        int vintageYear;
+        try {
+            vintageYear = Integer.parseInt(vintageStr);
+        } catch (NumberFormatException e) {
+            peakHeaderLayout.setVisibility(View.GONE);
+            peakTextView.setVisibility(View.GONE);
+            peakTextView.setText("—");
+            return;
+        }
+
+        // Normaliza a tu forma canónica (Carmenère, etc.)
+        variety = normalizeVarietyCanonical(variety);
+
+        PeakWindowCalculator.PeakWindow pw =
+                PeakWindowCalculator.calculate(variety, category, vintageYear);
+
+        peakTextView.setText(pw.message);
+        boolean commentVisible = commentEditText != null && commentEditText.getVisibility() == View.VISIBLE;
+        if (commentVisible) {
+            peakHeaderLayout.setVisibility(View.VISIBLE);
+            peakTextView.setVisibility(View.VISIBLE);
+        } else {
+            peakHeaderLayout.setVisibility(View.GONE);
+            peakTextView.setVisibility(View.GONE);
+        }
+
+    }
+
 
 }
