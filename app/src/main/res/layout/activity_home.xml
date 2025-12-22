@@ -124,20 +124,6 @@
                     android:orientation="vertical"
                     android:padding="24dp">
 
-                    <!-- SALUDO USUARIO -->
-<!--                    <TextView-->
-<!--                        android:id="@+id/txtWelcomeUser"-->
-<!--                        android:layout_width="wrap_content"-->
-<!--                        android:layout_height="wrap_content"-->
-<!--                        android:text="Hola, Ignacio"-->
-<!--                        android:textSize="14sp"-->
-<!--                        android:textColor="#757575"-->
-<!--                        android:textStyle="normal"-->
-<!--                        android:layout_marginTop="8dp"-->
-<!--                        android:layout_marginBottom="6dp"/>-->
-
-
-
                     <!-- Banner informativo (premium) -->
                     <androidx.cardview.widget.CardView
                         android:id="@+id/infoBannerCard"
@@ -199,8 +185,7 @@
                                 android:progress="1000"
                                 android:progressTint="#66B22034"
                                 android:progressBackgroundTint="#33FFFFFF"
-                                android:progressDrawable="@drawable/banner_progress"
-                                />
+                                android:progressDrawable="@drawable/banner_progress" />
 
                         </LinearLayout>
 
@@ -226,7 +211,6 @@
                         android:layout_marginBottom="12dp"
                         android:background="#B22034"/>
 
-
                     <!-- Tarjetas resumen -->
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -234,25 +218,103 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="18dp">
 
-                        <!-- Mi Bodega (CLICKABLE) -->
+                        <!-- Consumidos -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/cardConsumed"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginEnd="8dp"
+                            android:layout_marginBottom="2dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
+                            app:cardUseCompatPadding="true"
+                            app:cardPreventCornerOverlap="true"
                             app:cardBackgroundColor="#FFFFFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
 
+
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
+                                android:padding="18dp">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
+
+                                    <!-- Icono circular -->
+                                    <FrameLayout
+                                        android:layout_width="44dp"
+                                        android:layout_height="44dp"
+                                        android:background="@drawable/bg_icon_circle_soft"
+                                        android:padding="10dp">
+
+                                        <ImageView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:src="@drawable/ic_bottle"
+                                        app:tint="#B22034"
+                                        android:contentDescription="Consumidos"/>
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:layout_marginStart="12dp"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Consumidos"
+                                            android:textSize="14sp"
+                                            android:textColor="@color/my_dark_primary"
+                                            android:textStyle="bold"/>
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Historial"
+                                            android:textSize="12sp"
+                                            android:textColor="#757575"
+                                            android:layout_marginTop="2dp"/>
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </LinearLayout>
+
+
+                        </androidx.cardview.widget.CardView>
+
+                        <!-- Mi Bodega -->
+                        <androidx.cardview.widget.CardView
+                            android:id="@+id/cardMyCellar"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginBottom="2dp"
+                            android:layout_weight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackground"
+                            app:cardBackgroundColor="#FFFFFF"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="4dp"
+                            app:cardPreventCornerOverlap="true"
+                            app:cardUseCompatPadding="true">
+
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="18dp">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
@@ -262,15 +324,16 @@
 
                                     <!-- Icono circular -->
                                     <FrameLayout
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
-                                        android:background="@color/white"
+                                        android:layout_width="44dp"
+                                        android:layout_height="44dp"
+                                        android:background="@drawable/bg_icon_circle_soft"
+                                        android:foreground="?attr/selectableItemBackgroundBorderless"
                                         android:padding="10dp">
 
                                         <ImageView
                                             android:layout_width="match_parent"
                                             android:layout_height="match_parent"
-                                            android:contentDescription="Consumidos"
+                                            android:contentDescription="Mi Bodega"
                                             android:src="@drawable/ic_bottle_check"
                                             app:tint="#B22034" />
                                     </FrameLayout>
@@ -278,31 +341,27 @@
                                     <LinearLayout
                                         android:layout_width="0dp"
                                         android:layout_height="wrap_content"
-                                        android:layout_marginStart="10dp"
+                                        android:layout_marginStart="12dp"
                                         android:layout_weight="1"
-                                        android:orientation="vertical"
-                                        android:minWidth="0dp">
+                                        android:orientation="vertical">
 
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="Consumidos"
+                                            android:text="Mi Bodega"
                                             android:textColor="@color/my_dark_primary"
-                                            android:textSize="13sp"
+                                            android:textSize="14sp"
                                             android:textStyle="bold" />
 
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:layout_marginTop="2dp"
-                                            android:text=" Ver historial"
+                                            android:text="Ver inventario"
                                             android:textColor="#757575"
                                             android:textSize="12sp" />
                                     </LinearLayout>
-
-
                                 </LinearLayout>
-
 
                                 <!-- contador oculto para no romper tu Java -->
                                 <TextView
@@ -313,76 +372,6 @@
                                     android:visibility="gone" />
                             </LinearLayout>
 
-                        </androidx.cardview.widget.CardView>
-
-                        <!-- Listos para beber (CLICKABLE) -->
-                        <androidx.cardview.widget.CardView
-                            android:id="@+id/cardMyCellar"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            app:cardCornerRadius="16dp"
-                            app:cardElevation="4dp"
-                            app:cardBackgroundColor="#FFFFFF"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?android:attr/selectableItemBackground">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="16dp">
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal"
-                                    android:gravity="center_vertical">
-
-                                    <!-- Icono circular -->
-                                    <FrameLayout
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
-                                        android:background="@color/white"
-                                        android:foreground="?attr/selectableItemBackgroundBorderless"
-                                        android:padding="10dp">
-
-                                        <ImageView
-                                            android:layout_width="match_parent"
-                                            android:layout_height="match_parent"
-                                            android:src="@drawable/ic_bottle"
-                                            app:tint="#B22034"
-                                            android:contentDescription="Mi Bodega"/>
-                                    </FrameLayout>
-
-                                    <LinearLayout
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:layout_marginStart="10dp"
-                                        android:minWidth="0dp"
-                                        android:orientation="vertical">
-
-                                        <TextView
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:text="Mi Bodega"
-                                            android:textSize="13sp"
-                                            android:textColor="@color/my_dark_primary"
-                                            android:textStyle="bold"/>
-
-                                        <TextView
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:text="Ver inventario"
-                                            android:textSize="12sp"
-                                            android:textColor="#757575"
-                                            android:layout_marginTop="2dp"/>
-                                    </LinearLayout>
-                                </LinearLayout>
-
-                            </LinearLayout>
 
                         </androidx.cardview.widget.CardView>
 
@@ -393,10 +382,12 @@
                         android:id="@+id/cardScanBottle"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
+                        android:layout_marginTop="6dp"
                         android:layout_marginBottom="26dp"
                         app:cardBackgroundColor="#B22034"
                         app:cardCornerRadius="32dp"
-                        app:cardElevation="6dp"
+                        app:cardElevation="10dp"
+                        app:cardMaxElevation="10dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?android:attr/selectableItemBackground">
@@ -446,7 +437,6 @@
                         android:overScrollMode="never"
                         android:nestedScrollingEnabled="false"/>
 
-                    <!-- (dejamos SOLO uno, no duplicado) -->
                     <TextView
                         android:id="@+id/txtChartInsight"
                         android:layout_width="wrap_content"
