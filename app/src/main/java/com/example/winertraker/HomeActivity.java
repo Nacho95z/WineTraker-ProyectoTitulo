@@ -127,6 +127,7 @@ public class HomeActivity extends AppCompatActivity {
     private TextView tvOptimalBadge;
     private boolean hasOptimalWines = false;
 
+    private TextView headerTitle, headerEmail;
     private final List<String> currentOptimalWineNames = new ArrayList<>();
     private final List<String> currentOptimalWineIds = new ArrayList<>();
 
@@ -167,7 +168,9 @@ public class HomeActivity extends AppCompatActivity {
         }
         userId = user.getUid();
 
-        initializeViews();
+        initializeViews();          // ✅ primero obtener headerTitle/headerEmail
+        setupDrawerUserInfo();      // ✅ ahora sí se puede setear
+
         setupChartsPager();
         fixPagerSwipeConflicts();
         setupActions();
@@ -181,6 +184,15 @@ public class HomeActivity extends AppCompatActivity {
 
         loadCollectionStats();
         checkTermsAndConditions();
+    }
+
+    private void setupDrawerUserInfo() {
+        if (user != null && headerTitle != null && headerEmail != null) {
+            String displayName = user.getDisplayName();
+            if (displayName == null || displayName.isEmpty()) displayName = "Amante del vino";
+            headerTitle.setText(displayName);
+            headerEmail.setText(user.getEmail());
+        }
     }
 
     @Override
@@ -249,6 +261,12 @@ public class HomeActivity extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
         menuIcon = findViewById(R.id.menuIcon);
+
+        if (navigationView != null) {
+            android.view.View headerView = navigationView.getHeaderView(0);
+            headerTitle = headerView.findViewById(R.id.headerTitle);
+            headerEmail = headerView.findViewById(R.id.headerEmail);
+        }
 
         // Banner
         infoBannerCard = findViewById(R.id.infoBannerCard);
