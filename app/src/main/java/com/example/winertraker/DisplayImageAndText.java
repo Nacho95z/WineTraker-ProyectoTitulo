@@ -4,6 +4,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
+
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -109,7 +112,8 @@ public class DisplayImageAndText extends AppCompatActivity {
         percentageEditText = findViewById(R.id.percentageEditText);
         wineNameEditText = findViewById(R.id.wineNameEditText);
         categoryEditText = findViewById(R.id.categoryEditText);
-        priceEditText = findViewById(R.id.priceEditText); // 👈 NUEVO
+        priceEditText = findViewById(R.id.priceEditText); //
+
 
         saveButton = findViewById(R.id.buttonSave);
         discardButton = findViewById(R.id.buttonDiscard);
@@ -134,10 +138,37 @@ public class DisplayImageAndText extends AppCompatActivity {
 
         peakHeaderLayout = findViewById(R.id.peakHeaderLayout);
         peakTextView = findViewById(R.id.peakTextView);
+        // ✅ Apogeo en tiempo real (mientras escribe)
+        if (vintageEditText != null) {
+            vintageEditText.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    updatePeakInfoFromFields();
+                }
+                @Override public void afterTextChanged(Editable s) { }
+            });
+        }
 
-        vintageEditText.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updatePeakInfoFromFields(); });
-        nameEditText.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updatePeakInfoFromFields(); });
-        categoryEditText.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updatePeakInfoFromFields(); });
+        if (nameEditText != null) {
+            nameEditText.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    updatePeakInfoFromFields();
+                }
+                @Override public void afterTextChanged(Editable s) { }
+            });
+        }
+
+        if (categoryEditText != null) {
+            categoryEditText.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    updatePeakInfoFromFields();
+                }
+                @Override public void afterTextChanged(Editable s) { }
+            });
+        }
+
 
 
         // Ocultar apogeo al inicio
@@ -840,13 +871,21 @@ public class DisplayImageAndText extends AppCompatActivity {
         String category = categoryEditText != null ? categoryEditText.getText().toString().trim() : "";
         String vintageStr = vintageEditText != null ? vintageEditText.getText().toString().trim() : "";
 
-        // Si falta año válido o variedad -> ocultar
-        if (variety.isEmpty() || vintageStr.isEmpty() || !vintageStr.matches("\\d{4}")) {
+        if (variety.isEmpty() || vintageStr.isEmpty()) {
             peakHeaderLayout.setVisibility(View.GONE);
             peakTextView.setVisibility(View.GONE);
             peakTextView.setText("—");
             return;
         }
+
+        // Mientras el usuario escribe (aún no 4 dígitos), muestra un mensaje suave
+        if (!vintageStr.matches("\\d{4}")) {
+            peakHeaderLayout.setVisibility(View.VISIBLE);
+            peakTextView.setVisibility(View.VISIBLE);
+            peakTextView.setText("Escribe el año completo (4 dígitos) para estimar el apogeo…");
+            return;
+        }
+
 
         int vintageYear;
         try {
