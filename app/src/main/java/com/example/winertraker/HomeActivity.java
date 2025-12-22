@@ -595,6 +595,7 @@ public class HomeActivity extends AppCompatActivity {
 
                 for (QueryDocumentSnapshot document : task.getResult()) {
 
+                    // ✅ Solo bodega: si está archivado/consumido no entra a gráficos ni valor bodega
                     Boolean archived = document.getBoolean("archived");
                     if (archived != null && archived) {
                         consumedCount++;
@@ -609,10 +610,12 @@ public class HomeActivity extends AppCompatActivity {
                     String wineName = document.getString("wineName");
                     String category = document.getString("category");
 
+                    // ✅ Variedades
                     if (variety != null) {
                         variety = capitalize(variety);
                         wineVarietyCounts.put(variety, wineVarietyCounts.getOrDefault(variety, 0) + 1);
 
+                        // ✅ Óptimos
                         if (vintageStr != null) {
                             try {
                                 int vintageYear = Integer.parseInt(vintageStr);
@@ -637,27 +640,39 @@ public class HomeActivity extends AppCompatActivity {
                         }
                     }
 
+                    // ✅ Históricos: si createdAt viene null, lo asignamos al mes actual para no perder vinos
                     Timestamp ts = document.getTimestamp("createdAt");
-                    Integer monthIndex = null;
+                    Calendar cal = Calendar.getInstance();
                     if (ts != null) {
-                        Calendar cal = Calendar.getInstance();
                         cal.setTime(ts.toDate());
-                        monthIndex = cal.get(Calendar.MONTH);
-                        if (monthIndex >= 0 && monthIndex < 12) monthCounts[monthIndex]++;
+                    }
+                    int monthIndex = cal.get(Calendar.MONTH); // siempre 0..11
+                    if (monthIndex >= 0 && monthIndex < 12) {
+                        monthCounts[monthIndex]++; // ✅ cuenta siempre
                     }
 
+                    // ✅ Precio: soporta Number, "9000", "$9.000", "CLP 9.000", etc.
                     Double price = null;
                     Object priceObj = document.get("price");
+
                     if (priceObj instanceof Number) {
                         price = ((Number) priceObj).doubleValue();
                     } else if (priceObj instanceof String) {
-                        try { price = Double.parseDouble((String) priceObj); } catch (NumberFormatException ignored) {}
+                        try {
+                            String s = ((String) priceObj).trim()
+                                    .replace("CLP", "")
+                                    .replace("$", "")
+                                    .replace(" ", "")
+                                    .replace(".", "")   // miles
+                                    .replace(",", "."); // decimales si existieran
+                            if (!s.isEmpty()) price = Double.parseDouble(s);
+                        } catch (Exception ignored) {}
                     }
 
                     if (price != null) {
                         totalCellarValue += price;
-                        if (monthIndex != null && monthIndex >= 0 && monthIndex < 12) {
-                            monthValues[monthIndex] += price;
+                        if (monthIndex >= 0 && monthIndex < 12) {
+                            monthValues[monthIndex] += price; // ✅ valor siempre cae en algún mes
                         }
                     }
                 }
@@ -719,6 +734,7 @@ public class HomeActivity extends AppCompatActivity {
             if (chartsPager != null) updateInsightForPage(chartsPager.getCurrentItem());
         });
     }
+
 
     // -------------------------------------------------------------
     // Charts
