@@ -216,15 +216,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="18dp">
+                        android:layout_marginBottom="2dp">
 
                         <!-- Consumidos -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/cardConsumed"
-                            android:layout_width="0dp"
+                            android:layout_width="5dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginEnd="8dp"
+                            android:layout_marginEnd="2dp"
                             android:layout_marginBottom="2dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
@@ -238,13 +238,13 @@
 
                             <LinearLayout
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
+                                android:layout_height="match_parent"
                                 android:orientation="vertical"
-                                android:padding="18dp">
+                                android:padding="10dp">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
+                                    android:layout_height="match_parent"
                                     android:orientation="horizontal"
                                     android:gravity="center_vertical">
 
@@ -295,9 +295,9 @@
                         <!-- Mi Bodega -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/cardMyCellar"
-                            android:layout_width="0dp"
+                            android:layout_width="5dp"
                             android:layout_height="match_parent"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="2dp"
                             android:layout_marginBottom="2dp"
                             android:layout_weight="1"
                             android:clickable="true"
@@ -314,11 +314,11 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="18dp">
+                                android:padding="10dp">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
+                                    android:layout_height="match_parent"
                                     android:gravity="center_vertical"
                                     android:orientation="horizontal">
 
@@ -382,7 +382,7 @@
                         android:id="@+id/cardScanBottle"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="2dp"
                         android:layout_marginBottom="26dp"
                         app:cardBackgroundColor="#B22034"
                         app:cardCornerRadius="32dp"
