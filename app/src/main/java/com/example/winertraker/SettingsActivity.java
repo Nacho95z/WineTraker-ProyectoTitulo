@@ -3,6 +3,8 @@ package com.example.winertraker;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -29,23 +31,19 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import java.io.BufferedWriter;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.concurrent.Executors;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.Executors;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -57,7 +55,7 @@ public class SettingsActivity extends AppCompatActivity {
     private NavigationView navigationView;
     private ImageView menuIcon;
 
-    // Header drawer (si usas nav_header)
+    // Header drawer
     private TextView headerTitle, headerEmail;
 
     // Perfil
@@ -90,12 +88,15 @@ public class SettingsActivity extends AppCompatActivity {
     private FirebaseFirestore db;
 
     // Launchers
-    private ActivityResultLauncher<String> createCsvLauncher;
     private ActivityResultLauncher<String> createPdfLauncher;
 
     // Estilo WineTrack
     private static final int COLOR_WINE = Color.parseColor("#B22034");
     private static final int COLOR_GRAY = Color.parseColor("#555555");
+
+    // ✅ NUEVO: Scope exportación
+    private enum ExportScope { CELLAR, CONSUMED, BOTH }
+    private ExportScope pendingScope = ExportScope.CELLAR;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -107,26 +108,17 @@ public class SettingsActivity extends AppCompatActivity {
         prefs = getSharedPreferences("wtrack_prefs", MODE_PRIVATE);
         db = FirebaseFirestore.getInstance();
 
-        // ✅ Drawer (misma lógica que Home)
+        // Drawer
         initializeDrawerViews();
         setupDrawerUserInfo();
         setupDrawerActions();
 
-        // CSV launcher
-//        createCsvLauncher = registerForActivityResult(
-//                new ActivityResultContracts.CreateDocument("text/csv"),
-//                uri -> {
-//                    if (uri == null) return;
-//                    exportCollectionToCsv(uri);
-//                }
-//        );
-
-        // PDF launcher
+        // ✅ MODIFICADO: PDF launcher ahora usa pendingScope
         createPdfLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/pdf"),
                 uri -> {
                     if (uri == null) return;
-                    exportCollectionToPdfResumenYFichas(uri); // PDF estilo ficha
+                    exportCollectionToPdfResumenYFichas(uri, pendingScope);
                 }
         );
 
@@ -137,8 +129,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     // =========================================================
-// DRAWER (igual que Home)
-// =========================================================
+    // DRAWER (igual que Home)
+    // =========================================================
     private void initializeDrawerViews() {
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
@@ -181,7 +173,6 @@ public class SettingsActivity extends AppCompatActivity {
                     redirectToActivity(ConsumedWinesActivity.class);
 
                 } else if (id == R.id.nav_settings) {
-                    // ✅ ya estás aquí
                     drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START);
                     return true;
 
@@ -229,94 +220,11 @@ public class SettingsActivity extends AppCompatActivity {
         int mode = p.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         AppCompatDelegate.setDefaultNightMode(mode);
     }
-    // =========================================================
-    // EXPORT CSV
-    // =========================================================
-//    private void exportCollectionToCsv(Uri uri) {
-//        if (user == null) {
-//            Toast.makeText(this, "Debes iniciar sesión para exportar", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-//
-//        Toast.makeText(this, "Generando archivo Excel (CSV)...", Toast.LENGTH_SHORT).show();
-//
-//        db.collection("descriptions")
-//                .document(user.getUid())
-//                .collection("wineDescriptions")
-//                .get()
-//                .addOnSuccessListener(querySnapshot -> Executors.newSingleThreadExecutor().execute(() -> {
-//                    try (
-//                            OutputStream os = getContentResolver().openOutputStream(uri);
-//                            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
-//                            BufferedWriter writer = new BufferedWriter(osw)
-//                    ) {
-//                        // BOM para Excel
-//                        writer.write('\uFEFF');
-//
-//                        String userName = getUserDisplayName();
-//                        String reportDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
-//
-//                        // Título + fecha
-//                        writer.write("WineTrack - Colección personal de " + userName);
-//                        writer.newLine();
-//                        writer.write("Fecha reporte: " + reportDate);
-//                        writer.newLine();
-//                        writer.newLine();
-//
-//                        // Cabeceras
-//                        writer.write("Nombre,Variedad,Cosecha,Origen,Categoría,Alcohol %,Precio,Fecha registro,Comentario,Imagen URL");
-//                        writer.newLine();
-//
-//                        for (QueryDocumentSnapshot doc : querySnapshot) {
-//                            String wineName   = csv(doc.getString("wineName"));
-//                            String variety    = csv(doc.getString("variety"));
-//                            String vintage    = csv(doc.getString("vintage"));
-//                            String origin     = csv(doc.getString("origin"));
-//                            String category   = csv(doc.getString("category"));
-//
-//                            String percentage = valueToString(doc.get("percentage"));
-//                            String price      = valueToString(doc.get("price"));
-//
-//                            String comment    = csv(doc.getString("comment"));
-//                            String imageUrl   = csv(doc.getString("imageUrl"));
-//
-//                            String createdAt = "";
-//                            if (doc.getTimestamp("createdAt") != null) {
-//                                createdAt = csv(new SimpleDateFormat(
-//                                        "dd-MM-yyyy HH:mm",
-//                                        Locale.getDefault()
-//                                ).format(doc.getTimestamp("createdAt").toDate()));
-//                            }
-//
-//                            String line = String.join(",",
-//                                    wineName, variety, vintage, origin, category,
-//                                    percentage, price, createdAt, comment, imageUrl
-//                            );
-//
-//                            writer.write(line);
-//                            writer.newLine();
-//                        }
-//
-//                        writer.flush();
-//
-//                        runOnUiThread(() ->
-//                                Toast.makeText(this, "CSV exportado ✅", Toast.LENGTH_LONG).show()
-//                        );
-//                    } catch (Exception e) {
-//                        runOnUiThread(() ->
-//                                Toast.makeText(this, "Error al exportar CSV: " + e.getMessage(), Toast.LENGTH_LONG).show()
-//                        );
-//                    }
-//                }))
-//                .addOnFailureListener(e ->
-//                        Toast.makeText(this, "Error leyendo Firestore: " + e.getMessage(), Toast.LENGTH_LONG).show()
-//                );
-//    }
 
     // =========================================================
-    // EXPORT PDF - ESTILO FICHA (UNA PÁGINA POR VINO)
+    // ✅ MODIFICADO: EXPORT PDF con filtro Bodega / Consumidos / Ambos
     // =========================================================
-    private void exportCollectionToPdfResumenYFichas(Uri uri) {
+    private void exportCollectionToPdfResumenYFichas(Uri uri, ExportScope scope) {
         if (user == null) {
             Toast.makeText(this, "Debes iniciar sesión para exportar", Toast.LENGTH_SHORT).show();
             return;
@@ -324,11 +232,43 @@ public class SettingsActivity extends AppCompatActivity {
 
         Toast.makeText(this, "Generando PDF (resumen + fichas)...", Toast.LENGTH_SHORT).show();
 
-        db.collection("descriptions")
+        Query base = db.collection("descriptions")
                 .document(user.getUid())
-                .collection("wineDescriptions")
-                .get()
+                .collection("wineDescriptions");
+
+        // ✅ Query eficiente para consumidos, pero para Bodega incluimos también los docs SIN campo archived
+        Query query;
+        if (scope == ExportScope.CONSUMED) {
+            query = base.whereEqualTo("archived", true);
+        } else {
+            // CELLAR o BOTH: traemos todo y filtramos local
+            query = base;
+        }
+
+        query.get()
                 .addOnSuccessListener(querySnapshot -> Executors.newSingleThreadExecutor().execute(() -> {
+
+                    // ✅ Filtrado robusto (archived null se considera "bodega")
+                    List<QueryDocumentSnapshot> docs = new ArrayList<>();
+                    for (QueryDocumentSnapshot d : querySnapshot) {
+                        Boolean archived = d.getBoolean("archived"); // puede ser null
+                        boolean isConsumed = Boolean.TRUE.equals(archived);
+
+                        if (scope == ExportScope.BOTH) {
+                            docs.add(d);
+                        } else if (scope == ExportScope.CONSUMED) {
+                            if (isConsumed) docs.add(d);
+                        } else { // CELLAR
+                            if (!isConsumed) docs.add(d); // incluye archived=false o null
+                        }
+                    }
+
+                    if (docs.isEmpty()) {
+                        runOnUiThread(() ->
+                                Toast.makeText(this, "No hay vinos para exportar en esta sección.", Toast.LENGTH_LONG).show()
+                        );
+                        return;
+                    }
 
                     PdfDocument pdf = new PdfDocument();
 
@@ -338,12 +278,10 @@ public class SettingsActivity extends AppCompatActivity {
 
                         String reportDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
 
-                        // A4 aprox
                         final int pageWidth = 595;
                         final int pageHeight = 842;
                         final int margin = 36;
 
-                        // Estilo base
                         Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
                         titlePaint.setColor(COLOR_WINE);
                         titlePaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -363,9 +301,6 @@ public class SettingsActivity extends AppCompatActivity {
                         footerLinePaint.setColor(Color.LTGRAY);
                         footerLinePaint.setStrokeWidth(1.5f);
 
-                        // =========================================================
-                        // 1) PÁGINA(S) DE RESUMEN (TABLA)
-                        // =========================================================
                         Paint tableHeaderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
                         tableHeaderPaint.setColor(Color.BLACK);
                         tableHeaderPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -381,7 +316,6 @@ public class SettingsActivity extends AppCompatActivity {
 
                         int pageNumber = 1;
 
-                        // Columnas resumen
                         int colName = 180;
                         int colVariety = 90;
                         int colVintage = 55;
@@ -390,9 +324,15 @@ public class SettingsActivity extends AppCompatActivity {
                         int colPrice = 60;
 
                         int tableX = margin;
-                        int tableYStart; // después del header
                         int rowH = 18;
 
+                        String scopeLabel = (scope == ExportScope.CELLAR) ? "Mi bodega"
+                                : (scope == ExportScope.CONSUMED) ? "Consumidos"
+                                : "Ambos";
+
+                        // =========================
+                        // 1) RESUMEN
+                        // =========================
                         PdfDocument.Page summaryPage = pdf.startPage(
                                 new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
                         );
@@ -400,13 +340,12 @@ public class SettingsActivity extends AppCompatActivity {
 
                         int y = margin;
 
-                        // Header del documento (Resumen)
                         titlePaint.setTextSize(18);
                         canvas.drawText("WineTrack", margin, y, titlePaint);
                         y += 18;
 
                         subPaint.setTextSize(12);
-                        canvas.drawText("Colección personal de " + userName, margin, y, subPaint);
+                        canvas.drawText("Colección personal de " + userName + " (" + scopeLabel + ")", margin, y, subPaint);
                         y += 14;
 
                         canvas.drawText("Fecha reporte: " + reportDate, margin, y, subPaint);
@@ -422,9 +361,6 @@ public class SettingsActivity extends AppCompatActivity {
                         canvas.drawLine(margin, y, pageWidth - margin, y, linePaint);
                         y += 14;
 
-                        tableYStart = y;
-
-                        // Encabezados de tabla
                         int x = tableX;
                         canvas.drawText("Nombre", x + 2, y, tableHeaderPaint); x += colName;
                         canvas.drawText("Variedad", x + 2, y, tableHeaderPaint); x += colVariety;
@@ -437,14 +373,10 @@ public class SettingsActivity extends AppCompatActivity {
                         canvas.drawLine(margin, y, pageWidth - margin, y, tableGridPaint);
                         y += 12;
 
-                        // Iteramos documentos para tabla (puede requerir varias páginas)
-                        for (QueryDocumentSnapshot doc : querySnapshot) {
+                        for (QueryDocumentSnapshot doc : docs) {
 
-                            // Salto de página para resumen
                             if (y > pageHeight - margin - 40) {
-                                // Footer resumen
                                 drawFooter(canvas, pageWidth, pageHeight, margin, footerPaint, footerLinePaint, pageNumber);
-
                                 pdf.finishPage(summaryPage);
 
                                 pageNumber++;
@@ -453,20 +385,18 @@ public class SettingsActivity extends AppCompatActivity {
                                 );
                                 canvas = summaryPage.getCanvas();
 
-                                // Header simple en nuevas páginas de resumen
                                 y = margin;
                                 titlePaint.setTextSize(14);
                                 canvas.drawText("WineTrack - Resumen de colección", margin, y, titlePaint);
                                 y += 14;
 
                                 subPaint.setTextSize(10);
-                                canvas.drawText("Colección de " + userName + " | Fecha: " + reportDate, margin, y, subPaint);
+                                canvas.drawText("Colección de " + userName + " (" + scopeLabel + ") | Fecha: " + reportDate, margin, y, subPaint);
                                 y += 12;
 
                                 canvas.drawLine(margin, y, pageWidth - margin, y, linePaint);
                                 y += 16;
 
-                                // Encabezados tabla repetidos
                                 x = tableX;
                                 canvas.drawText("Nombre", x + 2, y, tableHeaderPaint); x += colName;
                                 canvas.drawText("Variedad", x + 2, y, tableHeaderPaint); x += colVariety;
@@ -488,7 +418,6 @@ public class SettingsActivity extends AppCompatActivity {
                             String price = valueToString(doc.get("price"));
                             if (!price.isEmpty() && !price.startsWith("$")) price = "$" + price;
 
-                            // Fila
                             x = tableX;
                             canvas.drawText(clip(wineName, 36), x + 2, y, tableCellPaint); x += colName;
                             canvas.drawText(clip(variety, 14), x + 2, y, tableCellPaint); x += colVariety;
@@ -500,13 +429,12 @@ public class SettingsActivity extends AppCompatActivity {
                             y += rowH;
                         }
 
-                        // Footer última página resumen
                         drawFooter(canvas, pageWidth, pageHeight, margin, footerPaint, footerLinePaint, pageNumber);
                         pdf.finishPage(summaryPage);
 
-                        // =========================================================
-                        // 2) FICHAS INDIVIDUALES (TU ESTILO ACTUAL)
-                        // =========================================================
+                        // =========================
+                        // 2) FICHAS
+                        // =========================
                         Paint sectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
                         sectionPaint.setColor(Color.BLACK);
                         sectionPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -516,16 +444,14 @@ public class SettingsActivity extends AppCompatActivity {
                         bodyPaint.setColor(Color.DKGRAY);
                         bodyPaint.setTextSize(10);
 
-                        // Columnas ficha
                         final int leftX = margin;
                         final int rightX = pageWidth / 2 + 10;
                         final int leftWidth = (pageWidth / 2) - margin - 20;
                         final int rightWidth = pageWidth - rightX - margin;
 
-                        for (QueryDocumentSnapshot doc : querySnapshot) {
+                        for (QueryDocumentSnapshot doc : docs) {
                             pageNumber++;
 
-                            // Datos
                             String wineName = safe(doc.getString("wineName"));
                             String variety = safe(doc.getString("variety"));
                             String vintage = safe(doc.getString("vintage"));
@@ -539,7 +465,6 @@ public class SettingsActivity extends AppCompatActivity {
                             String comment = safe(doc.getString("comment"));
                             String imageUrl = safe(doc.getString("imageUrl"));
 
-                            // Producción editorial
                             String production;
                             if (origin.isEmpty() && category.isEmpty() && variety.isEmpty() && vintage.isEmpty()) {
                                 production = "Información de producción no registrada.\n"
@@ -560,13 +485,12 @@ public class SettingsActivity extends AppCompatActivity {
 
                             int yy = margin;
 
-                            // Header ficha
                             titlePaint.setTextSize(18);
                             c.drawText("WineTrack", leftX, yy, titlePaint);
                             yy += 18;
 
                             subPaint.setTextSize(12);
-                            c.drawText("Colección personal de " + userName, leftX, yy, subPaint);
+                            c.drawText("Colección personal de " + userName + " (" + scopeLabel + ")", leftX, yy, subPaint);
                             yy += 14;
 
                             c.drawText("Fecha reporte: " + reportDate, leftX, yy, subPaint);
@@ -575,7 +499,6 @@ public class SettingsActivity extends AppCompatActivity {
                             c.drawLine(margin, yy, pageWidth - margin, yy, linePaint);
                             yy += 22;
 
-                            // Nombre vino
                             titlePaint.setTextSize(20);
                             c.drawText(clip(wineName, 42), leftX, yy, titlePaint);
                             yy += 22;
@@ -593,7 +516,6 @@ public class SettingsActivity extends AppCompatActivity {
 
                             int yColumnsStart = yy;
 
-                            // Imagen derecha
                             int ry = yColumnsStart;
                             Bitmap bottle = downloadBitmap(imageUrl);
                             if (bottle != null) {
@@ -616,7 +538,6 @@ public class SettingsActivity extends AppCompatActivity {
                                 c.drawBitmap(rounded, imgX, imgY, null);
                             }
 
-                            // Columna izquierda
                             int leftY = yColumnsStart;
 
                             c.drawText("Producción", leftX, leftY, sectionPaint);
@@ -643,13 +564,10 @@ public class SettingsActivity extends AppCompatActivity {
 
                             leftY = drawParagraph(c, resumen, leftX, leftY, leftWidth, bodyPaint, 10);
 
-                            // Footer
                             drawFooter(c, pageWidth, pageHeight, margin, footerPaint, footerLinePaint, pageNumber);
-
                             pdf.finishPage(page);
                         }
 
-                        // Guardar
                         try (OutputStream os = getContentResolver().openOutputStream(uri)) {
                             pdf.writeTo(os);
                         }
@@ -665,12 +583,12 @@ public class SettingsActivity extends AppCompatActivity {
                     } finally {
                         pdf.close();
                     }
-
                 }))
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error leyendo Firestore: " + e.getMessage(), Toast.LENGTH_LONG).show()
                 );
     }
+
 
     /** Footer reutilizable */
     private void drawFooter(Canvas canvas, int pageWidth, int pageHeight, int margin,
@@ -691,7 +609,6 @@ public class SettingsActivity extends AppCompatActivity {
                 footerY,
                 footerPaint);
     }
-
 
     // =========================================================
     // UI
@@ -756,7 +673,6 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-
         btnChangePassword.setOnClickListener(v -> {
             if (user != null && user.getEmail() != null) {
                 FirebaseAuth.getInstance()
@@ -817,17 +733,30 @@ public class SettingsActivity extends AppCompatActivity {
         btnExport.setOnClickListener(v -> showExportDialog());
     }
 
+    // ✅ MODIFICADO: diálogo con selección Bodega / Consumidos / Ambos
     private void showExportDialog() {
-        String[] options = {"Exportar a PDF (fichas)"};
+        String[] scopeOptions = {"Mi bodega", "Consumidos", "Ambos"};
+        int[] selected = {0};
 
         new AlertDialog.Builder(this)
                 .setTitle("Exportar colección")
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        String fileName = "WineTrack_Resumen_y_Fichas_" + getTimestamp() + ".pdf";
-                        createPdfLauncher.launch(fileName);
-                    }
+                .setSingleChoiceItems(scopeOptions, selected[0], (dialog, which) -> selected[0] = which)
+                .setPositiveButton("Exportar PDF", (dialog, which) -> {
+
+                    ExportScope scope = ExportScope.CELLAR;
+                    if (selected[0] == 1) scope = ExportScope.CONSUMED;
+                    else if (selected[0] == 2) scope = ExportScope.BOTH;
+
+                    pendingScope = scope;
+
+                    String suffix = (scope == ExportScope.CELLAR) ? "Bodega"
+                            : (scope == ExportScope.CONSUMED) ? "Consumidos"
+                            : "Ambos";
+
+                    String fileName = "WineTrack_" + suffix + "_Resumen_y_Fichas_" + getTimestamp() + ".pdf";
+                    createPdfLauncher.launch(fileName);
                 })
+                .setNegativeButton("Cancelar", null)
                 .show();
     }
 
@@ -836,14 +765,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     // =========================================================
-    // HELPERS
+    // HELPERS (los tuyos)
     // =========================================================
-    private String getUserDisplayName() {
-        if (user == null) return "usuario";
-        String n = user.getDisplayName();
-        return (n == null || n.isEmpty()) ? "usuario" : n;
-    }
-
     private String getTimestamp() {
         return new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
     }
@@ -862,31 +785,6 @@ public class SettingsActivity extends AppCompatActivity {
         return s.substring(0, Math.max(0, max - 1)) + "…";
     }
 
-    private String csv(String value) {
-        if (value == null) return "";
-        boolean mustQuote = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r");
-        String v = value.replace("\"", "\"\"");
-        return mustQuote ? ("\"" + v + "\"") : v;
-    }
-
-    private void drawKeyValue(Canvas canvas, int x, int y,
-                              Paint labelPaint, Paint valuePaint,
-                              String label, String value, int maxWidth) {
-
-        canvas.drawText(label, x, y, labelPaint);
-
-        float labelW = labelPaint.measureText(label + " ");
-        String v = (value == null) ? "" : value;
-
-        // recorte simple por ancho aproximado (por chars)
-        if (v.length() > 26) v = v.substring(0, 25) + "…";
-        canvas.drawText(v, x + (int) labelW, y, valuePaint);
-    }
-
-    /**
-     * Dibuja párrafo haciendo wrap por palabras dentro de un ancho.
-     * Devuelve el nuevo Y final.
-     */
     private int drawParagraph(Canvas canvas, String text, int x, int y, int maxWidth, Paint paint, int maxLines) {
         if (text == null) text = "";
         String[] words = text.replace("\r", " ").split("\\s+");
@@ -942,7 +840,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-
     private Bitmap getRoundedBitmap(Bitmap bitmap, float radius) {
         if (bitmap == null) return null;
 
@@ -975,6 +872,4 @@ public class SettingsActivity extends AppCompatActivity {
 
         return output;
     }
-
-
 }
