@@ -349,6 +349,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Hacer backup en Firestore"
+                            android:visibility="gone"
                             android:textColor="#FFFFFF"
                             android:layout_marginTop="8dp"
                             android:backgroundTint="#B00020"/>
@@ -358,6 +359,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Restaurar backup"
+                            android:visibility="gone"
                             android:layout_marginTop="8dp"
                             android:textColor="#FFFFFF"
                             android:backgroundTint="#B00020"/>
