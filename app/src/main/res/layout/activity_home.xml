@@ -232,7 +232,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="18dp">
+                        android:layout_marginBottom="18dp"
+                        android:clipToPadding="false"
+                        android:paddingBottom="2dp">
+
 
                         <!-- Mi Bodega (CLICKABLE) -->
                         <androidx.cardview.widget.CardView
@@ -241,67 +244,72 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginEnd="8dp"
+                            android:layout_marginBottom="2dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
+                            app:cardMaxElevation="4dp"
+                            app:cardUseCompatPadding="true"
+                            app:cardPreventCornerOverlap="true"
                             app:cardBackgroundColor="#FFFFFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
 
+
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
+                                android:padding="18dp">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal">
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
 
                                     <!-- Icono circular -->
                                     <FrameLayout
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
-                                        android:background="@color/white"
+                                        android:layout_width="44dp"
+                                        android:layout_height="44dp"
+                                        android:background="@drawable/bg_icon_circle_soft"
                                         android:padding="10dp">
 
                                         <ImageView
                                             android:layout_width="match_parent"
                                             android:layout_height="match_parent"
-                                            android:contentDescription="Consumidos"
                                             android:src="@drawable/ic_bottle_check"
-                                            app:tint="#B22034" />
+                                            app:tint="#B22034"
+                                            android:contentDescription="Consumidos"/>
                                     </FrameLayout>
 
                                     <LinearLayout
                                         android:layout_width="0dp"
                                         android:layout_height="wrap_content"
-                                        android:layout_marginStart="10dp"
                                         android:layout_weight="1"
-                                        android:orientation="vertical"
-                                        android:minWidth="0dp">
+                                        android:layout_marginStart="12dp"
+                                        android:orientation="vertical">
 
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="Consumidos"
+                                            android:textSize="14sp"
                                             android:textColor="@color/my_dark_primary"
-                                            android:textSize="13sp"
-                                            android:textStyle="bold" />
+                                            android:textStyle="bold"/>
 
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:layout_marginTop="2dp"
                                             android:text=" Ver historial"
+                                            android:textSize="12sp"
                                             android:textColor="#757575"
-                                            android:textSize="12sp" />
+                                            android:layout_marginTop="2dp"/>
                                     </LinearLayout>
 
 
                                 </LinearLayout>
+
 
 
                                 <!-- contador oculto para no romper tu Java -->
@@ -309,8 +317,8 @@
                                     android:id="@+id/txtTotalWines"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="0"
-                                    android:visibility="gone" />
+                                    android:visibility="gone"
+                                    android:text="0"/>
                             </LinearLayout>
 
                         </androidx.cardview.widget.CardView>
@@ -322,18 +330,23 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="8dp"
+                            android:layout_marginBottom="2dp"
                             app:cardCornerRadius="16dp"
                             app:cardElevation="4dp"
+                            app:cardMaxElevation="4dp"
+                            app:cardUseCompatPadding="true"
+                            app:cardPreventCornerOverlap="true"
                             app:cardBackgroundColor="#FFFFFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
 
+
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
+                                android:padding="18dp">
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
@@ -342,10 +355,9 @@
 
                                     <!-- Icono circular -->
                                     <FrameLayout
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
-                                        android:background="@color/white"
-                                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                                        android:layout_width="44dp"
+                                        android:layout_height="44dp"
+                                        android:background="@drawable/bg_icon_circle_soft"
                                         android:padding="10dp">
 
                                         <ImageView
@@ -356,19 +368,19 @@
                                             android:contentDescription="Mi Bodega"/>
                                     </FrameLayout>
 
+
                                     <LinearLayout
                                         android:layout_width="0dp"
                                         android:layout_height="wrap_content"
                                         android:layout_weight="1"
-                                        android:layout_marginStart="10dp"
-                                        android:minWidth="0dp"
+                                        android:layout_marginStart="12dp"
                                         android:orientation="vertical">
 
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="Mi Bodega"
-                                            android:textSize="13sp"
+                                            android:textSize="14sp"
                                             android:textColor="@color/my_dark_primary"
                                             android:textStyle="bold"/>
 
@@ -393,13 +405,16 @@
                         android:id="@+id/cardScanBottle"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
+                        android:layout_marginTop="6dp"
                         android:layout_marginBottom="26dp"
                         app:cardBackgroundColor="#B22034"
                         app:cardCornerRadius="32dp"
-                        app:cardElevation="6dp"
+                        app:cardElevation="10dp"
+                        app:cardMaxElevation="10dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?android:attr/selectableItemBackground">
+
 
                         <LinearLayout
                             android:layout_width="match_parent"
