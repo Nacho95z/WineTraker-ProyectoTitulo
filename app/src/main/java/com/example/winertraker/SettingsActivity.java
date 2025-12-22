@@ -113,13 +113,13 @@ public class SettingsActivity extends AppCompatActivity {
         setupDrawerActions();
 
         // CSV launcher
-        createCsvLauncher = registerForActivityResult(
-                new ActivityResultContracts.CreateDocument("text/csv"),
-                uri -> {
-                    if (uri == null) return;
-                    exportCollectionToCsv(uri);
-                }
-        );
+//        createCsvLauncher = registerForActivityResult(
+//                new ActivityResultContracts.CreateDocument("text/csv"),
+//                uri -> {
+//                    if (uri == null) return;
+//                    exportCollectionToCsv(uri);
+//                }
+//        );
 
         // PDF launcher
         createPdfLauncher = registerForActivityResult(
@@ -232,86 +232,86 @@ public class SettingsActivity extends AppCompatActivity {
     // =========================================================
     // EXPORT CSV
     // =========================================================
-    private void exportCollectionToCsv(Uri uri) {
-        if (user == null) {
-            Toast.makeText(this, "Debes iniciar sesión para exportar", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Toast.makeText(this, "Generando archivo Excel (CSV)...", Toast.LENGTH_SHORT).show();
-
-        db.collection("descriptions")
-                .document(user.getUid())
-                .collection("wineDescriptions")
-                .get()
-                .addOnSuccessListener(querySnapshot -> Executors.newSingleThreadExecutor().execute(() -> {
-                    try (
-                            OutputStream os = getContentResolver().openOutputStream(uri);
-                            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
-                            BufferedWriter writer = new BufferedWriter(osw)
-                    ) {
-                        // BOM para Excel
-                        writer.write('\uFEFF');
-
-                        String userName = getUserDisplayName();
-                        String reportDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
-
-                        // Título + fecha
-                        writer.write("WineTrack - Colección personal de " + userName);
-                        writer.newLine();
-                        writer.write("Fecha reporte: " + reportDate);
-                        writer.newLine();
-                        writer.newLine();
-
-                        // Cabeceras
-                        writer.write("Nombre,Variedad,Cosecha,Origen,Categoría,Alcohol %,Precio,Fecha registro,Comentario,Imagen URL");
-                        writer.newLine();
-
-                        for (QueryDocumentSnapshot doc : querySnapshot) {
-                            String wineName   = csv(doc.getString("wineName"));
-                            String variety    = csv(doc.getString("variety"));
-                            String vintage    = csv(doc.getString("vintage"));
-                            String origin     = csv(doc.getString("origin"));
-                            String category   = csv(doc.getString("category"));
-
-                            String percentage = valueToString(doc.get("percentage"));
-                            String price      = valueToString(doc.get("price"));
-
-                            String comment    = csv(doc.getString("comment"));
-                            String imageUrl   = csv(doc.getString("imageUrl"));
-
-                            String createdAt = "";
-                            if (doc.getTimestamp("createdAt") != null) {
-                                createdAt = csv(new SimpleDateFormat(
-                                        "dd-MM-yyyy HH:mm",
-                                        Locale.getDefault()
-                                ).format(doc.getTimestamp("createdAt").toDate()));
-                            }
-
-                            String line = String.join(",",
-                                    wineName, variety, vintage, origin, category,
-                                    percentage, price, createdAt, comment, imageUrl
-                            );
-
-                            writer.write(line);
-                            writer.newLine();
-                        }
-
-                        writer.flush();
-
-                        runOnUiThread(() ->
-                                Toast.makeText(this, "CSV exportado ✅", Toast.LENGTH_LONG).show()
-                        );
-                    } catch (Exception e) {
-                        runOnUiThread(() ->
-                                Toast.makeText(this, "Error al exportar CSV: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                        );
-                    }
-                }))
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error leyendo Firestore: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                );
-    }
+//    private void exportCollectionToCsv(Uri uri) {
+//        if (user == null) {
+//            Toast.makeText(this, "Debes iniciar sesión para exportar", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        Toast.makeText(this, "Generando archivo Excel (CSV)...", Toast.LENGTH_SHORT).show();
+//
+//        db.collection("descriptions")
+//                .document(user.getUid())
+//                .collection("wineDescriptions")
+//                .get()
+//                .addOnSuccessListener(querySnapshot -> Executors.newSingleThreadExecutor().execute(() -> {
+//                    try (
+//                            OutputStream os = getContentResolver().openOutputStream(uri);
+//                            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
+//                            BufferedWriter writer = new BufferedWriter(osw)
+//                    ) {
+//                        // BOM para Excel
+//                        writer.write('\uFEFF');
+//
+//                        String userName = getUserDisplayName();
+//                        String reportDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
+//
+//                        // Título + fecha
+//                        writer.write("WineTrack - Colección personal de " + userName);
+//                        writer.newLine();
+//                        writer.write("Fecha reporte: " + reportDate);
+//                        writer.newLine();
+//                        writer.newLine();
+//
+//                        // Cabeceras
+//                        writer.write("Nombre,Variedad,Cosecha,Origen,Categoría,Alcohol %,Precio,Fecha registro,Comentario,Imagen URL");
+//                        writer.newLine();
+//
+//                        for (QueryDocumentSnapshot doc : querySnapshot) {
+//                            String wineName   = csv(doc.getString("wineName"));
+//                            String variety    = csv(doc.getString("variety"));
+//                            String vintage    = csv(doc.getString("vintage"));
+//                            String origin     = csv(doc.getString("origin"));
+//                            String category   = csv(doc.getString("category"));
+//
+//                            String percentage = valueToString(doc.get("percentage"));
+//                            String price      = valueToString(doc.get("price"));
+//
+//                            String comment    = csv(doc.getString("comment"));
+//                            String imageUrl   = csv(doc.getString("imageUrl"));
+//
+//                            String createdAt = "";
+//                            if (doc.getTimestamp("createdAt") != null) {
+//                                createdAt = csv(new SimpleDateFormat(
+//                                        "dd-MM-yyyy HH:mm",
+//                                        Locale.getDefault()
+//                                ).format(doc.getTimestamp("createdAt").toDate()));
+//                            }
+//
+//                            String line = String.join(",",
+//                                    wineName, variety, vintage, origin, category,
+//                                    percentage, price, createdAt, comment, imageUrl
+//                            );
+//
+//                            writer.write(line);
+//                            writer.newLine();
+//                        }
+//
+//                        writer.flush();
+//
+//                        runOnUiThread(() ->
+//                                Toast.makeText(this, "CSV exportado ✅", Toast.LENGTH_LONG).show()
+//                        );
+//                    } catch (Exception e) {
+//                        runOnUiThread(() ->
+//                                Toast.makeText(this, "Error al exportar CSV: " + e.getMessage(), Toast.LENGTH_LONG).show()
+//                        );
+//                    }
+//                }))
+//                .addOnFailureListener(e ->
+//                        Toast.makeText(this, "Error leyendo Firestore: " + e.getMessage(), Toast.LENGTH_LONG).show()
+//                );
+//    }
 
     // =========================================================
     // EXPORT PDF - ESTILO FICHA (UNA PÁGINA POR VINO)
@@ -818,15 +818,12 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void showExportDialog() {
-        String[] options = {"Exportar a CSV (Excel)", "Exportar a PDF (fichas)"};
+        String[] options = {"Exportar a PDF (fichas)"};
 
         new AlertDialog.Builder(this)
                 .setTitle("Exportar colección")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        String fileName = "WineTrack_Coleccion_" + getTimestamp() + ".csv";
-                        createCsvLauncher.launch(fileName);
-                    } else {
                         String fileName = "WineTrack_Resumen_y_Fichas_" + getTimestamp() + ".pdf";
                         createPdfLauncher.launch(fileName);
                     }
