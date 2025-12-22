@@ -232,7 +232,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="18dp"
+                        android:layout_marginBottom="2dp"
                         android:clipToPadding="false"
                         android:paddingBottom="2dp">
 
@@ -405,7 +405,7 @@
                         android:id="@+id/cardScanBottle"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="2dp"
                         android:layout_marginBottom="26dp"
                         app:cardBackgroundColor="#B22034"
                         app:cardCornerRadius="32dp"
